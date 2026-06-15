@@ -704,3 +704,57 @@ body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 *
 /* ---------- 전체화면(Fullscreen) 모드 ---------- */
 #screen-game .stage--game:fullscreen { width: 100vw; height: 100vh; min-height: 0; margin-left: 0; border-radius: 0; }
 #screen-game .stage--game:-webkit-full-screen { width: 100vw; height: 100vh; min-height: 0; margin-left: 0; border-radius: 0; }
+
+/* ============================================================
+   단계 전환 연출 + 여정 지도
+   ============================================================ */
+/* 단계 전환 ("1단계 완료 → 다음") */
+#screen-game .stage-transition {
+  position: absolute; inset: 0; z-index: 14; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 45%, rgba(18, 28, 22, 0.84), rgba(8, 14, 10, 0.97));
+  opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s; pointer-events: none;
+}
+#screen-game .stage-transition.show { opacity: 1; visibility: visible; }
+.st-inner { text-align: center; display: flex; flex-direction: column; gap: 0.5rem; transform: translateY(12px); transition: transform 0.55s ease; }
+#screen-game .stage-transition.show .st-inner { transform: none; }
+.st-stage { color: var(--accent); font-weight: 900; letter-spacing: 0.22em; font-size: 0.8rem; }
+.st-clear { font-family: var(--display); color: #fff; font-size: clamp(2rem, 6vw, 3.4rem); text-shadow: 0 0 30px var(--game-glow); }
+.st-next { color: rgba(255, 255, 255, 0.85); font-size: 1.1rem; font-weight: 800; }
+
+/* 여정 지도 오버레이 */
+#screen-game .worldmap { position: absolute; inset: 0; z-index: 18; display: grid; place-items: center; }
+#screen-game .worldmap[aria-hidden="true"] { display: none; }
+.wm-scrim { position: absolute; inset: 0; background: rgba(8, 14, 10, 0.6); backdrop-filter: blur(4px); }
+.worldmap-card {
+  position: relative; z-index: 1; width: min(36rem, 90vw); padding: 1.3rem 1.5rem 1.5rem;
+  background: var(--game-panel-strong); border: 1px solid var(--game-border); border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(16px); color: var(--game-ink); animation: titleIn 0.35s ease both;
+}
+.wm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+.wm-title { font-family: var(--display); font-size: 1.5rem; color: #fff; }
+.wm-close { width: 2.4rem; height: 2.4rem; }
+.wm-path { display: flex; align-items: flex-start; }
+.wm-node { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 0.3rem; opacity: 0.55; }
+.wm-dot {
+  width: 2.7rem; height: 2.7rem; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.08); border: 2px solid var(--game-border); font-weight: 900; font-size: 1rem;
+}
+.wm-name { font-weight: 800; font-size: 0.92rem; text-align: center; }
+.wm-status { font-size: 0.7rem; color: var(--game-muted); font-weight: 800; }
+.wm-conn { flex: 0 0 1.6rem; height: 2px; margin-top: 1.35rem; background: var(--game-border); }
+.wm-node.done, .wm-node.current, .wm-node.open { opacity: 1; }
+.wm-node.done .wm-dot { background: rgba(245, 184, 75, 0.18); border-color: var(--accent); color: var(--accent); }
+.wm-node.done .wm-status { color: var(--accent); }
+.wm-node.current .wm-dot { background: var(--brand); border-color: #fff; color: #fff; box-shadow: 0 0 18px var(--game-glow); animation: mapPulse 1.6s ease-in-out infinite; }
+.wm-node.open .wm-dot { border-color: rgba(255, 255, 255, 0.5); }
+@keyframes mapPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.wm-progress { margin-top: 1.3rem; display: flex; align-items: center; gap: 0.7rem; }
+.wm-plabel { font-size: 0.75rem; font-weight: 800; color: var(--game-muted); }
+.wm-track { flex: 1; height: 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.wm-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), #ffe08a); box-shadow: 0 0 10px var(--game-glow); transition: width 0.4s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-game .stage-transition, #screen-game .stage-transition .st-inner { transition: none; }
+  .wm-node.current .wm-dot, .worldmap-card { animation: none; }
+}

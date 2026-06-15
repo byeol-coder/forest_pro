@@ -41,6 +41,7 @@ let lastTactileT = 0, lastWarnT = 0, lastHitT = 0, lastExitT = 0;
 let audioCtx = null;
 let areaGroup = null;
 let riverCrossed = false;
+let stageTransitioning = false;
 let exposurePulse = 0;
 let musicNodes = null;
 let musicOn = true;
@@ -352,8 +353,69 @@ function loadArea(id, opts = {}) {
   }
 }
 
+// 단계 전환 연출: "N단계 완료 → 다음 구역" 화면 후 실제 이동
+function playStageTransition(toId) {
+  if (stageTransitioning) return;
+  stageTransitioning = true;
+  const fromIdx = AREA_ORDER.indexOf(gameState.area);
+  const toIdx = AREA_ORDER.indexOf(toId);
+  const overlay = document.getElementById('stageTransition');
+  const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  set('stStageNum', `STAGE ${toIdx + 1} / ${AREA_ORDER.length}`);
+  set('stClearLabel', `${fromIdx + 1}단계 완료`);
+  set('stNextLabel', `다음 — ${AREAS[toId].name}`);
+  if (overlay) overlay.classList.add('show');
+  announce(`${fromIdx + 1}단계 완료. ${AREAS[toId].name}(으)로 이동합니다.`, true);
+  window.setTimeout(() => { loadArea(toId); }, 1100);
+  window.setTimeout(() => {
+    if (overlay) overlay.classList.remove('show');
+    stageTransitioning = false;
+  }, 2200);
+}
+
+// 여정 지도 (숲 입구 → 베리 숲 → 강가 진행 상황)
+function renderWorldMap() {
+  const pathEl = document.getElementById('wmPath');
+  if (!pathEl) return;
+  const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+    ? (window.DotForest.narrative.get('flags') || {}) : {};
+  const done = { forest_entrance: !!flags.pipFound, berry_grove: !!flags.ch2done, river: !!flags.ch3done };
+  const reachable = { forest_entrance: true, berry_grove: !!flags.pipFound, river: !!flags.ch2done };
+  const label = { done: '완료', current: '진행 중', open: '탐험 가능', locked: '잠김' };
+  let html = '';
+  AREA_ORDER.forEach((id, i) => {
+    let st = 'locked';
+    if (id === gameState.area) st = 'current';
+    else if (done[id]) st = 'done';
+    else if (reachable[id]) st = 'open';
+    const mark = st === 'done' ? '✓' : st === 'locked' ? '🔒' : String(i + 1);
+    if (i > 0) html += '<span class="wm-conn" aria-hidden="true"></span>';
+    html += `<div class="wm-node ${st}"><span class="wm-dot" aria-hidden="true">${mark}</span>` +
+            `<span class="wm-name">${AREAS[id].name}</span><span class="wm-status">${label[st]}</span></div>`;
+  });
+  pathEl.innerHTML = html;
+  const fillEl = document.getElementById('wmFill');
+  if (fillEl) fillEl.style.width = Math.round(gameState.forestLight * 100) + '%';
+}
+
+function toggleMap() {
+  const map = document.getElementById('worldMap');
+  if (!map) return;
+  if (map.getAttribute('aria-hidden') === 'false') { closeMap(); return; }
+  renderWorldMap();
+  map.setAttribute('aria-hidden', 'false');
+  const c = document.getElementById('mapClose'); if (c) c.focus();
+  const idx = AREA_ORDER.indexOf(gameState.area);
+  announce(`여정 지도. 현재 ${AREAS[gameState.area].name}, ${idx + 1}단계. 숲의 빛 ${Math.round(gameState.forestLight * 100)}퍼센트.`, true);
+}
+function closeMap() {
+  const map = document.getElementById('worldMap');
+  if (map) map.setAttribute('aria-hidden', 'true');
+}
+
 // Walk-to-exit zone transitions, gated by story flags.
 function checkAreaExit() {
+  if (stageTransitioning) return;
   const cfg = AREAS[gameState.area];
   if (!cfg || !cfg.exit) return;
   if (!atExit(gameState.player, cfg.exit)) return;
@@ -366,8 +428,7 @@ function checkAreaExit() {
     announce(cfg.exit.lockedMsg, true);
     return;
   }
-  announce(`${AREAS[cfg.exit.to].name}(으)로 이동합니다.`, true);
-  loadArea(cfg.exit.to);
+  playStageTransition(cfg.exit.to);
 }
 
 function createTreeCluster(x, z, seed = 0, scale = 1) {
@@ -694,6 +755,19 @@ function setupEventListeners() {
 
   const fsBtn = document.getElementById('fullscreenBtn');
   if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+
+  const mapBtn = document.getElementById('mapBtn');
+  if (mapBtn) mapBtn.addEventListener('click', toggleMap);
+  const mapCloseBtn = document.getElementById('mapClose');
+  if (mapCloseBtn) mapCloseBtn.addEventListener('click', closeMap);
+  const wmScrim = document.getElementById('wmScrim');
+  if (wmScrim) wmScrim.addEventListener('click', closeMap);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const map = document.getElementById('worldMap');
+      if (map && map.getAttribute('aria-hidden') === 'false') { e.preventDefault(); closeMap(); }
+    }
+  });
 
   // 오디오는 사용자 제스처 이후에만 시작할 수 있음 (브라우저 정책)
   ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, unlockAudio, { once: false }));

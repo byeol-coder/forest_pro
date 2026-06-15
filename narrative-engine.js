@@ -150,11 +150,31 @@ function collectedCount() {
   const m = el && (el.textContent || '').match(/(\d+)\s*\/\s*(\d+)/);
   return m ? parseInt(m[1], 10) : 0;
 }
+function setQuest(text) {
+  const el = document.getElementById('questText');
+  if (el && text) el.textContent = text;
+}
+function showZone(name) {
+  const el = document.getElementById('zoneBanner');
+  if (!el || !name) return;
+  const t = document.getElementById('zoneBannerText');
+  if (t) t.textContent = name;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  window.setTimeout(() => el.classList.remove('show'), 2600);
+}
+function renderParty() {
+  const el = document.getElementById('party');
+  if (!el) return;
+  const list = state.companions || [];
+  el.innerHTML = list.map((n) => `<span class="party-chip"><i></i>${n}</span>`).join('');
+}
+
 function startMission(idx) {
   state.missionIndex = idx;
   state.mission = state.data.missions[idx] || null;
   if (!state.mission) { say('모든 빛을 되찾았어요. 숲이 다시 환하게 깨어납니다.', 'assertive'); return; }
   state.pipHinted = false;
+  setQuest(state.mission.objective);
   if (state.mission.intro_narration) say(state.mission.intro_narration, 'assertive');
   window.setTimeout(() => say(`미션 업데이트: ${state.mission.objective}`, 'polite'), 1600);
   if (state.mission.puzzle && state.mission.puzzle.riddle) {
@@ -170,6 +190,8 @@ function missionIndexForLocation(id) {
 function enterArea(id) {
   if (!state.data) return;
   state.location = id;
+  const area = state.data.locations[id];
+  if (area) showZone(area.name);
   const idx = missionIndexForLocation(id);
   if (idx >= 0 && state.missionIndex !== idx) {
     startMission(idx);
@@ -182,6 +204,7 @@ function enterArea(id) {
 function resetStory() {
   state.flags = {};
   state.companions = [];
+  renderParty();
   state.missionIndex = -1;
   state.mission = null;
   state.pipHinted = false;
@@ -212,6 +235,7 @@ function checkChapter1() {
     say(state.mission.discover_narration, 'assertive');
     window.setTimeout(() => startDialogue('Pip', 'meet_pip', () => {
       state.companions.push('Pip');
+      renderParty();
       say(state.mission.completion_narration, 'assertive');
       window.setTimeout(() => say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite'), 1800);
     }), 1300);
@@ -231,6 +255,7 @@ function checkChapter2() {
     say(state.mission.completion_narration, 'assertive');
     window.setTimeout(() => startDialogue('Bramble', 'bramble_freed', () => {
       state.companions.push('Bramble');
+      renderParty();
       say('강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.', 'polite');
     }), 1500);
   }

@@ -1,238 +1,198 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dot Forest: Lumi &amp; Dotlings</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Dot Forest: Lumi & Dotlings</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./screens.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
 </head>
-<body>
+<body data-screen="title">
+  <a href="#dpad" class="skip-link">조작 영역으로 바로가기</a>
 
-<!-- ambient fireflies float above the reference image for a touch of life -->
-<div id="fireflies" aria-hidden="true"></div>
+  <main class="app">
 
-<!-- screen-reader live region: every spoken message mirrors here -->
-<div class="sr-only" aria-live="polite" id="sr-live"></div>
+    <!-- ============ 1. 진입(타이틀) 화면 ============ -->
+    <section class="screen title-screen is-active" id="screen-title" aria-label="타이틀 화면">
+      <div class="stage stage--title">
+        <div class="stage-bg" style="background-image:url('./backgrounds/forest-home.png')"></div>
+        <div class="title-scrim"></div>
 
-<!-- All screens are 16:9 "image stages". The reference art is the base layer
-     (<img class="ref">), and functional controls are positioned on top with
-     percentage coordinates so they track the artwork at any size. -->
-<main id="stage-wrap">
+        <div class="title-conn" aria-label="DotPad 연결 상태">
+          <span id="dotpadState" class="state-pill">DotPad 미연결</span>
+          <button id="connectDotPad" type="button" aria-label="DotPad 연결 시도">DotPad 연결</button>
+        </div>
 
-<!-- ════════════════════════ HOME (main_image.png) ════════════════════════ -->
-<section class="img-screen active" id="screen-home" aria-label="Home">
-  <img class="ref" src="./assets/main_image.png" alt="Dot Forest home screen artwork showing Lumi and the Dotlings in a magical forest" data-fallback>
-  <div class="hotspots">
-    <button class="hot menu-hot" id="btn-start"    style="left:50%;top:42.4%" aria-label="Start a new game">Start New Game</button>
-    <button class="hot menu-hot" id="btn-continue" style="left:50%;top:51.4%" aria-label="Continue your adventure">Continue</button>
-    <button class="hot menu-hot" id="btn-map"      style="left:50%;top:60.2%" aria-label="Open the world map">World Map</button>
-    <button class="hot menu-hot" id="btn-settings" style="left:50%;top:69.0%" aria-label="Open accessibility settings">Accessibility Settings</button>
-    <button class="hot menu-hot" id="btn-help"     style="left:50%;top:77.6%" aria-label="Open the tutorial">Help</button>
-    <button class="hot chip-hot" id="btn-connect"  style="left:17%;top:90%"   aria-label="Connect your Dot Pad">Connect Dot Pad</button>
-    <span class="live-chip"      id="home-dp"    style="left:17%;top:90%" aria-hidden="true">Not Connected</span>
-    <span class="live-chip"      id="home-voice" style="left:50%;top:90%" aria-hidden="true">On</span>
-    <span class="live-chip gold" id="home-sel"   style="left:83%;top:90%" aria-hidden="true">Start New Game</span>
-  </div>
-</section>
-
-<!-- ════════════════════ MISSION INTRO (transition_image.png) ════════════════════ -->
-<section class="img-screen" id="screen-intro" aria-label="Mission intro">
-  <img class="ref" src="./assets/transition_image.png" alt="Mission intro artwork: Forest Path 1, Lumi's First Journey" data-fallback>
-  <div class="hotspots">
-    <span class="live-title" id="intro-title" style="left:50%;top:15%" aria-hidden="true">Forest Path 1</span>
-    <div class="live-bar" style="left:50%;top:79%"><div class="live-bar-fill" id="intro-bar"></div></div>
-    <span class="live-pct" id="intro-pct" style="left:90%;top:79%" aria-hidden="true">0%</span>
-    <button class="hot pill-hot" id="btn-start-mission" style="left:29.5%;top:90%" aria-label="Start the mission">Start</button>
-    <button class="hot pill-hot" data-back              style="left:62%;top:90%"   aria-label="Back to world map">Back</button>
-  </div>
-</section>
-
-<!-- ════════════════════════ GAMEPLAY (play_image.png) ════════════════════════ -->
-<section class="img-screen" id="screen-gameplay" aria-label="Gameplay">
-  <img class="ref" src="./assets/play_image.png" alt="Gameplay artwork: forest path with Lumi" data-fallback>
-  <div class="hotspots">
-    <span class="hud-live"      id="hud-level" style="left:13%;top:4.2%"   aria-hidden="true">Level 1 – Forest Path</span>
-    <span class="hud-live"      id="hud-berry" style="left:33%;top:4.2%"   aria-hidden="true">Berries 0/3</span>
-    <span class="hud-live gold" id="hud-spark" style="left:90.5%;top:4.2%" aria-hidden="true">0</span>
-    <button class="hot icon-hot" id="btn-hud-pause" style="left:96.5%;top:4.2%" aria-label="Open pause menu">≡</button>
-
-    <div class="board-overlay">
-      <div id="game-board" role="application" tabindex="0"
-           aria-label="Forest grid. Use arrow keys or W A S D to move Lumi."></div>
-    </div>
-
-    <div class="overlay-panel voice-panel" style="left:84.5%;top:22.5%">
-      <h3 class="op-title">🔊 Voice Guidance</h3>
-      <ul class="voice-log" id="voice-log-list"></ul>
-    </div>
-
-    <div class="overlay-panel tactile-panel" id="tactile-panel" style="left:84.5%;top:81%">
-      <canvas id="tactile-game" width="360" height="240" role="img"
-              aria-label="Tactile map preview of the forest path"></canvas>
-      <div class="dotpad-keys" role="group" aria-label="Dot Pad keys">
-        <button id="dp-left"  aria-label="Left panning key: previous tactile hint">⏮</button>
-        <button id="dp-f1"    aria-label="F1: collect or confirm">F1</button>
-        <button id="dp-f2"    aria-label="F2: repeat voice guidance">F2</button>
-        <button id="dp-f3"    aria-label="F3: pause">F3</button>
-        <button id="dp-f4"    aria-label="F4: accessibility settings">F4</button>
-        <button id="dp-right" aria-label="Right panning key: next tactile hint">⏭</button>
+        <div class="title-inner">
+          <p class="eyebrow">Accessible tactile game</p>
+          <h1 id="titleHeading" tabindex="-1">닷 포레스트</h1>
+          <p class="title-sub">Lumi &amp; Dotlings</p>
+          <p class="title-pitch">루미와 함께 숲을 누비며 도트링을 모아요. 화면의 움직임이 60×40 촉각 그래픽으로 손끝에 그대로 전해집니다.</p>
+          <div class="cta-row">
+            <button type="button" class="btn-primary" data-nav="game">게임 시작</button>
+            <button type="button" class="btn-ghost" data-nav="settings">설정</button>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="dpad-overlay" role="group" aria-label="Touch movement pad">
-      <button class="dbtn" data-move="up"    style="left:14%;top:78.5%" aria-label="Move up">↑</button>
-      <button class="dbtn" data-move="left"  style="left:6.5%;top:88%"  aria-label="Move left">←</button>
-      <button class="dbtn" data-move="right" style="left:21.5%;top:88%" aria-label="Move right">→</button>
-      <button class="dbtn" data-move="down"  style="left:14%;top:97%"   aria-label="Move down">↓</button>
-    </div>
-    <button class="hot round-hot collect" data-act="collect" style="left:42%;top:90%" aria-label="Interact or collect">✋</button>
-    <button class="hot round-hot pause"   data-act="pause"   style="left:61%;top:90%" aria-label="Pause">⏸</button>
+    <!-- ============ 2. 게임 화면 ============ -->
+    <section class="screen game-screen" id="screen-game" aria-label="게임 화면" aria-hidden="true">
+      <h2 id="gameHeading" class="sr-only" tabindex="-1">숲 탐험 게임 화면</h2>
+      <div class="stage stage--game">
+        <div id="gameCanvas" class="game-canvas" role="img" aria-label="루미 캐릭터가 숲길에서 도트링을 수집하는 3D 게임 화면"></div>
 
-    <p class="mic-pill" id="mic-status" hidden>🎤 …</p>
-  </div>
-</section>
+        <div class="hud">
+          <div class="hud-left">
+            <button type="button" class="icon-btn" data-nav="title" aria-label="타이틀 화면으로 나가기">☰</button>
+            <div class="score" aria-live="polite">
+              <span>수집</span>
+              <strong id="scoreText">0 / 5</strong>
+            </div>
+          </div>
+          <div class="hud-right">
+            <span class="state-pill dotpad-mirror" aria-hidden="true">DotPad 미연결</span>
+            <button type="button" class="icon-btn" data-nav="settings" aria-label="설정 열기">⚙</button>
+          </div>
+        </div>
 
-<!-- ════════════════════ CONNECT DOT PAD (connect dot pad screen.png) ════════════════════ -->
-<section class="img-screen" id="screen-connect" aria-label="Connect Dot Pad">
-  <img class="ref" src="./assets/connect dot pad screen.png" alt="Connect Dot Pad artwork with Lumi and a Dot Pad device" data-fallback>
-  <div class="hotspots">
-    <span class="step-live" data-step="searching"  id="step-searching"  style="left:51%;top:42.5%" aria-hidden="true"></span>
-    <span class="step-live" data-step="connecting" id="step-connecting" style="left:51%;top:51.5%" aria-hidden="true"></span>
-    <span class="step-live" data-step="connected"  id="step-connected"  style="left:51%;top:60.5%" aria-hidden="true"></span>
-    <button class="hot pill-hot wide-hot" id="btn-do-connect" style="left:51.5%;top:71%" aria-label="Connect to Dot Pad">Connect</button>
-    <button class="hot pill-hot" id="btn-retry" style="left:46.5%;top:81%" aria-label="Retry the connection">Retry</button>
-    <button class="hot pill-hot" data-back      style="left:56.5%;top:81%" aria-label="Go back">Back</button>
-    <span class="status-live" id="cn-status"  style="left:88%;top:30.5%" aria-hidden="true">Not connected</span>
-    <span class="status-live" id="cn-tactile" style="left:90%;top:36.5%" aria-hidden="true">—</span>
-    <span class="status-live" id="cn-battery" style="left:91%;top:47.5%" aria-hidden="true">—</span>
-    <canvas class="canvas-live" id="tactile-test" width="300" height="150"
-            style="left:88%;top:62%" role="img" aria-label="Tactile test pattern"></canvas>
-    <span class="banner-live" id="cn-banner" style="left:50%;top:97.5%" role="status">Press Connect to find your Dot Pad.</span>
-  </div>
-</section>
+        <div id="liveStatus" class="live-status" role="status" aria-live="polite">루미가 숲 입구에서 기다리고 있어요.</div>
 
-<!-- ════════════════════ ACCESSIBILITY SETTINGS (accessibility settings screen.png) ════════════════════ -->
-<section class="img-screen" id="screen-settings" aria-label="Accessibility settings">
-  <img class="ref" src="./assets/accessibility settings screen.png" alt="Accessibility settings artwork" data-fallback>
-  <div class="hotspots">
-    <button class="toggle-hot" id="set-voice"    style="left:86.5%;top:15.6%" role="switch" aria-checked="true"  aria-label="Voice guidance"></button>
-    <input  class="range-hot"  id="set-speed" type="range" min="0.6" max="1.6" step="0.1" value="1"
-            style="left:83%;top:24.5%" aria-label="Voice speed">
-    <button class="toggle-hot" id="set-sfx"      style="left:86.5%;top:33.4%" role="switch" aria-checked="true"  aria-label="Sound effects"></button>
-    <button class="toggle-hot" id="set-contrast" style="left:86.5%;top:41.6%" role="switch" aria-checked="false" aria-label="High contrast mode"></button>
-    <button class="toggle-hot" id="set-large"    style="left:86.5%;top:50.2%" role="switch" aria-checked="false" aria-label="Large button mode"></button>
-    <button class="toggle-hot" id="set-tactile"  style="left:86.5%;top:58.8%" role="switch" aria-checked="true"  aria-label="Tactile preview"></button>
-    <button class="toggle-hot" id="set-dotpad"   style="left:86.5%;top:66.6%" role="switch" aria-checked="true"  aria-label="Dot Pad output"></button>
-    <button class="seg-hot" id="inp-keyboard" style="left:65%;top:76%"   aria-pressed="true"  aria-label="Keyboard input">Keyboard</button>
-    <button class="seg-hot" id="inp-touch"    style="left:75.5%;top:76%" aria-pressed="false" aria-label="Touch D-pad input">Touch D-pad</button>
-    <button class="seg-hot" id="inp-voice"    style="left:86%;top:76%"   aria-pressed="false" aria-label="Voice command input">Voice</button>
-    <button class="hot pill-hot" data-back               style="left:42.5%;top:87%" aria-label="Go back without saving">Back</button>
-    <button class="hot pill-hot" id="btn-save-settings"  style="left:61.5%;top:87%" aria-label="Save settings">Save</button>
-    <button class="hot pill-hot" id="btn-reset-settings" style="left:82%;top:87%"   aria-label="Reset to default">Reset</button>
-  </div>
-</section>
+        <div id="dpad" class="dpad" role="group" aria-label="이동 및 상호작용 조작">
+          <span class="dpad-sp"></span>
+          <button type="button" data-move="up" aria-label="루미 앞으로 이동">↑</button>
+          <span class="dpad-sp"></span>
+          <button type="button" data-move="left" aria-label="루미 왼쪽 이동">←</button>
+          <button type="button" id="collectButton" class="dpad-eat" aria-label="도트링 먹기 또는 상호작용">먹기</button>
+          <button type="button" data-move="right" aria-label="루미 오른쪽 이동">→</button>
+          <span class="dpad-sp"></span>
+          <button type="button" data-move="down" aria-label="루미 뒤로 이동">↓</button>
+          <span class="dpad-sp"></span>
+        </div>
 
-<!-- ════════════════════════ TUTORIAL (tutorial screen.png) ════════════════════════ -->
-<section class="img-screen" id="screen-tutorial" aria-label="Tutorial">
-  <img class="ref" src="./assets/tutorial screen.png" alt="Tutorial artwork showing five learning steps" data-fallback>
-  <div class="hotspots">
-    <button class="step-tab" data-tut="0" style="left:26%;top:31%" aria-label="Step 1: Move">1</button>
-    <button class="step-tab" data-tut="1" style="left:35%;top:31%" aria-label="Step 2: Collect">2</button>
-    <button class="step-tab" data-tut="2" style="left:44%;top:31%" aria-label="Step 3: Avoid">3</button>
-    <button class="step-tab" data-tut="3" style="left:53%;top:31%" aria-label="Step 4: Listen">4</button>
-    <button class="step-tab" data-tut="4" style="left:62%;top:31%" aria-label="Step 5: Feel">5</button>
-    <span class="tut-live" id="tut-text" style="left:44%;top:73%" aria-hidden="true"></span>
-    <button class="hot pill-hot" id="tut-prev"  style="left:18%;top:92.5%" aria-label="Previous step">Previous</button>
-    <button class="hot pill-hot" id="tut-next"  style="left:37%;top:92.5%" aria-label="Next step">Next</button>
-    <button class="hot pill-hot" id="tut-start" style="left:61%;top:92.5%" aria-label="Start the game">Start Game</button>
-    <button class="hot pill-hot" id="tut-skip"  style="left:82%;top:92.5%" aria-label="Skip the tutorial">Skip</button>
-  </div>
-</section>
+        <button type="button" id="voiceButton" class="voice-btn" aria-label="음성 명령 시작">🎙 음성</button>
 
-<!-- ════════════════════════ WORLD MAP (world map screen.png) ════════════════════════ -->
-<section class="img-screen" id="screen-worldmap" aria-label="World map">
-  <img class="ref" src="./assets/world map screen.png" alt="World map artwork of the Whispering Forest with eight stages" data-fallback>
-  <div class="hotspots">
-    <span class="hud-live gold" id="map-stages"  style="left:56%;top:6.5%"   aria-hidden="true">0/8 Stages</span>
-    <span class="hud-live"      id="map-berries" style="left:70.5%;top:6.5%" aria-hidden="true">0/12 Berries</span>
-    <button class="map-hot" data-stage="0" style="left:17%;top:30%"   aria-label="Stage 1">1</button>
-    <button class="map-hot" data-stage="1" style="left:15%;top:52%"   aria-label="Stage 2">2</button>
-    <button class="map-hot" data-stage="2" style="left:13%;top:72%"   aria-label="Stage 3">3</button>
-    <button class="map-hot" data-stage="3" style="left:38%;top:64%"   aria-label="Stage 4">4</button>
-    <button class="map-hot" data-stage="4" style="left:50.5%;top:35%" aria-label="Stage 5">5</button>
-    <button class="map-hot" data-stage="5" style="left:68%;top:33%"   aria-label="Stage 6">6</button>
-    <button class="map-hot" data-stage="6" style="left:64%;top:50%"   aria-label="Stage 7">7</button>
-    <button class="map-hot" data-stage="7" style="left:52.5%;top:73%" aria-label="Stage 8">8</button>
-    <button class="hot pill-hot" id="btn-enter-level"  style="left:13.5%;top:91%" aria-label="Enter selected level">Enter Level</button>
-    <button class="hot pill-hot" data-back             style="left:37.5%;top:91%" aria-label="Go back">Back</button>
-    <button class="hot pill-hot" id="btn-map-settings" style="left:60.5%;top:91%" aria-label="Open accessibility settings">Accessibility Settings</button>
-  </div>
-</section>
+        <aside class="tactile-dock" aria-labelledby="tactileTitle">
+          <h3 id="tactileTitle">60×40 DotPad preview</h3>
+          <canvas id="tactileCanvas" width="600" height="400" aria-label="60×40 촉각 그래픽 프리뷰 캔버스"></canvas>
+          <div class="legend" aria-hidden="true">
+            <span><i class="dot player"></i>루미</span>
+            <span><i class="dot item"></i>도트링</span>
+            <span><i class="dot path"></i>숲길</span>
+            <span><i class="dot obstacle"></i>장애물</span>
+          </div>
+        </aside>
+      </div>
+    </section>
 
-<!-- ════════════════════ MISSION COMPLETE (mission complete screen.png) ════════════════════ -->
-<section class="img-screen" id="screen-complete" aria-label="Mission complete">
-  <img class="ref" src="./assets/mission complete screen.png" alt="Mission complete artwork: Lumi celebrating with Dotlings" data-fallback>
-  <div class="hotspots">
-    <span class="result-live" id="comp-berries" style="left:48%;top:36%"    aria-hidden="true">3/3</span>
-    <span class="result-live" id="comp-time"    style="left:48%;top:46.5%"  aria-hidden="true">0:00</span>
-    <span class="result-live" id="comp-score"   style="left:62%;top:46.5%"  aria-hidden="true">0</span>
-    <canvas class="canvas-live" id="tactile-complete" width="300" height="170"
-            style="left:88%;top:74%" role="img" aria-label="Tactile recap of the completed path"></canvas>
-    <!-- dynamic reward summary (Chapter 1 unlocks) over an unused art region -->
-    <div class="reward-panel" id="reward-panel" style="left:30%;top:62%" role="status">
-      <p class="rw-row"><span class="rw-ico">🌱</span><b>Path Seed Restored</b></p>
-      <p class="rw-row"><span class="rw-ico">🟢</span><b>Dotling Guide Unlocked</b></p>
-      <p class="rw-row"><span class="rw-ico">⭐</span><span id="comp-summary">Success! 3/3 berries · ★★★</span></p>
-      <p class="rw-teaser" id="comp-teaser">Next: Chapter 2 — Cross the Moonlit Bridge ›</p>
-    </div>
-    <button class="hot pill-hot" id="btn-next-level"   style="left:17%;top:85.5%" aria-label="Go to the next mission">Next Level</button>
-    <button class="hot pill-hot" id="btn-replay"       style="left:42%;top:85.5%" aria-label="Replay this level">Replay</button>
-    <button class="hot pill-hot" id="btn-complete-map" style="left:61%;top:85.5%" aria-label="Return to the world map">World Map</button>
-  </div>
-</section>
+    <!-- ============ 3. 설정 화면 ============ -->
+    <section class="screen settings-screen" id="screen-settings" aria-label="설정 화면" aria-hidden="true">
+      <div class="stage stage--settings">
+        <div class="stage-bg" style="background-image:url('./backgrounds/forest-home.png')"></div>
+        <div class="settings-scrim"></div>
 
-</main>
+        <div class="settings-sheet">
+          <div class="sheet-card" role="dialog" aria-label="설정">
+            <h2 id="settingsHeading" tabindex="-1">설정</h2>
+            <p class="sheet-lead">입력 방식과 환경을 여기서 한 번에 관리해요.</p>
 
-<!-- ════════════════ ITEM POPUP (item popup screen.png) ════════════════ -->
-<div class="overlay" id="overlay-item" role="dialog" aria-modal="true" aria-label="Berry collected">
-  <div class="popup-stage">
-    <img class="ref" src="./assets/item popup screen.png" alt="Berry collected artwork" data-fallback>
-    <div class="hotspots">
-      <span class="result-live big" id="item-count" style="left:50%;top:46%" aria-hidden="true">1 / 3</span>
-      <button class="hot pill-hot" id="item-continue"  style="left:42.5%;top:87.5%" aria-label="Continue playing">Continue</button>
-      <button class="hot pill-hot" id="item-objective" style="left:59.5%;top:87.5%" aria-label="View objective">View Objective</button>
-    </div>
-  </div>
+            <div class="set-block">
+              <p class="set-label">입력 방식 안내</p>
+              <ul>
+                <li>키보드: 방향키 또는 WASD</li>
+                <li>모바일: 화면 D-pad 터치</li>
+                <li>음성: “앞으로”, “뒤로”, “왼쪽”, “오른쪽”, “먹기”</li>
+                <li>DotPad 패닝키: 방향 입력과 동일한 movePlayer(direction) 구조에 연결 가능</li>
+              </ul>
+            </div>
+
+            <div class="set-block">
+              <p class="set-label">언어 / Language</p>
+              <div class="seg" id="langSeg" role="group" aria-label="언어 선택">
+                <button type="button" data-lang="ko">한국어</button>
+                <button type="button" data-lang="en">English</button>
+              </div>
+            </div>
+
+            <div class="set-block">
+              <p class="set-label">개발자 · 접근성</p>
+              <div class="set-actions">
+                <button type="button" id="exportMatrix" class="mini-btn" aria-label="현재 60×40 매트릭스 콘솔 출력">Matrix Log 출력</button>
+                <button type="button" id="resetButton" class="mini-btn danger" aria-label="게임 다시 시작">게임 다시 시작</button>
+              </div>
+              <p class="set-note"><code>sendDotPadFrame(matrix)</code> 함수가 실제 DotPadSDK-1.0.0.js 연결 지점입니다.</p>
+            </div>
+
+            <div class="sheet-foot">
+              <button type="button" class="btn-primary" data-nav="game">게임으로</button>
+              <button type="button" class="btn-quiet" data-nav="title">타이틀로</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="./script.js"></script>
+<style id="mobileBannerStyle">
+#mobileBanner{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(7,7,15,.97);backdrop-filter:blur(8px);padding:32px;text-align:center;font-family:sans-serif;color:#f0eeff}
+#mobileBanner.show{display:flex}
+#mobileBanner .mb-icon{font-size:48px}#mobileBanner .mb-title{font-size:18px;font-weight:800}
+#mobileBanner .mb-desc{font-size:13px;color:rgba(240,238,255,.6);line-height:1.7;max-width:300px}
+#mobileBanner .mb-btn{margin-top:8px;padding:11px 26px;background:#6b46f0;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+<div id="mobileBanner" role="dialog" aria-label="화면 크기 안내">
+  <div class="mb-icon">🖥️</div>
+  <div class="mb-title">데스크톱에서 최적화된 데모입니다</div>
+  <div class="mb-desc">이 프로토타입은 넓은 화면에 맞춰 설계되었습니다. PC나 태블릿 가로 모드에서 열면 가장 좋습니다.</div>
+  <button class="mb-btn" onclick="document.getElementById('mobileBanner').classList.remove('show')">그래도 계속 보기</button>
 </div>
-
-<!-- ════════════ OBSTACLE WARNING (obstacle screen.png) ════════════ -->
-<div class="overlay" id="overlay-warning" role="dialog" aria-modal="true" aria-label="Obstacle detected">
-  <div class="popup-stage wide">
-    <img class="ref" src="./assets/obstacle screen.png" alt="Obstacle detected artwork" data-fallback>
-    <div class="hotspots">
-      <span class="warn-live" id="warn-dir" style="left:80%;top:28%" aria-hidden="true">Path on the left</span>
-      <button class="hot pill-hot" id="warn-continue" style="left:42%;top:88%" aria-label="Continue and follow the safe path">Continue</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════════ PAUSE MENU ════════════════════════ -->
-<div class="overlay" id="overlay-pause" role="dialog" aria-modal="true" aria-label="Pause menu">
-  <div class="pause-card">
-    <img class="pause-lumi" src="./assets/lumi_expr_02_thinking.png" alt="" data-optional>
-    <h2 class="pause-title">Paused</h2>
-    <p class="pause-sub">Take a breath under the trees. 🌿</p>
-    <div class="pause-stack">
-      <button class="btn-game leaf" id="pause-resume" aria-label="Resume the game">▶ Resume</button>
-      <button class="btn-game cream" id="pause-restart" aria-label="Restart this level">↻ Restart</button>
-      <button class="btn-game cream" id="pause-map" aria-label="Return to the world map">🗺 World Map</button>
-      <button class="btn-game cream" id="pause-settings" aria-label="Open accessibility settings">♿ Accessibility Settings</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast" role="status"></div>
-
-<script src="script.js"></script>
+<script>
+(function(){function c(){if(window.innerWidth<720)document.getElementById('mobileBanner')?.classList.add('show');}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',c);else c();})();
+</script>
+<script id="i18nLite">
+(function(){
+  const DICT = {"그래도 계속 보기": "Continue anyway", "데스크톱에서 최적화된 데모입니다": "Optimized for desktop", "이 프로토타입은 넓은 화면에 맞춰 설계되었습니다. PC나 태블릿 가로 모드에서 열면 가장 좋습니다.": "This prototype is designed for wide screens. Best viewed on PC or tablet landscape mode.", "화면 크기 안내": "Screen size notice", "조작 영역으로 바로가기": "Skip to controls", "입력 방식 안내": "Input methods", "키보드: 방향키 또는 WASD": "Keyboard: Arrow keys or WASD", "모바일: 화면 D-pad 터치": "Mobile: tap on-screen D-pad", "음성 명령": "Voice command", "조작 및 접근성 상태": "Controls & accessibility", "다시 시작": "Restart", "먹기": "Eat", "수집": "Collect", "도트링": "Dotling", "루미": "Lumi", "숲길": "Forest path", "장애물": "Obstacle", "입력 방식": "Input mode", "Meshy AI GLB 캐릭터 + 60×40 DotPad 촉각 프리뷰 + 키보드/모바일/음성/패닝키 입력 구조": "Meshy AI GLB character + 60×40 DotPad tactile preview + keyboard/mobile/voice/panning-key input", "방향키, WASD, 모바일 D-pad, 음성 명령으로 루미를 움직여 도트링을 모아보세요.": "Move Lumi with arrow keys, WASD, mobile D-pad, or voice to collect Dotlings.", "3D 숲 탐험 화면": "3D Forest Exploration", "DotPad 미연결": "DotPad disconnected", "DotPad 연결": "Connect DotPad", "DotPad 연결 시도": "Try connecting DotPad", "DotPad 연결 상태": "DotPad connection status"};const REV = {};Object.keys(DICT).forEach(k=>REV[DICT[k]]=k);
+  let cur='ko';
+  const btn=document.createElement('button');btn.id='langToggle';btn.textContent='EN';
+  btn.setAttribute('aria-label','Switch to English');
+  btn.style.cssText='position:fixed;bottom:14px;right:14px;z-index:2147483647;padding:8px 14px;background:rgba(20,20,35,.92);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:99px;font-size:11px;font-weight:800;font-family:monospace;cursor:pointer;backdrop-filter:blur(8px);letter-spacing:.08em';
+  document.documentElement.appendChild(btn);
+  function applyDict(root,dict){
+    const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,null);
+    let n=root;const nodes=[root];while(n=w.nextNode())nodes.push(n);
+    nodes.forEach(node=>{
+      if(node.nodeType===3){const t=node.nodeValue.trim();if(t&&dict[t])node.nodeValue=node.nodeValue.replace(t,dict[t]);}
+      else if(node.nodeType===1){if(node.nodeName==='SCRIPT'||node.nodeName==='STYLE')return;
+        ['aria-label','placeholder','title'].forEach(a=>{const v=node.getAttribute&&node.getAttribute(a);if(v&&dict[v])node.setAttribute(a,dict[v]);});}
+    });
+  }
+  let observing=false;
+  const obs=new MutationObserver(muts=>{if(cur==='ko')return;obs.disconnect();observing=false;
+    muts.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1||n.nodeType===3)applyDict(n,DICT);}));startObs();});
+  function startObs(){if(observing)return;obs.observe(document.body,{childList:true,subtree:true});observing=true;}
+  btn.addEventListener('click',()=>{const dict=cur==='ko'?DICT:REV;obs.disconnect();observing=false;
+    applyDict(document.body,dict);cur=cur==='ko'?'en':'ko';btn.textContent=cur==='ko'?'EN':'KO';
+    document.documentElement.lang=cur;if(cur==='en')startObs();});
+})();
+</script>
+<script src="./screens.js"></script>
 </body>
 </html>

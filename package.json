@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "three": "^0.184.0",
+    "vite": "^8.0.16"
+  },
+  "name": "dot-forest",
+  "version": "1.0.0",
+  "description": "Meshy AI에서 생성한 GLB 캐릭터를 활용한 웹/모바일 반응형 촉각 그래픽 게임 MVP입니다.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/byeol-coder/dot-forest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/byeol-coder/dot-forest/issues"
+  },
+  "homepage": "https://github.com/byeol-coder/dot-forest#readme"
+}

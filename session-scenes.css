@@ -1,0 +1,178 @@
+/*
+  Session-specific visual scenes
+  -------------------------------
+  The color game screen can be rich and story-driven per session,
+  while Dot Pad output remains tactile-safe and DTMS-compatible.
+*/
+.session-scene {
+  transition: filter .18s ease, background-position .2s ease;
+}
+
+.session-title-card {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 16;
+  padding: 8px 16px;
+  color: #14101e;
+  background: #ffd84d;
+  border: 4px solid #111;
+  box-shadow: 5px 5px 0 #0008;
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: .02em;
+  pointer-events: none;
+}
+
+/* SESSION 01: 루미와 첫 인사 */
+.game-screen[data-session="lumi"] {
+  background:
+    radial-gradient(circle at 57% 56%, rgba(255, 216, 77, .18) 0 98px, transparent 112px),
+    linear-gradient(180deg, #182667 0 100px, #73d65e 100%);
+}
+
+.game-screen[data-session="lumi"] .session-title-card {
+  content: "SESSION 01 · 루미와 첫 인사";
+  color: #140d24;
+  background: linear-gradient(180deg, #ffe784, #ffbd45);
+}
+
+.game-screen[data-session="lumi"] .mission-overlay {
+  right: 22px;
+  top: 28px;
+  width: 190px;
+  border-color: #ffdf72;
+  box-shadow: 0 0 0 3px #1c1034 inset, 0 0 18px #ffdf7255, 5px 5px 0 #0009;
+}
+
+.game-screen[data-session="lumi"] .mission-overlay span::after {
+  content: "\A□ 기능키 2로 인사";
+  white-space: pre;
+  display: block;
+  margin-top: 6px;
+  color: #fff0a9;
+}
+
+.game-screen[data-session="lumi"] .cabin {
+  left: 170px;
+  top: 70px;
+  transform: scale(.9);
+}
+
+.game-screen[data-session="lumi"] .river {
+  right: 58px;
+  width: 86px;
+  opacity: .95;
+}
+
+.game-screen[data-session="lumi"] .bridge {
+  right: 38px;
+  bottom: 116px;
+  transform: scale(.86);
+}
+
+.game-screen[data-session="lumi"] .path {
+  left: 140px;
+  bottom: 108px;
+  width: 460px;
+  height: 66px;
+  background:
+    radial-gradient(circle, #f6d18a 0 5px, transparent 6px),
+    #e8b866;
+  background-size: 42px 26px;
+}
+
+.game-screen[data-session="lumi"] .player {
+  left: 340px !important;
+  top: 268px;
+  transform: scale(1.04);
+  z-index: 9;
+}
+
+.game-screen[data-session="lumi"] .lumi {
+  left: 435px !important;
+  top: 272px;
+  transform: scale(1.06);
+  z-index: 9;
+  box-shadow: 0 0 0 8px rgba(255, 216, 77, .28), 0 0 22px #ffd84d66;
+}
+
+.game-screen[data-session="lumi"] .focus-ring {
+  left: 332px;
+  top: 256px;
+  width: 170px;
+  height: 112px;
+  border-color: #ffd84d;
+  animation: sessionFocus 1s steps(2) infinite;
+  z-index: 8;
+}
+
+@keyframes sessionFocus {
+  50% { opacity: .35; transform: scale(1.03); }
+}
+
+.game-screen[data-session="lumi"] .speech-bubble {
+  left: 382px;
+  top: 178px;
+  width: 270px;
+  font-size: 17px;
+  line-height: 1.38;
+  border-color: #16101f;
+  box-shadow: 6px 6px 0 #0007;
+  z-index: 14;
+}
+
+.game-screen[data-session="lumi"] .speech-bubble::before {
+  content: "LUMI";
+  position: absolute;
+  left: 14px;
+  top: -22px;
+  color: #111;
+  background: #69ffd6;
+  border: 3px solid #111;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.game-screen[data-session="lumi"] .companion {
+  z-index: 8;
+}
+.game-screen[data-session="lumi"] .c1 { left: 302px; top: 356px; }
+.game-screen[data-session="lumi"] .c2 { left: 500px; top: 350px; }
+.game-screen[data-session="lumi"] .c3 { left: 540px; top: 320px; }
+.game-screen[data-session="lumi"] .c4 { left: 270px; top: 318px; }
+
+.game-screen[data-session="lumi"] .tree-a { left: 42px; bottom: 70px; transform: scale(.9); }
+.game-screen[data-session="lumi"] .tree-b { right: 160px; top: 18px; transform: scale(.82); }
+.game-screen[data-session="lumi"] .tree-c { right: 8px; top: 120px; transform: scale(.72); }
+.game-screen[data-session="lumi"] .berry-tree-a { left: 88px; top: 118px; transform: scale(.7); }
+.game-screen[data-session="lumi"] .berry-tree-b { right: 128px; top: 178px; transform: scale(.62); }
+.game-screen[data-session="lumi"] .flower-bed.bed-a { left: 48px; bottom: 218px; }
+.game-screen[data-session="lumi"] .flower-bed.bed-b { right: 148px; bottom: 232px; }
+.game-screen[data-session="lumi"] .quest-board { left: 250px; bottom: 178px; transform: scale(.82); }
+.game-screen[data-session="lumi"] .lamp-a { left: 628px; bottom: 180px; transform: scale(.82); }
+.game-screen[data-session="lumi"] .lamp-b { right: 154px; bottom: 245px; transform: scale(.72); }
+.game-screen[data-session="lumi"] .chest { left: 418px; bottom: 50px; }
+.game-screen[data-session="lumi"] .crate-a { left: 210px; bottom: 50px; }
+.game-screen[data-session="lumi"] .crate-b { right: 200px; bottom: 56px; }
+.game-screen[data-session="lumi"] .mini-map-overlay {
+  left: 14px;
+  top: 40px;
+  transform: scale(.92);
+  transform-origin: top left;
+}
+.game-screen[data-session="lumi"] .game-hud {
+  grid-template-columns: 190px 1fr 170px;
+}
+
+/* Non-Lumi scenes are slightly de-emphasized until their dedicated art is produced. */
+.game-screen[data-session="entrance"] .session-title-card::after { content: " · 마을 입구"; }
+.game-screen[data-session="path"] .session-title-card::after { content: " · 흙길과 표지판"; }
+.game-screen[data-session="bridge"] .session-title-card::after { content: " · 강가의 나무다리"; }
+
+@media (max-width: 900px) {
+  .session-title-card { font-size: 13px; top: 10px; }
+  .game-screen[data-session="lumi"] .speech-bubble { width: 220px; left: 320px; }
+}

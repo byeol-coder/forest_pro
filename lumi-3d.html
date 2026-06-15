@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dot Forest 3D Lumi</title>
+  <link rel="stylesheet" href="./lumi-3d.css" />
+</head>
+<body>
+  <a class="skip-link" href="#gameTitle">게임 화면으로 바로가기</a>
+
+  <main class="app-shell" aria-labelledby="gameTitle">
+    <header class="hero-card">
+      <div>
+        <p class="eyebrow">DOT FOREST · ACCESSIBLE 3D TACTILE GAME</p>
+        <h1 id="gameTitle">루미의 숲속 아이템 탐험</h1>
+        <p class="hero-copy">웹/모바일 화면에서는 3D 루미가 움직이고, Dot Pad 영역에는 60×40 촉각 패턴이 함께 갱신됩니다.</p>
+      </div>
+      <div class="hero-status" aria-label="게임 진행 상태">
+        <span>Stage 1</span>
+        <strong><span id="scoreText">0</span>점</strong>
+        <small>아이템 <span id="itemText">0</span> / 5</small>
+      </div>
+    </header>
+
+    <section class="game-layout">
+      <section class="visual-panel panel" aria-label="3D 숲속 게임 화면">
+        <div class="panel-heading">
+          <strong>3D VISUAL GAME</strong>
+          <span id="visualStatus">루미가 숲 입구에 있습니다.</span>
+        </div>
+
+        <div class="forest-stage" id="forestStage" tabindex="0" role="application" aria-label="루미 3D 게임 영역. 방향키로 이동하고 스페이스 또는 엔터로 아이템을 먹습니다.">
+          <div class="stage-sky" aria-hidden="true"></div>
+          <div class="stage-ground" aria-hidden="true"></div>
+          <div class="stage-path" aria-hidden="true"></div>
+          <div class="tree t1" aria-hidden="true"><i></i></div>
+          <div class="tree t2" aria-hidden="true"><i></i></div>
+          <div class="tree t3" aria-hidden="true"><i></i></div>
+          <div class="mushroom m1" aria-hidden="true"></div>
+          <div class="mushroom m2" aria-hidden="true"></div>
+          <div class="pond" aria-hidden="true"></div>
+
+          <div class="item berry" data-item="0" aria-hidden="true">●</div>
+          <div class="item star" data-item="1" aria-hidden="true">✦</div>
+          <div class="item seed" data-item="2" aria-hidden="true">●</div>
+          <div class="item berry" data-item="3" aria-hidden="true">●</div>
+          <div class="item star" data-item="4" aria-hidden="true">✦</div>
+
+          <div class="lumi3d" id="lumi3d" aria-hidden="true">
+            <div class="shadow"></div>
+            <div class="body"></div>
+            <div class="head">
+              <span class="eye left"></span>
+              <span class="eye right"></span>
+              <span class="mouth"></span>
+            </div>
+            <div class="leaf stem"></div>
+            <div class="leaf one"></div>
+            <div class="leaf two"></div>
+            <div class="arm left"></div>
+            <div class="arm right"></div>
+            <div class="leg left"></div>
+            <div class="leg right"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tactile-panel panel" aria-label="Dot Pad 60 곱하기 40 촉각 그래픽 출력">
+        <div class="panel-heading">
+          <strong>60×40 DOT PAD OUTPUT</strong>
+          <span id="dotStatus">DTMS 변환 가능 구조</span>
+        </div>
+        <div class="dot-grid" id="dotGrid" role="img" aria-label="Dot Pad 60×40 촉각 출력 미리보기"></div>
+        <div class="dot-meta">
+          <p><b>현재 위치</b><span id="positionText">1열 4행</span></p>
+          <p><b>주변 안내</b><span id="aroundText">오른쪽에 열매가 있습니다.</span></p>
+          <p><b>HEX</b><code id="hexPreview">준비 중</code></p>
+        </div>
+      </section>
+    </section>
+
+    <section class="control-panel panel" aria-label="게임 조작 패널">
+      <div class="control-copy">
+        <h2>조작 방법</h2>
+        <p>키보드 방향키, 화면 버튼, 음성 명령, Dot Pad 패닝키 입력을 같은 이동 로직에 연결했습니다.</p>
+      </div>
+      <div class="control-grid" aria-label="방향 조작 버튼">
+        <button type="button" data-move="up" aria-label="위로 이동">▲</button>
+        <button type="button" data-move="left" aria-label="왼쪽으로 이동">◀</button>
+        <button type="button" data-action="collect" class="primary" aria-label="아이템 먹기">먹기</button>
+        <button type="button" data-move="right" aria-label="오른쪽으로 이동">▶</button>
+        <button type="button" data-move="down" aria-label="아래로 이동">▼</button>
+      </div>
+      <div class="assist-controls">
+        <button type="button" id="voiceButton">🎙 음성 조작 켜기</button>
+        <button type="button" id="readButton">📍 현재 위치 듣기</button>
+        <button type="button" id="contrastButton" aria-pressed="false">고대비 OFF</button>
+        <button type="button" id="motionButton" aria-pressed="false">모션 줄이기 OFF</button>
+      </div>
+    </section>
+
+    <section class="sr-panel panel" aria-label="스크린리더 실시간 안내">
+      <h2>스크린리더 안내</h2>
+      <p id="liveMessage" aria-live="polite" aria-atomic="true">루미가 숲 입구에 있습니다. 방향키로 이동해 아이템을 먹어보세요.</p>
+    </section>
+  </main>
+
+  <script src="./lumi-3d.js"></script>
+</body>
+</html>

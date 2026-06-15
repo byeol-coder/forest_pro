@@ -1,0 +1,246 @@
+/* Enhanced gameplay layer: richer visual game screen, clear tactile status, MVP HUD */
+.tactile-labels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 7px 9px;
+  color: #f8ffdf;
+  background: rgba(5, 7, 13, .78);
+  border: 2px solid rgba(117, 240, 207, .6);
+  font-size: .68rem;
+  line-height: 1.25;
+}
+.tactile-labels b { color: var(--yellow); }
+.play-hud {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0 4px;
+  padding: 12px;
+  background: rgba(255, 242, 200, .94);
+  color: #151733;
+}
+.hud-card {
+  padding: 9px 10px;
+  border: 3px solid #222;
+  background: #fff7d9;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.22);
+}
+.hud-card span,
+.mini-map strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: .72rem;
+  opacity: .72;
+  font-weight: 1000;
+}
+.hud-card strong { font-size: .9rem; }
+.mini-map {
+  padding: 9px 10px;
+  border: 3px solid #222;
+  background: #e6fff6;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.22);
+}
+.mini-map-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  align-items: center;
+}
+.mini-node {
+  display: block;
+  aspect-ratio: 1;
+  background: #bbd4c9;
+  border: 2px solid #222;
+  box-shadow: 2px 2px 0 rgba(0,0,0,.2);
+}
+.mini-node.active { background: var(--cell-player); animation: pulseGlow 1s steps(2) infinite; }
+.mini-node.target { background: var(--cell-interactive); }
+
+.visual-game-screen {
+  background:
+    linear-gradient(#26214f 0 15%, #4b356e 15% 27%, #f1a173 27% 32%, #88da68 32% 66%, #6bb454 66% 100%) !important;
+}
+.visual-game-screen::after {
+  content: "";
+  position: absolute;
+  inset: 32% 0 0;
+  background:
+    linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%) 0 0/24px 24px,
+    linear-gradient(-45deg, rgba(0,0,0,.06) 25%, transparent 25%) 0 0/24px 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+.visual-sprite { image-rendering: pixelated; }
+.v-layer-hill {
+  position: absolute;
+  left: 0;
+  top: 23%;
+  width: 100%;
+  height: 23%;
+  background: linear-gradient(135deg, #78c76a 0 20%, #63b85c 20% 40%, #78c76a 40% 60%, #63b85c 60% 80%, #78c76a 80%);
+  clip-path: polygon(0 38%, 14% 25%, 28% 39%, 44% 18%, 61% 34%, 78% 14%, 100% 30%, 100% 100%, 0 100%);
+  border-bottom: 4px solid rgba(34,34,34,.35);
+  z-index: 1;
+}
+.v-fence {
+  position: absolute;
+  left: 4%;
+  bottom: 35%;
+  width: 35%;
+  height: 34px;
+  background: repeating-linear-gradient(90deg, #d9a35c 0 10px, transparent 10px 18px), linear-gradient(#d9a35c 0 6px, transparent 6px 22px, #d9a35c 22px 28px, transparent 28px);
+  border-left: 4px solid #222;
+  border-right: 4px solid #222;
+  z-index: 3;
+}
+.v-tile-grass {
+  position: absolute;
+  inset: 32% 0 0 0;
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,.65) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(255,215,90,.65) 0 2px, transparent 3px);
+  background-size: 28px 28px, 28px 28px, 70px 62px, 86px 74px;
+  z-index: 2;
+  pointer-events: none;
+}
+.v-pond {
+  position: absolute;
+  right: 11%;
+  bottom: 9%;
+  width: 118px;
+  height: 62px;
+  background: repeating-linear-gradient(135deg, #2aa7ff 0 9px, #74d7ff 9px 18px);
+  border: 4px solid #222;
+  border-radius: 0;
+  z-index: 3;
+  animation: riverMove 1.4s linear infinite;
+}
+.v-stepping-stones {
+  position: absolute;
+  right: 20%;
+  bottom: 31%;
+  width: 108px;
+  height: 42px;
+  z-index: 7;
+  background:
+    radial-gradient(circle, #bfc4c8 0 12px, #222 13px 16px, transparent 17px) 0 10px/36px 28px repeat-x;
+}
+.v-mushroom {
+  position: absolute;
+  width: 21px;
+  height: 21px;
+  background: #fff1d0;
+  border: 3px solid #222;
+  z-index: 7;
+}
+.v-mushroom::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -12px;
+  width: 26px;
+  height: 14px;
+  background: #ff6f6a;
+  border: 3px solid #222;
+}
+.v-mushroom.m1 { left: 18%; bottom: 16%; }
+.v-mushroom.m2 { left: 48%; bottom: 14%; transform: scale(.85); }
+.v-crate {
+  position: absolute;
+  left: 64%;
+  bottom: 19%;
+  width: 36px;
+  height: 32px;
+  background: repeating-linear-gradient(45deg, #c78a42 0 9px, #a86b35 9px 18px);
+  border: 4px solid #222;
+  z-index: 7;
+}
+.v-speech-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 63%;
+  max-width: 168px;
+  padding: 8px 10px;
+  background: #fff7d9;
+  border: 4px solid #222;
+  color: #151733;
+  font-size: .76rem;
+  line-height: 1.25;
+  font-weight: 1000;
+  z-index: 14;
+  box-shadow: 4px 4px 0 rgba(0,0,0,.25);
+}
+.v-speech-bubble::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  bottom: -14px;
+  width: 18px;
+  height: 18px;
+  background: #fff7d9;
+  border-right: 4px solid #222;
+  border-bottom: 4px solid #222;
+  transform: rotate(45deg);
+}
+.v-mini-map-overlay {
+  position: absolute;
+  right: 10px;
+  top: 42px;
+  width: 92px;
+  height: 64px;
+  background: rgba(255, 247, 217, .92);
+  border: 4px solid #222;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  padding: 6px;
+}
+.v-mini-map-overlay i {
+  display: block;
+  background: #93cfa1;
+  border: 2px solid #222;
+}
+.v-mini-map-overlay i:nth-child(5) { background: var(--cell-player); }
+.v-progress-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 21;
+  padding: 6px 9px;
+  color: #151733;
+  background: var(--mint);
+  border: 3px solid #222;
+  font-weight: 1000;
+  box-shadow: 4px 4px 0 rgba(0,0,0,.3);
+}
+.v-action-buttons {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 21;
+  display: flex;
+  gap: 8px;
+}
+.v-action-buttons span {
+  padding: 6px 8px;
+  color: #151733;
+  background: #fff7d9;
+  border: 3px solid #222;
+  font-weight: 1000;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.25);
+}
+.v-orchard-tree::before { animation: leafSway 1.8s steps(2) infinite; transform-origin: 50% 100%; }
+@keyframes leafSway { 50% { transform: translateX(2px); } }
+
+@media (max-width: 980px) {
+  .play-hud { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .play-hud { grid-template-columns: 1fr; }
+  .tactile-labels { font-size: .62rem; }
+}

@@ -1,0 +1,267 @@
+/*
+  Image-only main game scenes
+  ---------------------------
+  The previous concept background contained HUD/text inside the image itself.
+  This layer replaces that with pure cinematic game backgrounds and keeps only
+  the moving gameplay characters visible on top.
+*/
+
+.game-screen {
+  isolation: isolate;
+  background: #102019 !important;
+}
+
+/* Remove every text-like gameplay overlay from the visible game image. */
+.game-screen .session-title-card,
+.game-screen .panel-title,
+.game-screen .mini-map-overlay,
+.game-screen .mission-overlay,
+.game-screen .speech-bubble,
+.game-screen .game-hud,
+.game-screen .focus-ring,
+.game-screen .sign,
+.game-screen .quest-board,
+.game-screen .near-lumi-hint,
+.game-screen .chest,
+.game-screen .crate,
+.game-screen .path-stones,
+.game-screen .butterfly,
+.game-screen .firefly,
+.game-screen .water-sparkle,
+.game-screen .pixel-sky,
+.game-screen .sunset-glow,
+.game-screen .cloud,
+.game-screen .far-hills,
+.game-screen .forest-backdrop,
+.game-screen .tile-map,
+.game-screen .grass-detail,
+.game-screen .river,
+.game-screen .pond,
+.game-screen .stepping-stones,
+.game-screen .bridge,
+.game-screen .cabin,
+.game-screen .tree,
+.game-screen .berry-tree,
+.game-screen .fence,
+.game-screen .lamp,
+.game-screen .rock,
+.game-screen .flower,
+.game-screen .flower-bed,
+.game-screen .mushroom {
+  display: none !important;
+}
+
+.scene-bg,
+.scene-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scene-bg {
+  z-index: 0;
+  opacity: 0;
+  transform: scale(1.04);
+  animation: sceneFade 32s infinite;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 900ms ease;
+}
+
+.scene-bg-1 {
+  animation-delay: 0s;
+  background:
+    radial-gradient(circle at 23% 62%, rgba(255, 220, 132, .85) 0 26px, transparent 27px),
+    radial-gradient(circle at 20% 55%, rgba(255, 226, 150, .3) 0 80px, transparent 82px),
+    radial-gradient(circle at 73% 60%, rgba(80, 170, 165, .5) 0 150px, transparent 152px),
+    radial-gradient(circle at 55% 34%, rgba(255,255,230,.45) 0 120px, transparent 122px),
+    linear-gradient(155deg, rgba(34, 63, 28, .92) 0 26%, transparent 27%),
+    linear-gradient(22deg, transparent 0 58%, rgba(64, 105, 55, .9) 59% 100%),
+    linear-gradient(180deg, #183a2a 0%, #6f9c57 43%, #9c7147 44%, #6a4a2f 100%);
+}
+
+.scene-bg-1::before,
+.scene-bg-2::before,
+.scene-bg-3::before,
+.scene-bg-4::before,
+.scene-bg-1::after,
+.scene-bg-2::after,
+.scene-bg-3::after,
+.scene-bg-4::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Scene 01: forest village path */
+.scene-bg-1::before {
+  background:
+    radial-gradient(ellipse at 50% 83%, rgba(219, 169, 98, .85) 0 18%, transparent 19%),
+    radial-gradient(ellipse at 43% 76%, rgba(234, 190, 120, .72) 0 13%, transparent 14%),
+    radial-gradient(circle at 16% 36%, #694322 0 6%, transparent 6.5%),
+    radial-gradient(circle at 16% 36%, #2a1b13 0 9%, transparent 9.5%),
+    radial-gradient(circle at 82% 30%, rgba(255, 210, 110, .75) 0 9px, transparent 10px),
+    radial-gradient(circle at 65% 26%, rgba(255, 210, 110, .55) 0 7px, transparent 8px),
+    repeating-linear-gradient(90deg, transparent 0 62px, rgba(255,255,255,.05) 63px 64px);
+  filter: saturate(1.05);
+}
+.scene-bg-1::after {
+  background:
+    radial-gradient(circle at 8% 82%, rgba(255,255,255,.85) 0 6px, transparent 7px),
+    radial-gradient(circle at 13% 76%, rgba(255,180,220,.82) 0 9px, transparent 10px),
+    radial-gradient(circle at 87% 72%, rgba(255,180,220,.8) 0 14px, transparent 15px),
+    linear-gradient(to top, rgba(0,0,0,.32), transparent 42%),
+    radial-gradient(circle at 50% 50%, transparent 0 48%, rgba(0,0,0,.2) 100%);
+}
+
+/* Scene 02: flower garden meadow */
+.scene-bg-2 {
+  animation-delay: 8s;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 248, 198, .72) 0 115px, transparent 117px),
+    radial-gradient(circle at 76% 30%, rgba(160, 220, 255, .46) 0 155px, transparent 157px),
+    radial-gradient(circle at 30% 70%, rgba(255, 174, 208, .55) 0 190px, transparent 192px),
+    linear-gradient(180deg, #9bd9c9 0 38%, #79b15a 39% 62%, #dba35d 63% 100%);
+}
+.scene-bg-2::before {
+  background:
+    radial-gradient(circle at 16% 68%, #fff3a6 0 12px, transparent 13px),
+    radial-gradient(circle at 23% 71%, #ffbdd4 0 15px, transparent 16px),
+    radial-gradient(circle at 31% 66%, #efe5ff 0 11px, transparent 12px),
+    radial-gradient(circle at 72% 70%, #fff3a6 0 13px, transparent 14px),
+    radial-gradient(circle at 78% 75%, #ffbdd4 0 17px, transparent 18px),
+    radial-gradient(ellipse at 50% 86%, rgba(230, 178, 104, .88) 0 22%, transparent 23%),
+    repeating-linear-gradient(110deg, rgba(255,255,255,.07) 0 3px, transparent 4px 58px);
+}
+.scene-bg-2::after {
+  background:
+    radial-gradient(circle at 38% 38%, rgba(255,255,255,.75) 0 5px, transparent 6px),
+    radial-gradient(circle at 58% 32%, rgba(255,255,255,.6) 0 4px, transparent 5px),
+    radial-gradient(circle at 66% 45%, rgba(255,255,255,.65) 0 5px, transparent 6px),
+    linear-gradient(to top, rgba(36, 52, 24, .34), transparent 48%);
+}
+
+/* Scene 03: river bridge */
+.scene-bg-3 {
+  animation-delay: 16s;
+  background:
+    radial-gradient(circle at 54% 22%, rgba(255,255,220,.55) 0 105px, transparent 107px),
+    linear-gradient(120deg, transparent 0 50%, rgba(65, 160, 173, .92) 51% 73%, transparent 74%),
+    linear-gradient(180deg, #254f47 0 38%, #6ba66b 39% 61%, #7d5c3d 62% 100%);
+}
+.scene-bg-3::before {
+  background:
+    radial-gradient(ellipse at 57% 62%, rgba(120, 201, 214, .95) 0 16%, transparent 17%),
+    linear-gradient(20deg, transparent 0 38%, rgba(108, 72, 43, .95) 39% 43%, transparent 44%),
+    radial-gradient(circle at 18% 68%, rgba(255, 221, 130, .82) 0 20px, transparent 21px),
+    radial-gradient(circle at 84% 60%, rgba(255, 221, 130, .72) 0 16px, transparent 17px),
+    radial-gradient(ellipse at 41% 83%, rgba(225, 166, 92, .9) 0 18%, transparent 19%);
+}
+.scene-bg-3::after {
+  background:
+    radial-gradient(circle at 68% 57%, rgba(255,255,255,.8) 0 4px, transparent 5px),
+    radial-gradient(circle at 60% 63%, rgba(255,255,255,.6) 0 4px, transparent 5px),
+    radial-gradient(circle at 75% 69%, rgba(255,255,255,.62) 0 4px, transparent 5px),
+    linear-gradient(to top, rgba(0,0,0,.34), transparent 45%);
+}
+
+/* Scene 04: night forest plaza */
+.scene-bg-4 {
+  animation-delay: 24s;
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255, 232, 160, .74) 0 48px, transparent 50px),
+    radial-gradient(circle at 28% 26%, rgba(142, 190, 255, .24) 0 155px, transparent 157px),
+    radial-gradient(circle at 52% 63%, rgba(255, 214, 114, .35) 0 150px, transparent 152px),
+    linear-gradient(180deg, #101434 0 36%, #263f39 37% 60%, #4b3829 61% 100%);
+}
+.scene-bg-4::before {
+  background:
+    radial-gradient(circle at 22% 22%, #fff6c8 0 3px, transparent 4px),
+    radial-gradient(circle at 33% 16%, #fff6c8 0 2px, transparent 3px),
+    radial-gradient(circle at 48% 25%, #fff6c8 0 3px, transparent 4px),
+    radial-gradient(circle at 64% 18%, #fff6c8 0 2px, transparent 3px),
+    radial-gradient(circle at 15% 63%, rgba(255, 207, 105, .86) 0 18px, transparent 19px),
+    radial-gradient(circle at 84% 64%, rgba(255, 207, 105, .7) 0 15px, transparent 16px),
+    radial-gradient(ellipse at 50% 84%, rgba(138, 98, 62, .92) 0 23%, transparent 24%);
+}
+.scene-bg-4::after {
+  background:
+    radial-gradient(circle at 42% 57%, rgba(255, 232, 146, .8) 0 5px, transparent 6px),
+    radial-gradient(circle at 58% 48%, rgba(255, 232, 146, .7) 0 5px, transparent 6px),
+    radial-gradient(circle at 70% 62%, rgba(255, 232, 146, .6) 0 4px, transparent 5px),
+    linear-gradient(to top, rgba(0,0,0,.48), transparent 52%);
+}
+
+.scene-light {
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255,255,220,.18), transparent 34%),
+    radial-gradient(circle at 50% 62%, transparent 0 44%, rgba(0,0,0,.26) 100%),
+    linear-gradient(to bottom, rgba(255,255,255,.05), rgba(0,0,0,.16));
+}
+
+@keyframes sceneFade {
+  0%, 21% { opacity: 1; }
+  25%, 96% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Keep only gameplay characters and movement effects above the image layer. */
+.game-screen .player,
+.game-screen .companion,
+.game-screen .lumi,
+.game-screen .step-effect,
+.game-screen .reaction-effect {
+  display: block !important;
+  z-index: 12 !important;
+}
+
+.game-screen .player {
+  --visual-character-scale: .78;
+  filter: drop-shadow(0 14px 15px rgba(0,0,0,.34));
+}
+
+.game-screen .companion {
+  --visual-companion-scale: .7;
+  filter: drop-shadow(0 10px 12px rgba(0,0,0,.28));
+}
+
+.game-screen .lumi {
+  filter: drop-shadow(0 12px 16px rgba(0,0,0,.32));
+}
+
+/* Put characters on the lower path so they do not collide with the center of the background. */
+.game-screen[data-session="lumi"] {
+  --player-left: 18vw !important;
+  --player-top: 73vh !important;
+}
+
+.game-screen[data-session="lumi"] .lumi {
+  left: 70vw !important;
+  top: 71vh !important;
+  transform: scale(.86) !important;
+}
+
+.path {
+  display: block !important;
+  z-index: 2 !important;
+  left: 10vw !important;
+  bottom: 12vh !important;
+  width: 68vw !important;
+  height: 10vh !important;
+  opacity: .2 !important;
+  background: radial-gradient(ellipse at center, rgba(238, 184, 104, .7), rgba(238, 184, 104, .08) 70%) !important;
+  border-radius: 50% !important;
+}
+
+/* Remove visible text from reaction except pure symbols. */
+.reaction-effect {
+  font-family: system-ui, sans-serif;
+}
+
+@media (max-width: 900px) {
+  .game-screen .player { --visual-character-scale: .62; }
+  .game-screen .companion { --visual-companion-scale: .56; }
+  .game-screen[data-session="lumi"] .lumi { transform: scale(.68) !important; }
+}

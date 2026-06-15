@@ -1,0 +1,151 @@
+/* Visual-only presentation mode
+   상단 게임 화면은 이미지/애니메이션 오브젝트만 남기고 모든 설명 텍스트와 보조 패널을 숨깁니다.
+   DOM은 유지되므로 script.js의 Dot Pad 패닝키/키보드 동기화 로직은 그대로 작동합니다. */
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #050704;
+}
+
+.app {
+  max-width: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.topbar,
+.tactile-panel,
+.braille-card,
+.message-card,
+.info-panel,
+.controls,
+.panel-title,
+.session-title-card,
+.mini-map-overlay,
+.mission-overlay,
+.speech-bubble,
+.game-hud,
+.near-lumi-hint,
+.dot-guide,
+.tactile-status,
+.dtms-status {
+  display: none !important;
+}
+
+.dashboard {
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.game-panel {
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.game-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  background-size: cover !important;
+  background-position: center center !important;
+}
+
+/* 텍스트가 들어간 장식물은 게임 화면에서 제거해 이미지/캐릭터만 보이게 처리 */
+.sign,
+.quest-board {
+  display: none !important;
+}
+
+/* 미션용 포커스 링은 UI 느낌이 강하므로 숨김. 필요 시 다시 켤 수 있음 */
+.focus-ring {
+  display: none !important;
+}
+
+/* 기존 배경 이미지 속 캐릭터와 겹치지 않도록 조작 오브젝트를 작고 낮은 전경 레이어로 정리 */
+.player,
+.companion,
+.lumi,
+.step-effect,
+.reaction-effect {
+  z-index: 30 !important;
+}
+
+.player,
+.companion,
+.lumi {
+  filter: drop-shadow(0 7px 10px rgba(0,0,0,.36));
+}
+
+/* 배경 안에 이미 충분한 오브젝트가 있으므로, 추가 픽셀 장식은 숨겨 실제 게임 이미지 중심으로 보이게 처리 */
+.tile-map,
+.grass-detail,
+.pixel-sky,
+.sunset-glow,
+.cloud,
+.far-hills,
+.forest-backdrop,
+.cabin,
+.tree,
+.berry-tree,
+.fence,
+.lamp,
+.rock,
+.flower,
+.flower-bed,
+.mushroom,
+.crate,
+.chest,
+.path-stones,
+.river,
+.bridge,
+.pond,
+.stepping-stones,
+.butterfly,
+.firefly,
+.water-sparkle {
+  opacity: 0 !important;
+}
+
+/* path는 아주 약하게만 남겨 캐릭터가 걷는 바닥감을 보조합니다. */
+.path {
+  opacity: .18 !important;
+}
+
+/* 키보드/닷패드 조작은 화면 UI 없이도 가능 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 0 48%, rgba(0,0,0,.16) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,.04), rgba(0,0,0,.1));
+  z-index: 1;
+}
+
+.game-screen > * {
+  position: absolute;
+}
+
+@media (max-width: 900px) {
+  .game-screen[data-session="lumi"] {
+    transform-origin: left top;
+  }
+}

@@ -11,8 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 
-  <link rel="stylesheet" href="./style.css" />
-  <link rel="stylesheet" href="./screens.css" />
+  <link rel="stylesheet" href="./style.css?v=2" />
+  <link rel="stylesheet" href="./screens.css?v=2" />
   <script type="importmap">
     {
       "imports": {
@@ -224,8 +224,8 @@
 
   </main>
 
-  <script type="module" src="./script.js"></script>
-  <script type="module" src="./narrative-engine.js"></script>
+  <script type="module" src="./script.js?v=2"></script>
+  <script type="module" src="./narrative-engine.js?v=2"></script>
 <style id="mobileBannerStyle">
 #mobileBanner{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(7,7,15,.97);backdrop-filter:blur(8px);padding:32px;text-align:center;font-family:sans-serif;color:#f0eeff}
 #mobileBanner.show{display:flex}
@@ -244,31 +244,202 @@
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',c);else c();})();
 </script>
 <script id="i18nLite">
-(function(){
-  const DICT = {"그래도 계속 보기": "Continue anyway", "데스크톱에서 최적화된 데모입니다": "Optimized for desktop", "이 프로토타입은 넓은 화면에 맞춰 설계되었습니다. PC나 태블릿 가로 모드에서 열면 가장 좋습니다.": "This prototype is designed for wide screens. Best viewed on PC or tablet landscape mode.", "화면 크기 안내": "Screen size notice", "조작 영역으로 바로가기": "Skip to controls", "입력 방식 안내": "Input methods", "키보드: 방향키 또는 WASD": "Keyboard: Arrow keys or WASD", "모바일: 화면 D-pad 터치": "Mobile: tap on-screen D-pad", "음성 명령": "Voice command", "조작 및 접근성 상태": "Controls & accessibility", "다시 시작": "Restart", "먹기": "Eat", "수집": "Collect", "도트링": "Dotling", "루미": "Lumi", "숲길": "Forest path", "장애물": "Obstacle", "입력 방식": "Input mode", "Meshy AI GLB 캐릭터 + 60×40 DotPad 촉각 프리뷰 + 키보드/모바일/음성/패닝키 입력 구조": "Meshy AI GLB character + 60×40 DotPad tactile preview + keyboard/mobile/voice/panning-key input", "방향키, WASD, 모바일 D-pad, 음성 명령으로 루미를 움직여 도트링을 모아보세요.": "Move Lumi with arrow keys, WASD, mobile D-pad, or voice to collect Dotlings.", "3D 숲 탐험 화면": "3D Forest Exploration", "DotPad 미연결": "DotPad disconnected", "DotPad 연결": "Connect DotPad", "DotPad 연결 시도": "Try connecting DotPad", "DotPad 연결 상태": "DotPad connection status"};const REV = {};Object.keys(DICT).forEach(k=>REV[DICT[k]]=k);
-  let cur='ko';
-  const btn=document.createElement('button');btn.id='langToggle';btn.textContent='EN';
-  btn.setAttribute('aria-label','Switch to English');
-  btn.style.cssText='position:fixed;bottom:14px;right:14px;z-index:2147483647;padding:8px 14px;background:rgba(20,20,35,.92);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:99px;font-size:11px;font-weight:800;font-family:monospace;cursor:pointer;backdrop-filter:blur(8px);letter-spacing:.08em';
+(function () {
+  /* ----- KO -> EN dictionary for all STATIC UI strings (text + a11y attrs) ----- */
+  const DICT = {
+    // Title screen
+    "\ub2ff \ud3ec\ub808\uc2a4\ud2b8": "Dot Forest",
+    "\ub8e8\ubbf8\uc640 \ud568\uaed8 \uc232\uc744 \ub204\ube44\uba70 \ub3c4\ud2b8\ub9c1\uc744 \ubaa8\uc544\uc694. \ud654\uba74\uc758 \uc6c0\uc9c1\uc784\uc774 60\u00d740 \ucd09\uac01 \uadf8\ub798\ud53d\uc73c\ub85c \uc190\ub05d\uc5d0 \uadf8\ub300\ub85c \uc804\ud574\uc9d1\ub2c8\ub2e4.":
+      "Roam the forest with Lumi and collect Dotlings. Every on-screen movement is delivered straight to your fingertips as a 60\u00d740 tactile graphic.",
+    "\uac8c\uc784 \uc2dc\uc791": "Start Game",
+    "\ub8e8\ubbf8\uac00 \uc232 \uc785\uad6c\uc5d0\uc11c \uae30\ub2e4\ub9ac\uace0 \uc788\uc5b4\uc694.": "Lumi is waiting at the forest entrance.",
+    "\uc0c8\ub85c\uc6b4 \ubaa8\ud5d8\uc774 \uc2dc\uc791\ub429\ub2c8\ub2e4\u2026": "A new adventure begins\u2026",
+
+    // Nav
+    "\uac8c\uc784\uc73c\ub85c": "To Game",
+    "\ud0c0\uc774\ud2c0\ub85c": "To Title",
+    "\uc124\uc815": "Settings",
+
+    // Game HUD
+    "\uc232 \ud0d0\ud5d8 \uac8c\uc784 \ud654\uba74": "Forest exploration game",
+    "\uc232\uc758 \ube5b": "Forest Light",
+    "\uc704\uce58": "Position",
+    "\uc8fc\ubcc0": "Surroundings",
+    "\ubbf8\uc158": "Mission",
+    "\uc9c0\ub3c4": "Map",
+    "\uc5ec\uc815 \uc9c0\ub3c4": "Journey Map",
+    "\ubbf8\uc158 \uc644\ub8cc": "Mission Complete",
+    "\ud604\uc7ac \uc784\ubb34": "Current Quest",
+    "\ub3c4\ud2b8\ub9c1": "Dotling",
+    "\ub8e8\ubbf8": "Lumi",
+    "\uc232\uae38": "Forest path",
+    "\uc7a5\uc560\ubb3c": "Obstacle",
+    "\uba39\uae30": "Eat",
+    "\uc218\uc9d1": "Collect",
+    "\uac8c\uc784 \ub2e4\uc2dc \uc2dc\uc791": "Restart game",
+    "\ud83c\udf99 \uc74c\uc131": "\ud83c\udf99 Voice",
+    "\uc785\ub825 \ubc29\uc2dd": "Input mode",
+    "3D \uc232 \ud0d0\ud5d8 \ud654\uba74": "3D Forest Exploration",
+
+    // Dev / DotPad panel
+    "\uac1c\ubc1c\uc790 \u00b7 \uc811\uadfc\uc131": "Developer \u00b7 Accessibility",
+    "DotPad \ubbf8\uc5f0\uacb0": "DotPad disconnected",
+    "DotPad \uc5f0\uacb0": "Connect DotPad",
+    "Matrix Log \ucd9c\ub825": "Matrix Log output",
+    "DotPad \ud328\ub2dd\ud0a4: \ubc29\ud5a5 \uc785\ub825\uacfc \ub3d9\uc77c\ud55c movePlayer(direction) \uad6c\uc870\uc5d0 \uc5f0\uacb0 \uac00\ub2a5":
+      "DotPad panning keys: can connect to the same movePlayer(direction) structure as directional input",
+    "\ud568\uc218\uac00 \uc2e4\uc81c DotPadSDK-1.0.0.js \uc5f0\uacb0 \uc9c0\uc810\uc785\ub2c8\ub2e4.": "is the actual DotPadSDK-1.0.0.js integration point.",
+    "Meshy AI GLB \uce90\ub9ad\ud130 + 60\u00d740 DotPad \ucd09\uac01 \ud504\ub9ac\ubdf0 + \ud0a4\ubcf4\ub4dc/\ubaa8\ubc14\uc77c/\uc74c\uc131/\ud328\ub2dd\ud0a4 \uc785\ub825 \uad6c\uc870":
+      "Meshy AI GLB character + 60\u00d740 DotPad tactile preview + keyboard/mobile/voice/panning-key input",
+    "\ubc29\ud5a5\ud0a4, WASD, \ubaa8\ubc14\uc77c D-pad, \uc74c\uc131 \uba85\ub839\uc73c\ub85c \ub8e8\ubbf8\ub97c \uc6c0\uc9c1\uc5ec \ub3c4\ud2b8\ub9c1\uc744 \ubaa8\uc544\ubcf4\uc138\uc694.":
+      "Move Lumi with arrow keys, WASD, the mobile D-pad, or voice commands to collect Dotlings.",
+
+    // Settings panel
+    "\uc5b8\uc5b4 / Language": "Language",
+    "\ud55c\uad6d\uc5b4": "Korean",
+    "\ub0b4\ub808\uc774\uc158": "Narration",
+    "\uc74c\uc131 \ub0b4\ub808\uc774\uc158 (TTS)": "Voice narration (TTS)",
+    "\ubd84\uc704\uae30 \ub0b4\ub808\uc774\uc158 (\uc232\uc758 \ubc30\uacbd \ubb18\uc0ac)": "Ambient narration (forest scene description)",
+    "\ubc30\uacbd \uc74c\uc545": "Background music",
+    "\uc785\ub825 \ubc29\uc2dd \uc548\ub0b4": "Input methods",
+    "\uc785\ub825 \ubc29\uc2dd\uacfc \ud658\uacbd\uc744 \uc5ec\uae30\uc11c \ud55c \ubc88\uc5d0 \uad00\ub9ac\ud574\uc694.": "Manage input methods and environment all in one place.",
+    "\uc815\ubcf4 \ub4e3\uae30: 1\u00b72\u00b73\u00b74 \ud0a4 \ub610\ub294 \ud654\uba74 \ubc84\ud2bc \u2014 \uc704\uce58 \u00b7 \uc8fc\ubcc0 \u00b7 \ubbf8\uc158 \u00b7 \ucd09\uac01 \uc9c0\ub3c4 (DotPad\ub294 F1~F4)":
+      "Hear info: keys 1\u00b72\u00b73\u00b74 or on-screen buttons \u2014 Position \u00b7 Surroundings \u00b7 Mission \u00b7 Tactile map (F1\u2013F4 on DotPad)",
+    "\uc74c\uc131: \u201c\uc55e\uc73c\ub85c\u201d, \u201c\ub4a4\ub85c\u201d, \u201c\uc67c\ucabd\u201d, \u201c\uc624\ub978\ucabd\u201d, \u201c\uba39\uae30\u201d":
+      "Voice: \u201cforward\u201d, \u201cback\u201d, \u201cleft\u201d, \u201cright\u201d, \u201ceat\u201d",
+    "\ud0a4\ubcf4\ub4dc: \ubc29\ud5a5\ud0a4 \ub610\ub294 WASD": "Keyboard: arrow keys or WASD",
+    "\ubaa8\ubc14\uc77c: \ud654\uba74 D-pad \ud130\uce58": "Mobile: tap the on-screen D-pad",
+    "\uc870\uc791 \uc601\uc5ed\uc73c\ub85c \ubc14\ub85c\uac00\uae30": "Skip to controls",
+
+    // aria-labels / a11y attributes
+    "60\u00d740 \ucd09\uac01 \uadf8\ub798\ud53d \ud504\ub9ac\ubdf0 \uce94\ubc84\uc2a4": "60\u00d740 tactile graphic preview canvas",
+    "DotPad \uc5f0\uacb0 \uc0c1\ud0dc": "DotPad connection status",
+    "DotPad \uc5f0\uacb0 \uc2dc\ub3c4": "Try connecting DotPad",
+    "\uac8c\uc784 \ud654\uba74": "Game screen",
+    "\ub3c4\ud2b8\ub9c1 \uba39\uae30 \ub610\ub294 \uc0c1\ud638\uc791\uc6a9": "Eat Dotling or interact",
+    "\ub8e8\ubbf8 \ub4a4\ub85c \uc774\ub3d9": "Move Lumi back",
+    "\ub8e8\ubbf8 \uc55e\uc73c\ub85c \uc774\ub3d9": "Move Lumi forward",
+    "\ub8e8\ubbf8 \uc624\ub978\ucabd \uc774\ub3d9": "Move Lumi right",
+    "\ub8e8\ubbf8 \uc67c\ucabd \uc774\ub3d9": "Move Lumi left",
+    "\ub8e8\ubbf8 \uce90\ub9ad\ud130\uac00 \uc232\uae38\uc5d0\uc11c \ub3c4\ud2b8\ub9c1\uc744 \uc218\uc9d1\ud558\ub294 3D \uac8c\uc784 \ud654\uba74":
+      "3D game where Lumi collects Dotlings on a forest path",
+    "\uc124\uc815 \uc5f4\uae30": "Open settings",
+    "\uc124\uc815 \ud654\uba74": "Settings screen",
+    "\uc5b8\uc5b4 \uc120\ud0dd": "Select language",
+    "\uc5ec\uc815 \uc9c0\ub3c4 \uc5f4\uae30": "Open journey map",
+    "\uc74c\uc131 \uba85\ub839 \uc2dc\uc791": "Start voice command",
+    "\uc774\ub3d9 \ubc0f \uc0c1\ud638\uc791\uc6a9 \uc870\uc791": "Movement and interaction controls",
+    "\uc804\uccb4\ud654\uba74 \uc804\ud658": "Toggle fullscreen",
+    "\uc815\ubcf4 \ub4e3\uae30": "Hear info",
+    "\uc8fc\ubcc0 \ud0d0\uc0c9 \ub4e3\uae30 (2)": "Hear surroundings (2)",
+    "\uc9c0\ub3c4 \ub2eb\uae30": "Close map",
+    "\ucd09\uac01 \uc9c0\ub3c4 \uc124\uba85 \ub4e3\uae30 (4)": "Hear tactile map description (4)",
+    "\ud0c0\uc774\ud2c0 \ud654\uba74": "Title screen",
+    "\ud0c0\uc774\ud2c0 \ud654\uba74\uc73c\ub85c \ub098\uac00\uae30": "Exit to title screen",
+    "\ud604\uc7ac 60\u00d740 \ub9e4\ud2b8\ub9ad\uc2a4 \ucf58\uc194 \ucd9c\ub825": "Current 60\u00d740 matrix console output",
+    "\ud604\uc7ac \ubbf8\uc158 \ub4e3\uae30 (3)": "Hear current mission (3)",
+    "\ud604\uc7ac \uc704\uce58 \ub4e3\uae30 (1)": "Hear current position (1)",
+
+    // Mobile banner
+    "\uadf8\ub798\ub3c4 \uacc4\uc18d \ubcf4\uae30": "Continue anyway",
+    "\ub370\uc2a4\ud06c\ud1b1\uc5d0\uc11c \ucd5c\uc801\ud654\ub41c \ub370\ubaa8\uc785\ub2c8\ub2e4": "Optimized for desktop",
+    "\uc774 \ud504\ub85c\ud1a0\ud0c0\uc785\uc740 \ub113\uc740 \ud654\uba74\uc5d0 \ub9de\ucdb0 \uc124\uacc4\ub418\uc5c8\uc2b5\ub2c8\ub2e4. PC\ub098 \ud0dc\ube14\ub9bf \uac00\ub85c \ubaa8\ub4dc\uc5d0\uc11c \uc5f4\uba74 \uac00\uc7a5 \uc88b\uc2b5\ub2c8\ub2e4.":
+      "This prototype is designed for wide screens. It's best viewed on a PC or tablet in landscape mode.",
+    "\ud654\uba74 \ud06c\uae30 \uc548\ub0b4": "Screen size notice"
+  };
+
+  /* reverse map (EN -> KO); keep first occurrence to avoid collisions */
+  const REV = {};
+  Object.keys(DICT).forEach(function (k) { if (!(DICT[k] in REV)) REV[DICT[k]] = k; });
+
+  /* ----- shared language state (the narrative engine reads window.DotForest.lang) ----- */
+  const KEY = "dotforest.lang";
+  let cur = "ko";
+  try { const s = localStorage.getItem(KEY); if (s === "en" || s === "ko") cur = s; } catch (e) {}
+  window.DotForest = window.DotForest || {};
+  window.DotForest.lang = cur;
+  document.documentElement.lang = cur;
+
+  /* ----- floating toggle button (master control; screens.js reads its textContent) ----- */
+  const btn = document.createElement("button");
+  btn.id = "langToggle";
+  btn.textContent = cur === "ko" ? "EN" : "KO";            // label = the language it will switch TO
+  btn.setAttribute("aria-label", cur === "ko" ? "Switch to English" : "\ud55c\uad6d\uc5b4\ub85c \uc804\ud658");
+  btn.style.cssText = "position:fixed;bottom:14px;right:14px;z-index:2147483647;padding:8px 14px;background:rgba(20,20,35,.92);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:99px;font-size:11px;font-weight:800;font-family:monospace;cursor:pointer;backdrop-filter:blur(8px);letter-spacing:.08em";
   document.documentElement.appendChild(btn);
-  function applyDict(root,dict){
-    const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,null);
-    let n=root;const nodes=[root];while(n=w.nextNode())nodes.push(n);
-    nodes.forEach(node=>{
-      if(node.nodeType===3){const t=node.nodeValue.trim();if(t&&dict[t])node.nodeValue=node.nodeValue.replace(t,dict[t]);}
-      else if(node.nodeType===1){if(node.nodeName==='SCRIPT'||node.nodeName==='STYLE')return;
-        ['aria-label','placeholder','title'].forEach(a=>{const v=node.getAttribute&&node.getAttribute(a);if(v&&dict[v])node.setAttribute(a,dict[v]);});}
+
+  /* ----- idempotent text-walk translator (works both directions) ----- */
+  function applyDict(root, dict) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+    const nodes = [root];
+    let n;
+    while ((n = w.nextNode())) nodes.push(n);
+    nodes.forEach(function (node) {
+      if (node.nodeType === 3) {
+        const t = node.nodeValue.trim();
+        if (t && dict[t]) node.nodeValue = node.nodeValue.replace(t, dict[t]);
+      } else if (node.nodeType === 1) {
+        if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") return;
+        ["aria-label", "placeholder", "title"].forEach(function (a) {
+          const v = node.getAttribute && node.getAttribute(a);
+          if (v && dict[v]) node.setAttribute(a, dict[v]);
+        });
+      }
     });
   }
-  let observing=false;
-  const obs=new MutationObserver(muts=>{if(cur==='ko')return;obs.disconnect();observing=false;
-    muts.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1||n.nodeType===3)applyDict(n,DICT);}));startObs();});
-  function startObs(){if(observing)return;obs.observe(document.body,{childList:true,subtree:true});observing=true;}
-  btn.addEventListener('click',()=>{const dict=cur==='ko'?DICT:REV;obs.disconnect();observing=false;
-    applyDict(document.body,dict);cur=cur==='ko'?'en':'ko';btn.textContent=cur==='ko'?'EN':'KO';
-    document.documentElement.lang=cur;if(cur==='en')startObs();});
+
+  /* ----- translate dynamically-added nodes while in EN ----- */
+  let observing = false;
+  const obs = new MutationObserver(function (muts) {
+    if (cur === "ko") return;
+    obs.disconnect(); observing = false;
+    muts.forEach(function (m) {
+      m.addedNodes.forEach(function (node) {
+        if (node.nodeType === 1 || node.nodeType === 3) applyDict(node, DICT);
+      });
+    });
+    startObs();
+  });
+  function startObs() { if (observing) return; obs.observe(document.body, { childList: true, subtree: true }); observing = true; }
+
+  /* ----- keep the Settings segmented control in sync ----- */
+  function syncSeg() {
+    const seg = document.getElementById("langSeg");
+    if (!seg) return;
+    seg.querySelectorAll("[data-lang]").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.lang === cur);
+    });
+  }
+
+  /* ----- perform the language switch ----- */
+  function setLang(lang) {
+    if (lang !== "ko" && lang !== "en") return;
+    if (lang === cur) { syncSeg(); return; }
+    applyDict(document.body, lang === "en" ? DICT : REV);   // current -> target
+    cur = lang;
+    window.DotForest.lang = cur;
+    try { localStorage.setItem(KEY, cur); } catch (e) {}
+    btn.textContent = cur === "ko" ? "EN" : "KO";
+    btn.setAttribute("aria-label", cur === "ko" ? "Switch to English" : "\ud55c\uad6d\uc5b4\ub85c \uc804\ud658");
+    document.documentElement.lang = cur;
+    syncSeg();
+    document.dispatchEvent(new CustomEvent("dotforest:lang", { detail: { lang: cur } }));
+    obs.disconnect(); observing = false;
+    if (cur === "en") startObs();
+  }
+
+  btn.addEventListener("click", function () { setLang(cur === "ko" ? "en" : "ko"); });
+  window.DotForest.setLang = setLang;   // expose for programmatic use
+
+  /* ----- boot: apply stored EN to the initial DOM ----- */
+  function boot() {
+    syncSeg();
+    if (cur === "en") { applyDict(document.body, DICT); startObs(); }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();
 </script>
-<script src="./screens.js"></script>
+<script src="./screens.js?v=2"></script>
 </body>
 </html>

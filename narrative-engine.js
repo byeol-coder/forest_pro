@@ -10,6 +10,92 @@ const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const PIP_POS = { x: 15, z: 7 };          // Chapter 1 target (right side of the forest)
 const STORE_KEY = 'dotforest.settings';
 
+/* ===== i18n: dynamic-string layer (shares window.DotForest.lang) ===== */
+function curLang() { return (window.DotForest && window.DotForest.lang) || 'ko'; }
+const DYN_EN = {
+  // onDemand fallbacks
+  "당신은 숲 어딘가에 서 있습니다. 발밑의 흙이 단단합니다.": "You're standing somewhere in the forest. The earth is firm beneath your feet.",
+  "왼쪽과 오른쪽은 고요합니다. 앞쪽에서 희미한 떨림이 느껴집니다.": "Left and right are quiet. A faint tremor comes from ahead.",
+  "지금은 자유롭게 숲을 탐험하세요.": "For now, explore the forest freely.",
+  "Dot Pad에는 현재 위치를 중심으로 한 격자가 표시됩니다. 가운데 점이 당신, 루미입니다.": "The Dot Pad shows a grid centered on your position. The dot in the middle is you, Lumi.",
+  // location names / descriptions / onDemand
+  "숲의 입구": "Forest Entrance",
+  "베리 숲": "Berry Grove",
+  "강가": "Riverside",
+  "부드러운 흙길이 당신을 맞이합니다.": "A soft dirt path welcomes you.",
+  "달큼한 향과 둥근 떨림이 가득합니다.": "Sweet scents and round tremors fill the air.",
+  "물결 소리가 좌우로 흐릅니다. 안전한 발판은 조용합니다.": "The sound of water flows left and right. Safe footing stays silent.",
+  "당신은 '숲의 입구'에 서 있습니다. 발밑의 흙이 부드럽고 단단합니다.": "You're standing at the 'Forest Entrance'. The soil is soft yet firm underfoot.",
+  "왼쪽: 부드러운 풀밭. 오른쪽: 작은 떨림(친구). 앞쪽: 완만한 오르막.": "Left: soft grass. Right: a small tremor (a friend). Ahead: a gentle slope.",
+  "당신은 '베리 숲' 중앙에 서 있습니다. 북쪽으로 갈수록 베리 향기가 강해집니다.": "You're standing in the middle of the 'Berry Grove'. The berry scent grows stronger toward the north.",
+  "왼쪽: 부드러운 풀밭. 오른쪽: 거칠고 넓은 떨림(Bramble). 앞쪽: 둥근 점 세 개(베리).": "Left: soft grass. Right: a coarse, wide tremor (Bramble). Ahead: three round dots (berries).",
+  "당신은 '강가'에 서 있습니다. 발밑에서 물의 노래와 돌의 침묵이 번갈아 느껴집니다.": "You're standing at the 'Riverside'. Beneath your feet, the song of water and the silence of stone alternate.",
+  "왼쪽: 물결치는 깊은 물. 오른쪽: 단단한 돌다리. 앞쪽: 맑은 종소리(Echo).": "Left: rippling deep water. Right: firm stepping stones. Ahead: a clear bell tone (Echo).",
+  // mission objectives
+  "Pip의 소리를 따라 이동하세요.": "Follow Pip's sound.",
+  "베리 3개를 모아 Bramble에게 주세요.": "Gather 3 berries and give them to Bramble.",
+  "소리의 방향을 따라 강을 건너세요.": "Cross the river by following the direction of the sound.",
+  // mission narration
+  "당신은 Lumi입니다. 숲이 잠들기 전, 마지막 빛을 밝혀야 합니다.": "You are Lumi. Before the forest falls asleep, you must rekindle the last light.",
+  "공기에서 달큼한 향이 번집니다. 둥근 떨림들이 흩어져 있습니다.": "A sweet scent spreads through the air. Round tremors are scattered about.",
+  "물소리가 사방에서 들립니다. 발밑이 갑자기 차가워집니다.": "The sound of water comes from all around. The ground suddenly turns cold underfoot.",
+  "작은 떨림이 손끝에 닿습니다. Pip가 당신의 빛을 기다렸습니다.": "A small tremor touches your fingertips. Pip has been waiting for your light.",
+  "Pip를 찾았습니다! 이제 당신은 혼자가 아닙니다.": "You found Pip! You're not alone anymore.",
+  "Bramble이 가시를 치워줍니다. 새로운 길이 열립니다.": "Bramble clears away the thorns. A new path opens.",
+  "Echo를 구했습니다. 이제 앞길의 지형이 종소리로 먼저 들립니다.": "You rescued Echo. Now the terrain ahead reaches you first as a bell tone.",
+  "베리를 모았습니다. ({collected}/{count})": "Berry collected. ({collected}/{count})",
+  "물은 거짓말을 하지 않으나, 흐름은 변한다. 안전한 발판은 침묵하고, 깊은 곳은 노래한다.": "Water never lies, but its flow changes. Safe footing stays silent; the deep places sing.",
+  // dialogue (shown nodes)
+  "작은 떨림이 손끝에 닿습니다. Pip인가요?": "A small tremor touches your fingertips. Is that you, Pip?",
+  "부르기": "Call out",
+  "Pip가 기쁜 소리를 내며 달려옵니다.": "Pip lets out a happy sound and runs over.",
+  "가만히 있기": "Stay still",
+  "Pip가 조심스럽게 다가옵니다.": "Pip approaches cautiously.",
+  "마지막 가시가 떨어집니다. Bramble이 깊게 숨을 내쉽니다.": "The last thorn falls away. Bramble lets out a deep breath.",
+  "이제 자유야.": "You're free now.",
+  "Bramble이 길을 막던 가시를 천천히 치워줍니다. 새로운 길이 열립니다.": "Bramble slowly clears the thorns that blocked the way. A new path opens.",
+  // ambient
+  "숲이 숨을 쉽니다. 나뭇잎 사이로 달빛이 스며드는 소리가 들립니다.": "The forest breathes. You can hear moonlight seeping through the leaves.",
+  "멀리서 물소리가 잔잔하게 번집니다.": "Far away, the gentle sound of water spreads.",
+  "발밑의 흙이 당신의 걸음을 기억합니다.": "The earth beneath your feet remembers your steps.",
+  // engine-hardcoded literals (standalone)
+  "미션 완료!": "Mission complete!",
+  "모든 빛을 되찾았어요. 숲이 다시 환하게 깨어납니다.": "All the light has been restored. The forest awakens bright once more.",
+  "미션 업데이트:": "Mission update:",
+  "강을 건넜어요!": "Crossed the river!",
+  "Echo를 구했어요.": "Rescued Echo.",
+  "흩어진 빛이 모두 제자리로 돌아왔어요. 숲이 환하게 깨어납니다.": "All the scattered light has returned to its place. The forest awakens bright.",
+  "오른쪽에서 작고 높은 떨림이 느껴집니다. 가까워지고 있어요.": "A small, high tremor comes from the right. You're getting closer.",
+  "Pip을 찾았어요!": "Found Pip!",
+  "오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.": "Head to the exit on the far right to move to the Berry Grove.",
+  "베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.": "The path to the Berry Grove has opened. Reach the far right to move on.",
+  "베리 3개를 모았어요!": "Gathered 3 berries!",
+  "위쪽 끝 출구로 가서 강가로 이동하세요.": "Head to the exit at the far top to move to the Riverside.",
+  "강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.": "The path to the Riverside has opened. Reach the far top to move on.",
+  "선택지": "Choices",
+  "계속": "Continue"
+};
+function tr(s) { return (curLang() === 'en' && typeof s === 'string' && DYN_EN[s]) ? DYN_EN[s] : s; }
+function deepTr(v) {
+  const en = curLang() === 'en';
+  const walk = (x) => {
+    if (typeof x === 'string') return (en && DYN_EN[x]) ? DYN_EN[x] : x;
+    if (Array.isArray(x)) return x.map(walk);
+    if (x && typeof x === 'object') { const o = {}; for (const k in x) o[k] = walk(x[k]); return o; }
+    return x;
+  };
+  return walk(v);
+}
+function relocalize() {
+  if (!state.rawData) return;
+  state.data = deepTr(state.rawData);
+  if (state.mission && state.mission.id && state.data.missions) {
+    const m = state.data.missions.find((x) => x.id === state.mission.id);
+    if (m) state.mission = m;
+  }
+}
+
+
 const state = {
   data: null,
   settings: { ambientNarration: false, ttsEnabled: true, ttsLang: 'ko-KR', ttsRate: 1.02 },
@@ -62,6 +148,7 @@ function ensureLiveRegions() {
 /* ---------- say: aria-live + optional TTS ---------- */
 function say(text, priority = 'polite') {
   if (!text) return;
+  text = tr(text);
   const region = priority === 'assertive' ? liveAssertive : livePolite;
   if (region) {
     region.textContent = '';
@@ -71,7 +158,7 @@ function say(text, priority = 'polite') {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = state.settings.ttsLang;
+      u.lang = curLang() === 'en' ? 'en-US' : (state.settings.ttsLang || 'ko-KR');
       u.rate = state.settings.ttsRate;
       window.speechSynthesis.speak(u);
     } catch (e) {}
@@ -151,12 +238,14 @@ function collectedCount() {
   return m ? parseInt(m[1], 10) : 0;
 }
 function setQuest(text) {
+  text = tr(text);
   const panel = document.getElementById('questPanel');
   if (panel) panel.classList.remove('done');
   const el = document.getElementById('questText');
   if (el && text) el.textContent = text;
 }
 function showMissionToast(text) {
+  text = tr(text);
   const t = document.getElementById('missionToast');
   if (!t) return;
   const txt = document.getElementById('missionToastText');
@@ -170,6 +259,7 @@ function questComplete(label) {
   showMissionToast(label || '미션 완료!');
 }
 function showZone(name) {
+  name = tr(name);
   const el = document.getElementById('zoneBanner');
   if (!el || !name) return;
   const t = document.getElementById('zoneBannerText');
@@ -198,7 +288,7 @@ function startMission(idx) {
   state.pipHinted = false;
   setQuest(state.mission.objective);
   if (state.mission.intro_narration) say(state.mission.intro_narration, 'assertive');
-  window.setTimeout(() => say(`미션 업데이트: ${state.mission.objective}`, 'polite'), 1600);
+  window.setTimeout(() => say(tr('미션 업데이트:') + ' ' + state.mission.objective, 'polite'), 1600);
   if (state.mission.puzzle && state.mission.puzzle.riddle) {
     window.setTimeout(() => say(state.mission.puzzle.riddle, 'polite'), 3400);
   }
@@ -303,7 +393,7 @@ function ensureOverlay() {
   overlay.hidden = true;
   overlay.innerHTML = '<div class="dialog-card"><p class="dialog-speaker" id="dialogSpeaker"></p>'
     + '<p class="dialog-prompt" id="dialogPrompt" tabindex="-1"></p>'
-    + '<div class="dialog-choices" id="dialogChoices" role="group" aria-label="선택지"></div></div>';
+    + '<div class="dialog-choices" id="dialogChoices" role="group" aria-label="' + tr('선택지') + '"></div></div>';
   host.appendChild(overlay);
 }
 function startDialogue(charKey, nodeId, onDone) {
@@ -317,7 +407,7 @@ function startDialogue(charKey, nodeId, onDone) {
   prompt.textContent = node.text;
   const box = $('dialogChoices');
   box.innerHTML = '';
-  (node.choices || [{ label: '계속', response: '' }]).forEach((c) => {
+  (node.choices || [{ label: tr('계속'), response: '' }]).forEach((c) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'dialog-choice';
@@ -412,7 +502,8 @@ async function init() {
   ensureLiveRegions();
   try {
     const res = await fetch('./narrative.json');
-    state.data = await res.json();
+    state.rawData = await res.json();
+    relocalize();
   } catch (e) {
     console.error('[DotForest] narrative.json을 불러오지 못했습니다. http 서버로 실행했는지 확인하세요.', e);
     return;
@@ -423,6 +514,10 @@ async function init() {
   wireSettings();
   wireObservers();
   exposeApi();
+  document.addEventListener('dotforest:lang', () => {
+    relocalize();
+    if (state.mission) setQuest(state.mission.objective);
+  });
   window.setInterval(ambientTick, 18000);
 }
 

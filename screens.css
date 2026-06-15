@@ -343,3 +343,13 @@ body { font-family: var(--body); }
 @media (prefers-reduced-motion: reduce) {
   .score.bump, #forestLightMeter.bump, #lightFill.bump { animation: none; }
 }
+
+/* ---------- game screen: 화면을 더 채우도록 넓고 크게 ---------- */
+/* 타이틀·설정은 1080px 유지, 게임 화면일 때만 컨테이너를 넓힘 */
+.app:has(#screen-game.is-active) {
+  width: min(1600px, calc(100% - 1.5rem));
+}
+#screen-game .stage--game {
+  height: min(88vh, 940px);
+  min-height: 520px;
+}

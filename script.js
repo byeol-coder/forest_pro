@@ -1468,9 +1468,12 @@ function animate() {
     const camDist = 22;   // 캐릭터 뒤 거리
     const camHeight = 16; // 카메라 높이
 
-    // 캐릭터가 바라보는 방향의 '뒤쪽'에 카메라 목표 위치 계산
-    const targetX = px + Math.sin(yaw) * camDist;
-    const targetZ = pz + Math.cos(yaw) * camDist;
+    // 월드 고정 방향 카메라: 캐릭터 yaw에 따라 공전하지 않는다.
+    // (방향키는 월드 절대 방향이므로, 카메라가 캐릭터를 따라 돌면
+    //  위/아래·좌/우가 화면에서 뒤집혀 "거꾸로 움직이는" 것처럼 보인다.)
+    void yaw;
+    const targetX = px;
+    const targetZ = pz + camDist;
 
     // 부드러운 추적 (lerp)
     const lerp = 0.06;

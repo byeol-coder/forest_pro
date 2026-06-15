@@ -250,3 +250,84 @@ body { font-family: var(--body); }
 @media (prefers-reduced-motion: reduce) {
   .screen.is-active { animation: none; }
 }
+
+/* ===========================================================
+   Narrative layer — info keys, dialogue overlay, settings toggles
+   =========================================================== */
+
+/* on-demand info buttons (1·2·3·4) — top-center of the game stage */
+.info-keys {
+  position: absolute; top: 4.4rem; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.86); border: 1px solid var(--line);
+  border-radius: 14px; padding: 0.3rem; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+}
+.info-keys button {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: transparent; color: var(--ink); box-shadow: none;
+  border-radius: 10px; padding: 0.45rem 0.6rem; font-weight: 800; font-size: 0.78rem;
+}
+.info-keys button:hover { background: #f3efe6; }
+.info-keys button b {
+  display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem;
+  border-radius: 6px; background: var(--brand); color: #fff; font-size: 0.68rem;
+}
+
+/* accessible dialogue overlay */
+#dialogOverlay {
+  position: absolute; inset: 0; z-index: 7;
+  display: grid; place-items: center; padding: 1.2rem;
+  background: rgba(20, 30, 18, 0.58); backdrop-filter: blur(3px);
+}
+#dialogOverlay[hidden] { display: none; }
+.dialog-card {
+  width: min(30rem, 100%);
+  background: var(--bg); border-radius: 22px; padding: 1.4rem 1.5rem;
+  box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.7);
+}
+.dialog-speaker {
+  margin: 0 0 0.3rem; font-family: var(--display); color: var(--brand-dark);
+  font-size: 1rem; min-height: 1rem;
+}
+.dialog-prompt { margin: 0 0 1.1rem; color: var(--ink); font-size: 1.05rem; line-height: 1.6; }
+.dialog-prompt:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; border-radius: 8px; }
+.dialog-choices { display: grid; gap: 0.55rem; }
+.dialog-choice {
+  text-align: left; background: #fff; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 0.85rem 1rem; font-weight: 800; font-size: 0.95rem; box-shadow: none;
+}
+.dialog-choice:hover { background: #eef8ec; border-color: rgba(61, 125, 74, 0.35); }
+
+/* settings toggles */
+.toggle {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.4rem 0; font-weight: 700; font-size: 0.85rem; color: var(--ink); cursor: pointer;
+}
+.toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--brand); cursor: pointer; }
+
+@media (max-width: 720px) {
+  .info-keys { top: 4rem; }
+  .info-keys button { font-size: 0.72rem; padding: 0.4rem 0.5rem; }
+}
+
+/* forest-light restoration meter (HUD) */
+.light-meter {
+  display: flex; flex-direction: column; gap: 0.25rem;
+  padding: 0.5rem 0.75rem; border-radius: 16px;
+  background: rgba(20, 30, 18, 0.42); border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14); min-width: 8.5rem; backdrop-filter: blur(6px);
+}
+.light-label { color: #fff; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; opacity: 0.92; }
+.light-track {
+  display: block; height: 0.5rem; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.22);
+}
+.light-fill {
+  display: block; height: 100%; width: 12%; border-radius: 999px;
+  background: linear-gradient(90deg, #f5b84b, #ffe08a);
+  box-shadow: 0 0 10px rgba(245, 184, 75, 0.7);
+  transition: width 0.5s ease;
+}
+@media (prefers-reduced-motion: reduce) { .light-fill { transition: none; } }
+@media (max-width: 720px) { .light-meter { min-width: 7rem; } }

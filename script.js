@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { wanderStep, threat, applyHit, lightFromProgress, lightToScene, atExit, riverStep, atGoal } from './dotforest-mechanics.js';
+import { AREAS, AREA_ORDER } from './areas.js';
 
 const DOT_WIDTH = 60;
 const DOT_HEIGHT = 40;
@@ -30,6 +32,11 @@ let lumiRoot = null;
 let actions = {};
 let currentAction = null;
 let dotlingPrototype = null;
+let lastTactileT = 0, lastWarnT = 0, lastHitT = 0, lastExitT = 0;
+let audioCtx = null;
+let areaGroup = null;
+let riverCrossed = false;
+const GRAND_TOTAL = AREA_ORDER.reduce((n, id) => n + AREAS[id].items.length, 0);
 let lastMatrix = [];
 let dotPadConnected = false;
 let speechRecognition = null;
@@ -42,10 +49,22 @@ const initialItems = [
   { id: 'dotling-5', x: -9, z: 9, collected: false },
 ];
 
+const initialHazards = [
+  { id: 'shadow-1', x: 6,  z: -2, vx: 2.2,  vz: 1.6 },
+  { id: 'shadow-2', x: -6, z: 6,  vx: -1.8, vz: 2.1 },
+  { id: 'shadow-3', x: 18, z: 4,  vx: 1.5,  vz: -2.3 },
+];
+
 const gameState = {
   player: { x: -20, z: 10, direction: 'down', animation: 'idle', yaw: 0 },
+  area: 'forest_entrance',
   items: structuredClone(initialItems),
   itemMeshes: new Map(),
+  forestLight: 0.1,
+  lightCollected: 0,
+  lightTotal: 1,
+  hazards: structuredClone(initialHazards),
+  hazardMeshes: new Map(),
   obstacles: [
     { x: -20, z: -7, w: 5, d: 6 },
     { x: 1, z: 4, w: 6, d: 5 },
@@ -57,10 +76,9 @@ init();
 
 async function init() {
   setupThreeScene();
-  createForestWorld();
   setupEventListeners();
   setupSpeechRecognition();
-  drawTactileFrame();
+  gameState.lightTotal = GRAND_TOTAL;
   announce('루미가 숲 입구에서 기다리고 있어요. 방향키나 패닝키 구조로 이동할 수 있습니다.');
 
   await Promise.allSettled([
@@ -68,8 +86,7 @@ async function init() {
     loadDotlingModel(),
   ]);
 
-  placeDotlings();
-  updateScore();
+  loadArea('forest_entrance', { initial: true });
   animate();
 }
 
@@ -112,44 +129,131 @@ function setupThreeScene() {
 }
 
 function createForestWorld() {
+  if (areaGroup) { scene.remove(areaGroup); areaGroup = null; }
+  areaGroup = new THREE.Group();
+
+  const pal = (AREAS[gameState.area] && AREAS[gameState.area].palette) || { ground: 0x72ad65, path: 0xcdbb80, pebble: 0xe7d8a4 };
+
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(70, 48, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0x72ad65, roughness: 0.95 })
+    new THREE.MeshStandardMaterial({ color: pal.ground, roughness: 0.95 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
-  scene.add(ground);
+  areaGroup.add(ground);
 
   const path = new THREE.Mesh(
     new THREE.PlaneGeometry(58, 13, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0xcdbb80, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ color: pal.path, roughness: 0.9 })
   );
   path.rotation.x = -Math.PI / 2;
   path.position.y = 0.015;
   path.receiveShadow = true;
-  scene.add(path);
+  areaGroup.add(path);
 
   // soft curved path markers
   for (let i = -24; i <= 24; i += 4) {
     const pebble = new THREE.Mesh(
       new THREE.CylinderGeometry(0.45, 0.55, 0.08, 10),
-      new THREE.MeshStandardMaterial({ color: 0xe7d8a4, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: pal.pebble, roughness: 0.9 })
     );
     pebble.position.set(i, 0.08, Math.sin(i * 0.25) * 2);
     pebble.castShadow = true;
-    scene.add(pebble);
+    areaGroup.add(pebble);
   }
 
   gameState.obstacles.forEach((obstacle, index) => {
     createTreeCluster(obstacle.x, obstacle.z, index);
   });
 
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 14; i++) {
     const x = -32 + Math.random() * 64;
     const z = -22 + Math.random() * 44;
     if (Math.abs(z) < 8 && Math.abs(x) < 28) continue;
     createTreeCluster(x, z, i + 5, 0.7);
   }
+
+  if (gameState.area === 'river') buildRiverCrossing3D();
+
+  scene.add(areaGroup);
+}
+
+function buildRiverCrossing3D() {
+  const cr = AREAS.river.crossing;
+  if (!cr) return;
+  const w = cr.water;
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(w.xMax - w.xMin, w.zMax - w.zMin, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x2f8fd0, transparent: true, opacity: 0.78, roughness: 0.3, metalness: 0.1 })
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.set((w.xMin + w.xMax) / 2, 0.05, (w.zMin + w.zMax) / 2);
+  areaGroup.add(water);
+
+  cr.stones.forEach((st) => {
+    const stone = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.4, 1.6, 0.5, 12),
+      new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.95 })
+    );
+    stone.position.set(st.x, 0.25, st.z);
+    stone.castShadow = true;
+    stone.receiveShadow = true;
+    areaGroup.add(stone);
+  });
+
+  const echo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.9, 0.26, 12, 28),
+    new THREE.MeshStandardMaterial({ color: 0x5dcaa5, emissive: 0x1d9e75, emissiveIntensity: 0.9 })
+  );
+  echo.position.set(cr.goal.x, 1.2, cr.goal.z);
+  echo.name = 'echo-goal';
+  areaGroup.add(echo);
+}
+
+// Load (or swap to) an area: rebuild world, entities, player, scene, HUD, tactile.
+function loadArea(id, opts = {}) {
+  const cfg = AREAS[id];
+  if (!cfg) return;
+  riverCrossed = false;
+  gameState.area = id;
+  gameState.obstacles = structuredClone(cfg.obstacles);
+  gameState.items = structuredClone(cfg.items);
+  gameState.hazards = structuredClone(cfg.hazards);
+  gameState.player = { x: cfg.playerStart.x, z: cfg.playerStart.z, direction: 'down', animation: 'idle', yaw: 0 };
+
+  createForestWorld();
+  placeDotlings();
+  placeHazards();
+  updateLumiTransform('down');
+  playAction('idle');
+  updateScore();
+  applyScene();
+  updateLightHUD();
+  drawTactileFrame();
+  sendDotPadFrame(lastMatrix);
+
+  // hand the location to the narrative engine (it narrates the area + starts its mission)
+  if (!opts.initial && window.DotForest && window.DotForest.narrative && window.DotForest.narrative.enterArea) {
+    window.DotForest.narrative.enterArea(id);
+  }
+}
+
+// Walk-to-exit zone transitions, gated by story flags.
+function checkAreaExit() {
+  const cfg = AREAS[gameState.area];
+  if (!cfg || !cfg.exit) return;
+  if (!atExit(gameState.player, cfg.exit)) return;
+  if (clock.elapsedTime - lastExitT < 1.6) return;
+  lastExitT = clock.elapsedTime;
+
+  const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+    ? (window.DotForest.narrative.get('flags') || {}) : {};
+  if (cfg.exit.needFlag && !flags[cfg.exit.needFlag]) {
+    announce(cfg.exit.lockedMsg, true);
+    return;
+  }
+  announce(`${AREAS[cfg.exit.to].name}(으)로 이동합니다.`, true);
+  loadArea(cfg.exit.to);
 }
 
 function createTreeCluster(x, z, seed = 0, scale = 1) {
@@ -159,7 +263,7 @@ function createTreeCluster(x, z, seed = 0, scale = 1) {
   );
   trunk.position.set(x, 1.2 * scale, z);
   trunk.castShadow = true;
-  scene.add(trunk);
+  (areaGroup || scene).add(trunk);
 
   const crown = new THREE.Mesh(
     new THREE.DodecahedronGeometry((2.1 + (seed % 3) * 0.22) * scale),
@@ -167,7 +271,7 @@ function createTreeCluster(x, z, seed = 0, scale = 1) {
   );
   crown.position.set(x, 3.25 * scale, z);
   crown.castShadow = true;
-  scene.add(crown);
+  (areaGroup || scene).add(crown);
 }
 
 async function loadLumiCharacter() {
@@ -224,16 +328,118 @@ function placeDotlings() {
       mesh = dotlingPrototype.clone(true);
       mesh.scale.setScalar(0.55);
     } else {
-      mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.75, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xf5b84b, emissive: 0x5a3200, emissiveIntensity: 0.15 })
-      );
+      mesh = createDotring();
     }
-    mesh.position.set(item.x, 0.45, item.z);
+    mesh.position.set(item.x, 1.2, item.z);
     mesh.name = item.id;
     scene.add(mesh);
     gameState.itemMeshes.set(item.id, mesh);
   });
+}
+
+function createDotring() {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.85, 0.26, 12, 28),
+    new THREE.MeshStandardMaterial({ color: 0xf5b84b, emissive: 0xf3a712, emissiveIntensity: 0.9, metalness: 0.3, roughness: 0.35 })
+  );
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(1.15, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  const beacon = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.05, 5, 8, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  beacon.position.y = 2.4;
+  g.add(halo); g.add(ring); g.add(beacon);
+  return g;
+}
+
+function placeHazards() {
+  gameState.hazardMeshes.forEach((m) => scene.remove(m));
+  gameState.hazardMeshes.clear();
+  gameState.hazards.forEach((h) => {
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x140f1c, roughness: 1, metalness: 0, emissive: 0x1a1030, emissiveIntensity: 0.4 })
+    );
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.25, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0x2a1f3a, transparent: true, opacity: 0.28, depthWrite: false })
+    );
+    group.add(halo); group.add(core);
+    group.position.set(h.x, 1.0, h.z);
+    group.name = h.id;
+    scene.add(group);
+    gameState.hazardMeshes.set(h.id, group);
+  });
+}
+
+function applyScene() {
+  if (!scene || !renderer) return;
+  const sc = lightToScene(gameState.forestLight);
+  if (scene.background && scene.background.setHex) scene.background.setHex(sc.bg);
+  else scene.background = new THREE.Color(sc.bg);
+  if (scene.fog) { scene.fog.color.setHex(sc.bg); scene.fog.near = sc.fogNear; scene.fog.far = sc.fogFar; }
+  renderer.toneMappingExposure = sc.exposure;
+}
+
+function updateLightHUD() {
+  const fill = document.getElementById('lightFill');
+  if (fill) fill.style.width = Math.round(gameState.forestLight * 100) + '%';
+  const meter = document.getElementById('forestLightMeter');
+  if (meter) meter.setAttribute('aria-valuenow', Math.round(gameState.forestLight * 100));
+}
+
+function playWarn(pan, intensity) {
+  if (clock.elapsedTime - lastWarnT < 0.28) return;
+  lastWarnT = clock.elapsedTime;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const panner = audioCtx.createStereoPanner();
+    osc.type = 'triangle';
+    osc.frequency.value = 340 + intensity * 220;
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    const vol = Math.min(0.18, 0.05 + intensity * 0.16);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.24);
+  } catch (e) {}
+}
+
+function playWater(pan) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const panner = audioCtx.createStereoPanner();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.3);
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+    osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.36);
+  } catch (e) {}
+}
+
+function onHazardHit() {
+  if (clock.elapsedTime - lastHitT < 1.4) return;
+  lastHitT = clock.elapsedTime;
+  gameState.forestLight = applyHit(gameState.forestLight);
+  applyScene();
+  updateLightHUD();
+  announce('그림자가 스쳐 지나갔어요. 숲의 빛이 잠시 흐려집니다.', true);
 }
 
 function setupEventListeners() {
@@ -290,6 +496,17 @@ function movePlayer(direction) {
     return;
   }
 
+  if (gameState.area === 'river') {
+    const cr = AREAS.river.crossing;
+    if (cr && riverStep(next, cr).deep) {
+      playAction('idle');
+      const pan = direction === 'left' ? -0.7 : direction === 'right' ? 0.7 : 0;
+      playWater(pan);
+      announce('그쪽은 물이 노래해요. 깊은 물입니다. 침묵하는 안전한 돌을 디뎌요.');
+      return;
+    }
+  }
+
   gameState.player.x = next.x;
   gameState.player.z = next.z;
   gameState.player.direction = direction;
@@ -298,6 +515,16 @@ function movePlayer(direction) {
   updateLumiTransform(direction);
   playAction('walk');
   announce(`루미가 ${directionToKorean(direction)} 이동했습니다.`);
+
+  if (gameState.area === 'river' && !riverCrossed) {
+    const cr = AREAS.river.crossing;
+    if (cr && atGoal(gameState.player, cr.goal)) {
+      riverCrossed = true;
+      if (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.crossRiverComplete) {
+        window.DotForest.narrative.crossRiverComplete();
+      }
+    }
+  }
   checkNearbyHint();
   drawTactileFrame();
   sendDotPadFrame(lastMatrix);
@@ -357,13 +584,17 @@ function collectNearbyDotling() {
   if (mesh) mesh.visible = false;
 
   playAction('collect');
-  announce('도트링을 획득했습니다! 촉각 프리뷰에서 해당 점형이 사라졌습니다.', true);
+  announce('빛 한 조각이 손끝으로 돌아왔어요. 숲이 조금 더 밝아집니다.', true);
   updateScore();
+  gameState.lightCollected += 1;
+  gameState.forestLight = 0.1 + 0.9 * Math.min(1, gameState.lightCollected / gameState.lightTotal);
+  applyScene();
+  updateLightHUD();
   drawTactileFrame();
   sendDotPadFrame(lastMatrix);
 
   if (gameState.items.every((item) => item.collected)) {
-    announce('모든 도트링을 모았습니다. 루미와 도트링들이 숲 탐험을 완료했어요!', true);
+    announce('흩어진 빛을 모두 모았어요. 숲이 다시 환하게 깨어납니다!', true);
   }
 }
 
@@ -395,7 +626,14 @@ function createDotPadMatrix() {
   // 1. 근접 장애물(나무) — 플레이어 반경 6 이내만 표시
   drawNearbyObstacles(matrix, 6);
 
-  // 2. 캐릭터(루미) 워킹 실루엣 — 항상 위에 덮어씀
+  // 2. 강가: 물결(물) + 꽉 찬 블록(안전한 돌) 패턴
+  if (gameState.area === 'river') drawRiverCrossing(matrix);
+
+  // 3. 도트링(수집물, 다이아몬드 패턴) + 떠다니는 그림자(위험물, X 패턴)
+  drawItems(matrix);
+  drawNearbyHazards(matrix, 7);
+
+  // 3. 캐릭터(루미) 워킹 실루엣 — 항상 위에 덮어씀
   drawPlayerFull(matrix);
 
   return matrix;
@@ -426,6 +664,43 @@ function drawNearbyObstacles(matrix, radius) {
         }
       }
     }
+  });
+}
+
+function drawRiverCrossing(matrix) {
+  const cr = AREAS.river.crossing;
+  if (!cr) return;
+  const a = worldToDot(cr.water.xMin, cr.water.zMin);
+  const b = worldToDot(cr.water.xMax, cr.water.zMax);
+  const x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x);
+  const y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      if ((x + y) % 2 === 0) setDot(matrix, x, y, 1); // 물결(깊은 물)
+    }
+  }
+  cr.stones.forEach((st) => {
+    const p = worldToDot(st.x, st.z);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) setDot(matrix, p.x + dx, p.y + dy, 1); // 꽉 찬 안전한 돌
+    }
+  });
+  const g = worldToDot(cr.goal.x, cr.goal.z);
+  setDot(matrix, g.x, g.y, 1);
+}
+
+function drawNearbyHazards(matrix, radius) {
+  const px = gameState.player.x, pz = gameState.player.z;
+  gameState.hazards.forEach((h) => {
+    if (Math.hypot(h.x - px, h.z - pz) > radius) return;
+    const p = worldToDot(h.x, h.z);
+    // X 패턴 — 다이아몬드(도트링)와 촉각적으로 구분되게
+    const shape = [
+      [1, 0, 1],
+      [0, 1, 0],
+      [1, 0, 1],
+    ];
+    drawShape(matrix, shape, p.x - 1, p.y - 1);
   });
 }
 
@@ -652,13 +927,12 @@ function handleVoiceCommand(text) {
 }
 
 function resetGame() {
-  gameState.player = { x: -20, z: 10, direction: 'down', animation: 'idle' };
-  gameState.items = structuredClone(initialItems);
-  updateLumiTransform('down');
-  placeDotlings();
-  updateScore();
-  drawTactileFrame();
-  sendDotPadFrame(lastMatrix);
+  gameState.lightCollected = 0;
+  gameState.forestLight = 0.1;
+  loadArea('forest_entrance', { initial: true });
+  if (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.reset) {
+    window.DotForest.narrative.reset();
+  }
   announce('게임을 다시 시작했습니다. 루미가 숲 입구로 돌아왔어요.', true);
 }
 
@@ -685,9 +959,30 @@ function animate() {
   gameState.itemMeshes.forEach((mesh, id) => {
     const item = gameState.items.find((entry) => entry.id === id);
     if (item?.collected) return;
-    mesh.rotation.y += delta * 0.8;
-    mesh.position.y = 0.45 + Math.sin(clock.elapsedTime * 2.2 + item.x) * 0.08;
+    mesh.rotation.y += delta * 1.4;
+    mesh.position.y = 1.2 + Math.sin(clock.elapsedTime * 2.2 + item.x) * 0.18;
   });
+
+  // ── 떠다니는 그림자(위험물): 이동 + 근접 경고/충돌 ──
+  let topThreat = null;
+  gameState.hazards.forEach((h) => {
+    wanderStep(h, delta, WORLD_LIMIT_X, WORLD_LIMIT_Z);
+    const m = gameState.hazardMeshes.get(h.id);
+    if (m) m.position.set(h.x, 1.0 + Math.sin(clock.elapsedTime * 1.6 + h.x) * 0.2, h.z);
+    const t = threat(gameState.player, h);
+    if (t.level !== 'clear' && (!topThreat || t.intensity > topThreat.intensity)) topThreat = t;
+  });
+  if (topThreat) {
+    if (topThreat.level === 'hit') onHazardHit();
+    else playWarn(topThreat.pan, topThreat.intensity);
+  }
+
+  checkAreaExit();
+  // 위험물/도트링이 움직이므로 촉각 프리뷰를 주기적으로 갱신 (약 8fps)
+  if (clock.elapsedTime - lastTactileT > 0.12) {
+    lastTactileT = clock.elapsedTime;
+    drawTactileFrame();
+  }
 
   if (lumiRoot) {
     // ── 3인칭 추적 카메라: 캐릭터 뒤에서 따라오며 방향 전환 시 회전 ──
@@ -726,3 +1021,23 @@ function onResize() {
 
 // 외부 SDK/하드웨어 이벤트 연결 예시:
 // window.handleDotPadPanningKey = handlePanningKeyInput;
+
+/* ===== Narrative bridge (append-only — does not modify game logic) =====
+   Exposes read access to game state plus the existing action functions so the
+   narrative engine (narrative-engine.js) can observe and drive the game without
+   touching any of the logic above. */
+window.DotForest = window.DotForest || {};
+window.DotForest.bridge = {
+  get state() { return gameState; },
+  get area() { return gameState.area; },
+  isDeepWater: (x, z) => {
+    if (gameState.area !== 'river') return false;
+    const cr = AREAS.river.crossing;
+    return cr ? riverStep({ x, z }, cr).deep : false;
+  },
+  move: (dir) => movePlayer(dir),
+  collect: () => collectNearbyDotling(),
+  reset: () => resetGame(),
+  announce: (msg, speak = false) => announce(msg, speak),
+  constants: { WORLD_LIMIT_X, WORLD_LIMIT_Z, MOVE_STEP, ITEM_COLLECT_DISTANCE },
+};

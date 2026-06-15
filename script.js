@@ -34,6 +34,9 @@ let swayables = [];
 let waterMesh = null;
 let lumiHalo = null;
 let lumiLight = null;
+let pipMesh = null;
+let beaconMesh = null;
+const PIP_POS = { x: 15, z: 7 };
 let actions = {};
 let currentAction = null;
 let dotlingPrototype = null;
@@ -160,6 +163,14 @@ function setupThreeScene() {
   lumiLight = new THREE.PointLight(0xffe6a0, 0.6, 20, 2);
   scene.add(lumiLight);
 
+  // 목표 위치 빛기둥 (어디로 가야 하는지 안내)
+  beaconMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.55, 16, 14, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffd56b, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+  );
+  beaconMesh.visible = false;
+  scene.add(beaconMesh);
+
   window.addEventListener('resize', onResize);
   document.addEventListener('fullscreenchange', () => window.dispatchEvent(new Event('resize')));
   document.addEventListener('webkitfullscreenchange', () => window.dispatchEvent(new Event('resize')));
@@ -176,6 +187,14 @@ function makeGlowTexture() {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(c);
+}
+
+// 현재 목표 위치(빛기둥/안내용): 숲 입구는 Pip→출구, 그 외는 잠금 해제된 출구.
+function beaconTarget(flags) {
+  if (gameState.area === 'forest_entrance') return flags.pipFound ? AREAS.forest_entrance.exit : PIP_POS;
+  const cfg = AREAS[gameState.area];
+  if (cfg && cfg.exit && (!cfg.exit.needFlag || flags[cfg.exit.needFlag])) return cfg.exit;
+  return null;
 }
 
 // 식생 디테일: 풀(바람에 흔들림) · 꽃 · 덤불 · 바위. areaGroup에 담겨 구역 전환 시 함께 교체됨.
@@ -242,6 +261,7 @@ function createForestWorld() {
   if (areaGroup) { scene.remove(areaGroup); areaGroup = null; }
   swayables = [];
   waterMesh = null;
+  pipMesh = null;
   areaGroup = new THREE.Group();
 
   const pal = (AREAS[gameState.area] && AREAS[gameState.area].palette) || { ground: 0x72ad65, path: 0xcdbb80, pebble: 0xe7d8a4 };
@@ -286,6 +306,19 @@ function createForestWorld() {
   }
 
   scatterDetail();
+  if (gameState.area === 'forest_entrance') {
+    const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+      ? (window.DotForest.narrative.get('flags') || {}) : {};
+    if (!flags.pipFound) {
+      pipMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.42, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xfff2a8, emissive: 0xffd76b, emissiveIntensity: 1.3 })
+      );
+      pipMesh.position.set(PIP_POS.x, 2.2, PIP_POS.z);
+      pipMesh.add(new THREE.PointLight(0xffe6a0, 1.4, 12, 2));
+      areaGroup.add(pipMesh);
+    }
+  }
   if (gameState.area === 'river') buildRiverCrossing3D();
 
   scene.add(areaGroup);
@@ -1372,6 +1405,24 @@ function animate() {
   if (waterMesh) {
     waterMesh.material.opacity = 0.72 + Math.sin(clock.elapsedTime * 1.4) * 0.08;
     waterMesh.position.y = 0.05 + Math.sin(clock.elapsedTime * 0.9) * 0.015;
+  }
+  {
+    const bflags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+      ? (window.DotForest.narrative.get('flags') || {}) : {};
+    if (pipMesh) {
+      if (bflags.pipFound) pipMesh.visible = false;
+      else pipMesh.position.y = 2.2 + Math.sin(clock.elapsedTime * 2.5) * 0.3;
+    }
+    if (beaconMesh) {
+      const goal = beaconTarget(bflags);
+      if (goal) {
+        beaconMesh.visible = true;
+        beaconMesh.position.set(goal.x, 8, goal.z);
+        beaconMesh.material.opacity = 0.14 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.12;
+      } else {
+        beaconMesh.visible = false;
+      }
+    }
   }
 
   gameState.itemMeshes.forEach((mesh, id) => {

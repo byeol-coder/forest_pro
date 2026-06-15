@@ -758,3 +758,20 @@ body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 *
   #screen-game .stage-transition, #screen-game .stage-transition .st-inner { transition: none; }
   .wm-node.current .wm-dot, .worldmap-card { animation: none; }
 }
+
+/* ---------- 미션 완료 토스트 ---------- */
+#screen-game .mission-toast {
+  position: absolute; top: 22%; left: 50%; transform: translate(-50%, -10px); z-index: 16;
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.3rem; border-radius: 999px;
+  background: var(--game-panel-strong); border: 1px solid rgba(245, 184, 75, 0.5);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), 0 0 30px rgba(245, 184, 75, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px); color: var(--game-ink);
+  opacity: 0; visibility: hidden; transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s; pointer-events: none;
+}
+#screen-game .mission-toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.mt-badge {
+  font-weight: 900; font-size: 0.72rem; letter-spacing: 0.06em; color: #2c220d;
+  background: linear-gradient(180deg, #ffce5c, #f5b84b); padding: 0.25rem 0.65rem; border-radius: 999px;
+}
+.mt-text { font-weight: 800; font-size: 0.98rem; }
+@media (prefers-reduced-motion: reduce) { #screen-game .mission-toast { transition: none; } }

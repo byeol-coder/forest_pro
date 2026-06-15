@@ -156,10 +156,18 @@ function setQuest(text) {
   const el = document.getElementById('questText');
   if (el && text) el.textContent = text;
 }
-function questComplete() {
+function showMissionToast(text) {
+  const t = document.getElementById('missionToast');
+  if (!t) return;
+  const txt = document.getElementById('missionToastText');
+  if (txt) txt.textContent = text || '';
+  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  window.setTimeout(() => t.classList.remove('show'), 2800);
+}
+function questComplete(label) {
   const panel = document.getElementById('questPanel');
-  if (!panel) return;
-  panel.classList.remove('done'); void panel.offsetWidth; panel.classList.add('done');
+  if (panel) { panel.classList.remove('done'); void panel.offsetWidth; panel.classList.add('done'); }
+  showMissionToast(label || '미션 완료!');
 }
 function showZone(name) {
   const el = document.getElementById('zoneBanner');
@@ -229,6 +237,8 @@ function crossRiverComplete() {
   if (state.flags.ch3done) return;
   state.flags.ch3done = true;
   state.companions.push('Echo');
+  renderParty();
+  questComplete('강을 건넜어요!');
   const m = (state.data.missions || []).find((x) => x.id === 'ch3_cross_river');
   say((m && m.completion_narration) || 'Echo를 구했어요.', 'assertive');
   window.setTimeout(() => say('흩어진 빛이 모두 제자리로 돌아왔어요. 숲이 환하게 깨어납니다.', 'polite'), 2000);
@@ -250,9 +260,12 @@ function checkChapter1() {
     window.setTimeout(() => startDialogue('Pip', 'meet_pip', () => {
       state.companions.push('Pip');
       renderParty();
-      questComplete();
+      questComplete('Pip을 찾았어요!');
       say(state.mission.completion_narration, 'assertive');
-      window.setTimeout(() => say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite'), 1800);
+      window.setTimeout(() => {
+        setQuest('오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.');
+        say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite');
+      }, 1800);
     }), 1300);
   }
 }
@@ -271,7 +284,8 @@ function checkChapter2() {
     window.setTimeout(() => startDialogue('Bramble', 'bramble_freed', () => {
       state.companions.push('Bramble');
       renderParty();
-      questComplete();
+      questComplete('베리 3개를 모았어요!');
+      window.setTimeout(() => setQuest('위쪽 끝 출구로 가서 강가로 이동하세요.'), 1800);
       say('강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.', 'polite');
     }), 1500);
   }

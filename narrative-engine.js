@@ -151,8 +151,15 @@ function collectedCount() {
   return m ? parseInt(m[1], 10) : 0;
 }
 function setQuest(text) {
+  const panel = document.getElementById('questPanel');
+  if (panel) panel.classList.remove('done');
   const el = document.getElementById('questText');
   if (el && text) el.textContent = text;
+}
+function questComplete() {
+  const panel = document.getElementById('questPanel');
+  if (!panel) return;
+  panel.classList.remove('done'); void panel.offsetWidth; panel.classList.add('done');
 }
 function showZone(name) {
   const el = document.getElementById('zoneBanner');
@@ -166,7 +173,14 @@ function renderParty() {
   const el = document.getElementById('party');
   if (!el) return;
   const list = state.companions || [];
-  el.innerHTML = list.map((n) => `<span class="party-chip"><i></i>${n}</span>`).join('');
+  if (list.length < el.children.length) el.innerHTML = '';
+  for (let i = el.children.length; i < list.length; i++) {
+    const chip = document.createElement('span');
+    chip.className = 'party-chip is-new';
+    chip.innerHTML = `<i></i>${list[i]}`;
+    el.appendChild(chip);
+    window.setTimeout(() => chip.classList.remove('is-new'), 900);
+  }
 }
 
 function startMission(idx) {
@@ -236,6 +250,7 @@ function checkChapter1() {
     window.setTimeout(() => startDialogue('Pip', 'meet_pip', () => {
       state.companions.push('Pip');
       renderParty();
+      questComplete();
       say(state.mission.completion_narration, 'assertive');
       window.setTimeout(() => say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite'), 1800);
     }), 1300);
@@ -256,6 +271,7 @@ function checkChapter2() {
     window.setTimeout(() => startDialogue('Bramble', 'bramble_freed', () => {
       state.companions.push('Bramble');
       renderParty();
+      questComplete();
       say('강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.', 'polite');
     }), 1500);
   }

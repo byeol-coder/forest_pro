@@ -477,3 +477,155 @@ body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 *
   #screen-game .quest { max-width: 82vw; }
   #screen-game .party { bottom: 8.6rem; }
 }
+
+/* ============================================================
+   ① 미세 연출 — 패널 등장 · 동료 합류 반짝임 · 퀘스트 완료 체크
+   ============================================================ */
+/* 게임 화면 진입 시 패널 스태거 등장 */
+@keyframes uiIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes uiInCenter { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translateX(-50%); } }
+
+#screen-game.is-active .hud,
+#screen-game.is-active .dpad,
+#screen-game.is-active .voice-btn,
+#screen-game.is-active .tactile-dock,
+#screen-game.is-active .live-status {
+  animation: uiIn 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+#screen-game.is-active .quest,
+#screen-game.is-active .info-keys {
+  animation: uiInCenter 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+#screen-game.is-active .hud { animation-delay: 0.05s; }
+#screen-game.is-active .live-status { animation-delay: 0.22s; }
+#screen-game.is-active .quest { animation-delay: 0.16s; }
+#screen-game.is-active .info-keys { animation-delay: 0.26s; }
+#screen-game.is-active .tactile-dock { animation-delay: 0.34s; }
+#screen-game.is-active .dpad { animation-delay: 0.42s; }
+#screen-game.is-active .voice-btn { animation-delay: 0.48s; }
+
+/* 동료 합류 반짝임 (새 칩에만) */
+@keyframes joinGlow {
+  0% { box-shadow: 0 8px 22px rgba(0,0,0,0.3), 0 0 0 0 var(--game-glow); }
+  40% { box-shadow: 0 8px 22px rgba(0,0,0,0.3), 0 0 22px 7px var(--game-glow); }
+  100% { box-shadow: 0 8px 22px rgba(0,0,0,0.3), 0 0 0 0 rgba(245,184,75,0); }
+}
+@keyframes sparklePop { 0% { transform: scale(0.4); } 50% { transform: scale(1.55); } 100% { transform: scale(1); } }
+#screen-game .party-chip.is-new { animation: partyIn 0.4s ease, joinGlow 0.95s ease 0.1s; }
+#screen-game .party-chip.is-new i { animation: sparklePop 0.9s ease; }
+
+/* 퀘스트 완료 체크 */
+@keyframes questPulse {
+  0% { transform: translate(-50%, 0) scale(1); }
+  30% { transform: translate(-50%, 0) scale(1.05); }
+  100% { transform: translate(-50%, 0) scale(1); }
+}
+#screen-game .quest.done { border-left-color: #79e89a; animation: questPulse 0.7s ease; }
+#screen-game .quest.done .quest-eyebrow { color: #79e89a; }
+#screen-game .quest.done .quest-eyebrow::after { content: ' ✓ 완료'; }
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-game.is-active .hud,
+  #screen-game.is-active .dpad,
+  #screen-game.is-active .voice-btn,
+  #screen-game.is-active .tactile-dock,
+  #screen-game.is-active .live-status,
+  #screen-game.is-active .quest,
+  #screen-game.is-active .info-keys,
+  #screen-game .party-chip.is-new,
+  #screen-game .party-chip.is-new i,
+  #screen-game .quest.done { animation: none; }
+}
+
+/* ============================================================
+   ② 타이틀·설정 RPG 톤 통일   ③ HUD 톤 조정 (가독성·고급 유리감)
+   ============================================================ */
+
+/* ③ 글래스 패널을 살짝 더 또렷하게 + 상단 하이라이트 */
+:root {
+  --game-panel: rgba(18, 28, 22, 0.66);
+  --game-panel-strong: rgba(18, 28, 22, 0.84);
+}
+#screen-game .icon-btn,
+#screen-game .score,
+#screen-game .dotpad-mirror,
+#screen-game .info-keys,
+#screen-game .tactile-dock,
+#screen-game .live-status,
+#screen-game .quest,
+#screen-game .dpad button,
+#screen-game .party-chip {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* ② 타이틀: 프리미엄 CTA */
+.btn-primary {
+  background: linear-gradient(180deg, #4a9159, var(--brand) 55%, var(--brand-dark));
+  box-shadow: 0 12px 26px rgba(39, 82, 50, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.22s ease;
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #54a065, var(--brand) 55%, var(--brand-dark));
+  box-shadow: 0 16px 32px rgba(39, 82, 50, 0.5), 0 0 26px rgba(245, 184, 75, 0.45);
+  transform: translateY(-2px);
+}
+
+/* ② 타이틀/설정 보조 버튼 = 게임과 같은 다크 글래스 */
+.btn-ghost,
+.title-conn #connectDotPad {
+  background: var(--game-panel);
+  color: var(--game-ink);
+  border: 1px solid var(--game-border);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.btn-ghost:hover,
+.title-conn #connectDotPad:hover {
+  background: rgba(18, 28, 22, 0.82);
+  border-color: rgba(245, 184, 75, 0.55);
+  color: #fff;
+}
+
+/* ② 타이틀 텍스트 인트로 (위로 떠오르며 등장) */
+@keyframes titleIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+#screen-title.is-active .eyebrow,
+#screen-title.is-active .title-inner h1,
+#screen-title.is-active .title-sub,
+#screen-title.is-active .title-pitch,
+#screen-title.is-active .cta-row {
+  animation: titleIn 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+#screen-title.is-active .eyebrow { animation-delay: 0.05s; }
+#screen-title.is-active .title-inner h1 { animation-delay: 0.14s; }
+#screen-title.is-active .title-sub { animation-delay: 0.26s; }
+#screen-title.is-active .title-pitch { animation-delay: 0.36s; }
+#screen-title.is-active .cta-row { animation-delay: 0.46s; }
+
+/* 부제 옆 금빛 악센트 라인 (장식, 빈 콘텐츠 → 스크린리더 무시) */
+.title-sub { display: inline-flex; align-items: center; gap: 0.6rem; }
+.title-sub::after {
+  content: ''; height: 2px; width: clamp(2rem, 8vw, 5rem);
+  background: linear-gradient(90deg, var(--accent), rgba(245, 184, 75, 0)); border-radius: 2px;
+}
+
+/* ② 설정: 라이트 카드 유지 + 금빛 악센트(상단 라인·헤더색·라벨 점) */
+.sheet-card {
+  border-top: 3px solid var(--accent);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  animation: titleIn 0.4s ease both;
+}
+.sheet-card h2 { color: var(--brand-dark); }
+.set-label { display: flex; align-items: center; gap: 0.45rem; }
+.set-label::before {
+  content: ''; width: 0.55rem; height: 0.55rem; border-radius: 2px; flex: none;
+  background: var(--accent); box-shadow: 0 0 8px rgba(245, 184, 75, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-title.is-active .eyebrow,
+  #screen-title.is-active .title-inner h1,
+  #screen-title.is-active .title-sub,
+  #screen-title.is-active .title-pitch,
+  #screen-title.is-active .cta-row,
+  .sheet-card { animation: none; }
+}

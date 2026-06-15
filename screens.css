@@ -344,12 +344,15 @@ body { font-family: var(--body); }
   .score.bump, #forestLightMeter.bump, #lightFill.bump { animation: none; }
 }
 
-/* ---------- game screen: 화면을 더 채우도록 넓고 크게 ---------- */
-/* 타이틀·설정은 1080px 유지, 게임 화면일 때만 컨테이너를 넓힘 */
-.app:has(#screen-game.is-active) {
-  width: min(1600px, calc(100% - 1.5rem));
-}
+/* ---------- game screen: 화면 전체로 꽉 채우기 (full-bleed) ---------- */
+/* 게임 무대만 뷰포트 전체 폭으로 펼치고, 높이도 키움. 타이틀·설정은 그대로. */
+body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 */
 #screen-game .stage--game {
-  height: min(88vh, 940px);
-  min-height: 520px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: min(92vh, 1100px);
+  min-height: 560px;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
 }

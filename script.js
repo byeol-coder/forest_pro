@@ -30,6 +30,10 @@ const clock = new THREE.Clock();
 
 let scene, camera, renderer, mixer;
 let lumiRoot = null;
+let swayables = [];
+let waterMesh = null;
+let lumiHalo = null;
+let lumiLight = null;
 let actions = {};
 let currentAction = null;
 let dotlingPrototype = null;
@@ -126,20 +130,117 @@ function setupThreeScene() {
   const hemi = new THREE.HemisphereLight(0xffffff, 0x4d6f43, 1.6);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xffffff, 2.6);
+  const sun = new THREE.DirectionalLight(0xfff1d6, 2.7);
   sun.position.set(-18, 28, 18);
   sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0004;
   sun.shadow.camera.left = -45;
   sun.shadow.camera.right = 45;
   sun.shadow.camera.top = 45;
   sun.shadow.camera.bottom = -45;
   scene.add(sun);
 
+  // 반대편 쿨톤 필 라이트 (그림자 부드럽게 + 입체감)
+  const fill = new THREE.DirectionalLight(0xbfe0ff, 0.55);
+  fill.position.set(22, 14, -18);
+  scene.add(fill);
+
+  // 빛이 찰수록 커지는 루미 후광 + 따라다니는 포인트 라이트
+  const glowTex = makeGlowTexture();
+  lumiHalo = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 8),
+    new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.4 })
+  );
+  lumiHalo.rotation.x = -Math.PI / 2;
+  lumiHalo.position.y = 0.06;
+  scene.add(lumiHalo);
+
+  lumiLight = new THREE.PointLight(0xffe6a0, 0.6, 20, 2);
+  scene.add(lumiLight);
+
   window.addEventListener('resize', onResize);
+  document.addEventListener('fullscreenchange', () => window.dispatchEvent(new Event('resize')));
+  document.addEventListener('webkitfullscreenchange', () => window.dispatchEvent(new Event('resize')));
+}
+
+function makeGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255, 236, 170, 0.95)');
+  g.addColorStop(0.4, 'rgba(255, 220, 130, 0.35)');
+  g.addColorStop(1, 'rgba(255, 220, 130, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// 식생 디테일: 풀(바람에 흔들림) · 꽃 · 덤불 · 바위. areaGroup에 담겨 구역 전환 시 함께 교체됨.
+function scatterDetail() {
+  const inPlayBand = (x, z) => Math.abs(z) < 6 && Math.abs(x) < 26;
+  const grassMat = new THREE.MeshStandardMaterial({ color: 0x5fa24f, roughness: 1 });
+  for (let i = 0; i < 80; i++) {
+    const x = -33 + Math.random() * 66, z = -23 + Math.random() * 46;
+    if (inPlayBand(x, z)) continue;
+    const h = 0.5 + Math.random() * 0.55;
+    const geo = new THREE.ConeGeometry(0.1, h, 5);
+    geo.translate(0, h / 2, 0);
+    const blade = new THREE.Mesh(geo, grassMat);
+    blade.position.set(x, 0, z);
+    areaGroup.add(blade);
+    swayables.push({ mesh: blade, amp: 0.12 + Math.random() * 0.1, speed: 1 + Math.random(), phase: Math.random() * 6.28 });
+  }
+  const fcolors = [0xffd1e0, 0xfff2a8, 0xffffff, 0xc7b3ff];
+  for (let i = 0; i < 26; i++) {
+    const x = -32 + Math.random() * 64, z = -22 + Math.random() * 44;
+    if (inPlayBand(x, z)) continue;
+    const stemH = 0.5;
+    const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, stemH, 5);
+    stemGeo.translate(0, stemH / 2, 0);
+    const flower = new THREE.Group();
+    flower.add(new THREE.Mesh(stemGeo, new THREE.MeshStandardMaterial({ color: 0x4f8a46 })));
+    const col = fcolors[i % fcolors.length];
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 8, 8),
+      new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.15, roughness: 0.7 })
+    );
+    head.position.y = stemH + 0.05;
+    flower.add(head);
+    flower.position.set(x, 0, z);
+    areaGroup.add(flower);
+    swayables.push({ mesh: flower, amp: 0.1 + Math.random() * 0.08, speed: 0.8 + Math.random(), phase: Math.random() * 6.28 });
+  }
+  for (let i = 0; i < 7; i++) {
+    const x = -30 + Math.random() * 60, z = -20 + Math.random() * 40;
+    if (Math.abs(z) < 7 && Math.abs(x) < 26) continue;
+    const bush = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(1.1 + Math.random() * 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x3f7a44, roughness: 0.9 })
+    );
+    bush.position.set(x, 0.8, z);
+    bush.castShadow = true;
+    areaGroup.add(bush);
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = -30 + Math.random() * 60, z = -20 + Math.random() * 40;
+    if (Math.abs(z) < 7 && Math.abs(x) < 26) continue;
+    const rock = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.55 + Math.random() * 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x8d8a82, roughness: 1 })
+    );
+    rock.position.set(x, 0.3, z);
+    rock.rotation.set(Math.random(), Math.random(), Math.random());
+    rock.castShadow = true;
+    areaGroup.add(rock);
+  }
 }
 
 function createForestWorld() {
   if (areaGroup) { scene.remove(areaGroup); areaGroup = null; }
+  swayables = [];
+  waterMesh = null;
   areaGroup = new THREE.Group();
 
   const pal = (AREAS[gameState.area] && AREAS[gameState.area].palette) || { ground: 0x72ad65, path: 0xcdbb80, pebble: 0xe7d8a4 };
@@ -183,6 +284,7 @@ function createForestWorld() {
     createTreeCluster(x, z, i + 5, 0.7);
   }
 
+  scatterDetail();
   if (gameState.area === 'river') buildRiverCrossing3D();
 
   scene.add(areaGroup);
@@ -199,6 +301,7 @@ function buildRiverCrossing3D() {
   water.rotation.x = -Math.PI / 2;
   water.position.set((w.xMin + w.xMax) / 2, 0.05, (w.zMin + w.zMax) / 2);
   areaGroup.add(water);
+  waterMesh = water;
 
   cr.stones.forEach((st) => {
     const stone = new THREE.Mesh(
@@ -588,6 +691,9 @@ function setupEventListeners() {
     announce('현재 60×40 매트릭스를 브라우저 콘솔에 출력했습니다.');
   });
   dom.voiceButton.addEventListener('click', startVoiceCommand);
+
+  const fsBtn = document.getElementById('fullscreenBtn');
+  if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
 
   // 오디오는 사용자 제스처 이후에만 시작할 수 있음 (브라우저 정책)
   ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, unlockAudio, { once: false }));
@@ -985,6 +1091,19 @@ function drawTactileGrid(cellW, cellH) {
   }
 }
 
+function toggleFullscreen() {
+  const el = document.querySelector('#screen-game .stage--game') || document.documentElement;
+  try {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) req.call(el);
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+  } catch (e) { console.error('[fullscreen]', e); }
+}
+
 function setDotPadState(text, connected) {
   dom.dotpadState.textContent = text;
   dom.dotpadState.classList.toggle('connected', !!connected);
@@ -1172,6 +1291,15 @@ function animate() {
   const delta = clock.getDelta();
   if (mixer) mixer.update(delta);
 
+  if (swayables.length) {
+    const t = clock.elapsedTime;
+    for (const sw of swayables) sw.mesh.rotation.z = Math.sin(t * sw.speed + sw.phase) * sw.amp;
+  }
+  if (waterMesh) {
+    waterMesh.material.opacity = 0.72 + Math.sin(clock.elapsedTime * 1.4) * 0.08;
+    waterMesh.position.y = 0.05 + Math.sin(clock.elapsedTime * 0.9) * 0.015;
+  }
+
   gameState.itemMeshes.forEach((mesh, id) => {
     const item = gameState.items.find((entry) => entry.id === id);
     if (item?.collected) return;
@@ -1227,6 +1355,18 @@ function animate() {
 
     // 캐릭터를 바라봄 (머리 높이)
     camera.lookAt(px, 3, pz);
+
+    const lf = gameState.forestLight;
+    if (lumiHalo) {
+      lumiHalo.position.set(px, 0.06, pz);
+      const sc = 0.8 + lf * 0.9;
+      lumiHalo.scale.set(sc, sc, sc);
+      lumiHalo.material.opacity = 0.22 + lf * 0.5;
+    }
+    if (lumiLight) {
+      lumiLight.position.set(px, 3.2, pz);
+      lumiLight.intensity = 0.4 + lf * 2.0;
+    }
   }
 
   renderer.render(scene, camera);

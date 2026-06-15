@@ -700,3 +700,7 @@ body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 *
   #screen-title .cta-row .btn-primary { animation: none; }
   .title-fx { display: none; }
 }
+
+/* ---------- 전체화면(Fullscreen) 모드 ---------- */
+#screen-game .stage--game:fullscreen { width: 100vw; height: 100vh; min-height: 0; margin-left: 0; border-radius: 0; }
+#screen-game .stage--game:-webkit-full-screen { width: 100vw; height: 100vh; min-height: 0; margin-left: 0; border-radius: 0; }

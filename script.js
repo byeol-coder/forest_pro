@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { wanderStep, threat, applyHit, lightFromProgress, lightToScene, atExit, riverStep, atGoal } from './dotforest-mechanics.js';
 import { AREAS, AREA_ORDER } from './areas.js';
+import { DotPadSDK, DotPadScanner, DisplayMode, DataCodes, KeyCodes } from './DotPadSDK-3_0_0.js';
 
 const DOT_WIDTH = 60;
 const DOT_HEIGHT = 40;
@@ -36,9 +37,17 @@ let lastTactileT = 0, lastWarnT = 0, lastHitT = 0, lastExitT = 0;
 let audioCtx = null;
 let areaGroup = null;
 let riverCrossed = false;
+let exposurePulse = 0;
+let musicNodes = null;
+let musicOn = true;
+let audioUnlocked = false;
+let lightMilestone = 0;
 const GRAND_TOTAL = AREA_ORDER.reduce((n, id) => n + AREAS[id].items.length, 0);
 let lastMatrix = [];
 let dotPadConnected = false;
+const dotSdk = new DotPadSDK();
+const dotScanner = new DotPadScanner();
+let dotDevice = null;
 let speechRecognition = null;
 
 const initialItems = [
@@ -78,6 +87,7 @@ async function init() {
   setupThreeScene();
   setupEventListeners();
   setupSpeechRecognition();
+  dotSdk.setCallBack(onDotMessage, onDotKey);
   gameState.lightTotal = GRAND_TOTAL;
   announce('루미가 숲 입구에서 기다리고 있어요. 방향키나 패닝키 구조로 이동할 수 있습니다.');
 
@@ -216,6 +226,7 @@ function loadArea(id, opts = {}) {
   if (!cfg) return;
   riverCrossed = false;
   gameState.area = id;
+  retuneMusic();
   gameState.obstacles = structuredClone(cfg.obstacles);
   gameState.items = structuredClone(cfg.items);
   gameState.hazards = structuredClone(cfg.hazards);
@@ -393,6 +404,110 @@ function updateLightHUD() {
   if (meter) meter.setAttribute('aria-valuenow', Math.round(gameState.forestLight * 100));
 }
 
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume().catch(() => {}); }
+  return audioCtx;
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  ensureAudio();
+  if (musicOn) startMusic();
+}
+
+function blip(freq, when, dur, vol, type, pan) {
+  const ctx = audioCtx; if (!ctx) return;
+  const t = ctx.currentTime + (when || 0);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  osc.type = type || 'triangle';
+  osc.frequency.value = freq;
+  panner.pan.value = pan || 0;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain); gain.connect(panner); panner.connect(ctx.destination);
+  osc.start(t); osc.stop(t + dur + 0.02);
+}
+
+function playCollect() {
+  if (!ensureAudio()) return;
+  // 밝게 상승하는 3음 차임 (수집의 쾌감)
+  [659.25, 783.99, 1046.5].forEach((f, i) => blip(f, i * 0.06, 0.18, 0.16, 'triangle', 0));
+}
+
+function playMilestone() {
+  if (!ensureAudio()) return;
+  // 더 화사한 축하 아르페지오
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => blip(f, i * 0.08, 0.34, 0.14, 'triangle', 0));
+}
+
+const AREA_ROOT = { forest_entrance: 130.81, berry_grove: 146.83, river: 110.0 };
+function startMusic() {
+  const ctx = ensureAudio(); if (!ctx || musicNodes) return;
+  const root = AREA_ROOT[gameState.area] || 130.81;
+  const master = ctx.createGain();
+  master.gain.value = 0.0001;
+  master.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 2);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 900;
+  master.connect(filter); filter.connect(ctx.destination);
+  // 따뜻한 패드 화음 (루트·5도·옥타브) + 느린 흔들림
+  const ratios = [1, 1.5, 2, 2.997];
+  const oscs = ratios.map((r, i) => {
+    const o = ctx.createOscillator();
+    o.type = i === 0 ? 'sine' : 'triangle';
+    o.frequency.value = root * r;
+    o.detune.value = (i - 1.5) * 4;
+    const g = ctx.createGain(); g.gain.value = i === 0 ? 0.5 : 0.22;
+    o.connect(g); g.connect(master); o.start();
+    return o;
+  });
+  const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+  lfo.frequency.value = 0.12; lfoGain.gain.value = 0.018;
+  lfo.connect(lfoGain); lfoGain.connect(master.gain); lfo.start();
+  musicNodes = { master, oscs, lfo };
+}
+function stopMusic() {
+  if (!musicNodes || !audioCtx) return;
+  try {
+    musicNodes.master.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+    const n = musicNodes; musicNodes = null;
+    setTimeout(() => { try { n.oscs.forEach((o) => o.stop()); n.lfo.stop(); } catch (e) {} }, 700);
+  } catch (e) {}
+}
+function retuneMusic() {
+  if (!musicNodes) return;
+  const root = AREA_ROOT[gameState.area] || 130.81;
+  const ratios = [1, 1.5, 2, 2.997];
+  musicNodes.oscs.forEach((o, i) => { o.frequency.setTargetAtTime(root * ratios[i], audioCtx.currentTime, 0.4); });
+}
+
+function bumpHud() {
+  ['forestLightMeter', 'lightFill'].forEach((id) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  });
+  const sc = document.querySelector('#screen-game .score');
+  if (sc) { sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump'); }
+}
+
+function checkMilestone() {
+  const marks = [0.4, 0.7, 1.0];
+  const lines = ['빛이 깨어나기 시작했어요.', '빛이 절반 넘게 돌아왔어요!', '흩어진 빛이 모두 제자리로 돌아왔어요. 숲이 환하게 깨어납니다!'];
+  while (lightMilestone < marks.length && gameState.forestLight >= marks[lightMilestone] - 0.001) {
+    playMilestone();
+    exposurePulse = 0.55;
+    announce(lines[lightMilestone], true);
+    lightMilestone += 1;
+  }
+}
+
 function playWarn(pan, intensity) {
   if (clock.elapsedTime - lastWarnT < 0.28) return;
   lastWarnT = clock.elapsedTime;
@@ -473,6 +588,18 @@ function setupEventListeners() {
     announce('현재 60×40 매트릭스를 브라우저 콘솔에 출력했습니다.');
   });
   dom.voiceButton.addEventListener('click', startVoiceCommand);
+
+  // 오디오는 사용자 제스처 이후에만 시작할 수 있음 (브라우저 정책)
+  ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, unlockAudio, { once: false }));
+
+  const musicToggle = document.getElementById('musicToggle');
+  if (musicToggle) {
+    musicToggle.checked = musicOn;
+    musicToggle.addEventListener('change', () => {
+      musicOn = musicToggle.checked;
+      if (musicOn) { ensureAudio(); startMusic(); } else { stopMusic(); }
+    });
+  }
 }
 
 function handlePanningKeyInput(direction) {
@@ -590,6 +717,10 @@ function collectNearbyDotling() {
   gameState.forestLight = 0.1 + 0.9 * Math.min(1, gameState.lightCollected / gameState.lightTotal);
   applyScene();
   updateLightHUD();
+  playCollect();
+  exposurePulse = 0.35;
+  bumpHud();
+  checkMilestone();
   drawTactileFrame();
   sendDotPadFrame(lastMatrix);
 
@@ -854,22 +985,106 @@ function drawTactileGrid(cellW, cellH) {
   }
 }
 
+function setDotPadState(text, connected) {
+  dom.dotpadState.textContent = text;
+  dom.dotpadState.classList.toggle('connected', !!connected);
+}
+
+/* 60×40 픽셀 매트릭스 → DotPad 그래픽 셀 hex.
+   셀 = 2×4핀 = 1바이트, 셀 행우선 30×10 = 300바이트 = 600hex. DisplayMode.GraphicMode로 전송.
+   실기기에서 '한 셀 안의 핀'이 뒤섞여 보이면 아래 DOTPAD_BIT_ORDER 한 곳만 조정하면 됩니다
+   (현재 표준 8점 점자 순서). 셀의 '위치'는 이 순서와 무관하게 항상 맞습니다. */
+const DOTPAD_BIT_ORDER = [
+  { dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 },
+  { dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 3 }, { dx: 1, dy: 3 },
+];
+function matrixToDotPadHex(matrix) {
+  const cols = DOT_WIDTH / 2, rows = DOT_HEIGHT / 4;
+  let hex = '';
+  for (let cy = 0; cy < rows; cy++) {
+    for (let cx = 0; cx < cols; cx++) {
+      let byte = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        const { dx, dy } = DOTPAD_BIT_ORDER[bit];
+        const row = matrix[cy * 4 + dy];
+        if (row && row[cx * 2 + dx]) byte |= (1 << bit);
+      }
+      hex += byte.toString(16).padStart(2, '0');
+    }
+  }
+  return hex.toUpperCase();
+}
+
+function onDotMessage(device, code) {
+  if (code === DataCodes.Connected) {
+    dotDevice = device;
+    dotPadConnected = true;
+    setDotPadState('DotPad 연결됨', true);
+    announce('DotPad에 연결됐어요. 게임 화면이 촉각으로 전송됩니다.', true);
+    sendDotPadFrame(lastMatrix);
+  } else if (code === DataCodes.Disconnected) {
+    dotPadConnected = false;
+    dotDevice = null;
+    setDotPadState('DotPad 미연결', false);
+    announce('DotPad 연결이 해제됐어요.');
+  }
+}
+
+// 기기 물리 키 → 게임 동작 (패닝키 = 좌·우 이동, F1~F4 = 정보 듣기 — 웹의 1·2·3·4와 동일)
+function onDotKey(device, key) {
+  switch (key) {
+    case KeyCodes.PanningLeft: handlePanningKeyInput('left'); break;
+    case KeyCodes.PanningRight: handlePanningKeyInput('right'); break;
+    case KeyCodes.KeyFunction1: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('position'); break;
+    case KeyCodes.KeyFunction2: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('surroundings'); break;
+    case KeyCodes.KeyFunction3: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('mission'); break;
+    case KeyCodes.KeyFunction4: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('tactileMap'); break;
+    // TODO: 상/하 이동·수집 키는 기기 키 구성에 맞춰 매핑 추가 (예: LPF1 / RPF4)
+    default: break;
+  }
+}
+
 async function connectDotPad() {
-  dotPadConnected = !dotPadConnected;
-  dom.dotpadState.textContent = dotPadConnected ? 'DotPad 연결 준비됨' : 'DotPad 미연결';
-  dom.dotpadState.classList.toggle('connected', dotPadConnected);
-  announce(dotPadConnected
-    ? 'DotPad 연결 준비 상태입니다. 실제 SDK가 연결되면 sendDotPadFrame 함수에서 핀 데이터를 전송합니다.'
-    : 'DotPad 연결을 해제했습니다.');
+  if (dotPadConnected) { disconnectDotPad(); return; }
+  if (!navigator.bluetooth) {
+    announce('이 브라우저는 Web Bluetooth를 지원하지 않아요. Chrome 또는 Edge(데스크톱·안드로이드)에서 열어 주세요. iOS Safari·Firefox는 지원하지 않습니다.', true);
+    return;
+  }
+  try {
+    setDotPadState('DotPad 검색 중…', false);
+    const device = await dotScanner.startBleScan(); // 기기 선택창 (namePrefix "DotPad")
+    if (!device) {
+      setDotPadState('DotPad 미연결', false);
+      announce('연결할 기기를 고르지 않았어요. 다시 시도해 주세요.');
+      return;
+    }
+    setDotPadState('DotPad 연결 중…', false);
+    const dev = await dotSdk.connectBleDevice(device); // 연결 완료는 onDotMessage(Connected)로 전달됨
+    if (!dev) {
+      setDotPadState('DotPad 미연결', false);
+      announce('DotPad 연결에 실패했어요. 기기 전원과 블루투스를 확인해 주세요.', true);
+    }
+  } catch (err) {
+    setDotPadState('DotPad 미연결', false);
+    announce('연결 중 문제가 생겼어요. 다시 시도해 주세요.', true);
+    console.error('[DotPad] connect failed:', err);
+  }
+}
+
+function disconnectDotPad() {
+  try { dotSdk.disconnect(dotDevice || null); } catch (e) { console.error('[DotPad] disconnect:', e); }
+  dotPadConnected = false;
+  dotDevice = null;
+  setDotPadState('DotPad 미연결', false);
 }
 
 function sendDotPadFrame(matrix) {
-  // DotPadSDK-1.0.0.js 연결 지점입니다.
-  // 예: window.DotPadSDK.sendGraphic(matrixToDeviceBytes(matrix));
-  // 현재 MVP에서는 실제 하드웨어 연결 전 단계이므로 콘솔/상태 갱신만 수행합니다.
-  if (!dotPadConnected) return;
-  const bytes = matrixToPackedBytes(matrix);
-  console.log('DotPad frame ready:', { matrix, bytes, hex: bytesToHex(bytes) });
+  if (!dotPadConnected || !dotDevice) return;
+  try {
+    dotSdk.displayGraphicData(matrixToDotPadHex(matrix), dotDevice, DisplayMode.GraphicMode);
+  } catch (e) {
+    console.error('[DotPad] display failed:', e);
+  }
 }
 
 function matrixToPackedBytes(matrix) {
@@ -929,6 +1144,7 @@ function handleVoiceCommand(text) {
 function resetGame() {
   gameState.lightCollected = 0;
   gameState.forestLight = 0.1;
+  lightMilestone = 0;
   loadArea('forest_entrance', { initial: true });
   if (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.reset) {
     window.DotForest.narrative.reset();
@@ -978,6 +1194,13 @@ function animate() {
   }
 
   checkAreaExit();
+
+  if (exposurePulse > 0 && renderer) {
+    const base = lightToScene(gameState.forestLight).exposure;
+    renderer.toneMappingExposure = base + exposurePulse;
+    exposurePulse = Math.max(0, exposurePulse - delta * 1.3);
+    if (exposurePulse === 0) renderer.toneMappingExposure = base;
+  }
   // 위험물/도트링이 움직이므로 촉각 프리뷰를 주기적으로 갱신 (약 8fps)
   if (clock.elapsedTime - lastTactileT > 0.12) {
     lastTactileT = clock.elapsedTime;

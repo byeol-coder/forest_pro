@@ -806,3 +806,15 @@ body { overflow-x: hidden; }   /* 100vw full-bleed 시 가로 스크롤 방지 *
   .title-hero { animation: none; opacity: 1; }
   .title-hero img { animation: none; }
 }
+
+/* ---------- 타이틀 풀블리드 (인트로를 화면 전체로) ---------- */
+body[data-screen="title"] .app {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+}
+#screen-title .stage--title {
+  height: 100vh;
+  min-height: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}

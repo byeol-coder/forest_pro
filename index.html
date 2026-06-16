@@ -33,7 +33,11 @@
     <section class="screen title-screen is-active" id="screen-title" aria-label="타이틀 화면">
       <div class="stage stage--title">
         <div class="dot-forest-intro">
-          <img src="./assets/Dot%20forest_main.png" alt="" class="dot-forest-intro-image" aria-hidden="true" />
+          <picture>
+            <!-- 좁은 화면(세로)에서는 9:16 모바일 스플래시로 자동 전환 -->
+            <source media="(max-width: 640px)" srcset="./assets/Dot%20forest_main_MO.png" />
+            <img src="./assets/Dot%20forest_main.png" alt="" class="dot-forest-intro-image" aria-hidden="true" />
+          </picture>
 
           <!-- 화면 리더용 제목 + 화면 전환 시 포커스 타깃 (시각적으로는 이미지 텍스트 사용) -->
           <h1 id="titleHeading" class="sr-only" tabindex="-1">닷 포레스트 — Lumi &amp; Dotlings</h1>

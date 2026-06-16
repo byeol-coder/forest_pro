@@ -912,12 +912,19 @@ body[data-screen="title"] .app {
 }
 .dot-forest-start-hotspot:active { transform: translateX(-50%) scale(0.99); }
 
-/* 모바일: 터치 타깃 충분히 크게 유지 */
+/* 모바일(좁은 화면): 세로 9:16 스플래시로 박스 비율 전환 + 핫스팟 재정렬 */
 @media (max-width: 640px) {
+  .dot-forest-intro {
+    /* 세로 이미지가 화면을 꽉 채우도록 9:16 박스 */
+    aspect-ratio: 9 / 16;
+    width: min(100%, calc(100vh * 9 / 16));
+  }
+  /* 모바일 스플래시의 "Press Start"(가로 중심 50%, 세로 중심 ~12.5%)에 맞춤.
+     세로 박스라 글자가 폭을 더 차지하므로 너비를 넉넉히. */
   .dot-forest-start-hotspot {
-    width: clamp(150px, 42%, 320px);
-    height: clamp(46px, 13%, 80px);
-    bottom: 8%;
+    width: clamp(160px, 64%, 380px);
+    height: clamp(46px, 12%, 110px);
+    bottom: 6.5%;
   }
 }
 

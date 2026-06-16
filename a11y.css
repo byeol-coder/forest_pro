@@ -1,0 +1,193 @@
+/* ===========================================================
+   Dot Forest — low-vision / hybrid accessibility layer
+   Additive: driven by data-a11y-* attributes + CSS vars set
+   on <html> by a11y.js. Touches nothing in the base styles.
+   -----------------------------------------------------------
+   Switches (on documentElement):
+     data-a11y-contrast = "high"
+     data-a11y-palette  = "hv"          (high-visibility colors)
+     data-a11y-captions = "on"
+     data-a11y-tactile  = "zoom"
+     style --a11y-scale = 1 | 1.25 | 1.5 (text / UI scale)
+   =========================================================== */
+
+:root {
+  --a11y-scale: 1;
+  --a11y-warn: #ffb300;   /* hazard near  */
+  --a11y-hit:  #ff3b30;   /* hazard hit   */
+  --a11y-water:#39b6ff;   /* deep water   */
+  --a11y-cap-bg: rgba(8, 14, 11, 0.82);
+  --a11y-cap-ink: #f6fbf2;
+}
+
+/* High-visibility palette: brighter, max-separation hues that stay
+   distinguishable for the common color-vision deficiencies. */
+:root[data-a11y-palette="hv"] {
+  --a11y-warn: #ffd000;
+  --a11y-hit:  #ff2d2d;
+  --a11y-water:#19c3ff;
+  --accent: #ffd000;
+  --game-glow: rgba(255, 208, 0, 0.7);
+}
+
+/* ---------- text / UI scale (game screen only) ---------- */
+#screen-game .hud,
+#screen-game .quest,
+#screen-game .info-keys,
+#screen-game .live-status,
+#screen-game .tactile-dock,
+#screen-game .party,
+#screen-game .voice-btn,
+#screen-game .dpad button {
+  font-size: calc(1em * var(--a11y-scale));
+}
+#screen-game .info-keys button { padding: calc(0.45rem * var(--a11y-scale)) calc(0.6rem * var(--a11y-scale)); }
+#screen-game .dpad { transform: scale(calc(0.92 + 0.08 * var(--a11y-scale))); transform-origin: left bottom; }
+
+/* ---------- high-contrast mode ---------- */
+:root[data-a11y-contrast="high"] {
+  --game-panel: rgba(6, 10, 8, 0.94);
+  --game-panel-strong: rgba(4, 7, 6, 0.97);
+  --game-border: rgba(255, 255, 255, 0.85);
+  --game-ink: #ffffff;
+  --game-muted: rgba(255, 255, 255, 0.92);
+}
+:root[data-a11y-contrast="high"] #screen-game .hud,
+:root[data-a11y-contrast="high"] #screen-game .quest,
+:root[data-a11y-contrast="high"] #screen-game .info-keys button,
+:root[data-a11y-contrast="high"] #screen-game .live-status,
+:root[data-a11y-contrast="high"] #screen-game .tactile-dock,
+:root[data-a11y-contrast="high"] #screen-game .party-chip {
+  background: var(--game-panel-strong);
+  color: #fff;
+  border: 2px solid var(--game-border);
+  text-shadow: 0 1px 2px #000;
+}
+:root[data-a11y-contrast="high"] #screen-game .info-keys button b { color: #1a1300; }
+:root[data-a11y-contrast="high"] .light-track { outline: 2px solid #fff; }
+/* visible keyboard focus everywhere when high-contrast is on */
+:root[data-a11y-contrast="high"] :is(button, a, input, [tabindex]):focus-visible {
+  outline: 3px solid #ffd000 !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- narration caption bar ---------- */
+#a11yCaption {
+  position: absolute;
+  left: 50%;
+  bottom: 1.1rem;
+  transform: translateX(-50%);
+  max-width: min(680px, 80vw);
+  z-index: 60;
+  display: none;
+  pointer-events: none;
+}
+:root[data-a11y-captions="on"] #screen-game.is-active #a11yCaption { display: block; }
+#a11yCaption .cap-text {
+  display: inline-block;
+  background: var(--a11y-cap-bg);
+  color: var(--a11y-cap-ink);
+  font-family: var(--body, system-ui, sans-serif);
+  font-weight: 600;
+  font-size: calc(1.05rem * var(--a11y-scale));
+  line-height: 1.45;
+  padding: 0.55rem 0.95rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  text-wrap: balance;
+}
+#a11yCaption.is-alert .cap-text {
+  border-color: var(--a11y-warn);
+  box-shadow: 0 0 0 2px var(--a11y-warn), 0 8px 26px rgba(0, 0, 0, 0.5);
+}
+#a11yCaption.show .cap-text { animation: a11yCapIn 0.18s ease-out; }
+@keyframes a11yCapIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- directional audio-cue indicators ---------- */
+#a11yCueLayer { position: absolute; inset: 0; z-index: 55; pointer-events: none; }
+
+/* left / right edge glow bars */
+.a11y-edge {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: clamp(46px, 9vw, 96px);
+  opacity: 0;
+  transition: opacity 0.12s linear;
+  background: linear-gradient(var(--edge-dir, to right),
+              var(--a11y-cue-color, var(--a11y-warn)) 0%,
+              rgba(0, 0, 0, 0) 100%);
+}
+.a11y-edge.left  { left: 0;  --edge-dir: to right; }
+.a11y-edge.right { right: 0; --edge-dir: to left; }
+.a11y-edge.on { opacity: var(--edge-strength, 0.7); }
+
+/* center labeled chip: icon + direction arrow + text */
+.a11y-cue-chip {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: var(--game-panel-strong, rgba(8, 12, 10, 0.9));
+  color: #fff;
+  font-family: var(--body, system-ui, sans-serif);
+  font-weight: 800;
+  font-size: calc(0.95rem * var(--a11y-scale));
+  border: 2px solid var(--a11y-cue-color, var(--a11y-warn));
+  box-shadow: 0 0 18px var(--a11y-cue-color, var(--a11y-warn));
+  white-space: nowrap;
+}
+.a11y-cue-chip.show { display: inline-flex; animation: a11yChip 0.16s ease-out; }
+@keyframes a11yChip { from { opacity: 0; transform: translate(-50%, 0); } to { opacity: 1; transform: translate(-50%, -8px); } }
+.a11y-cue-chip .chip-arrow { font-size: 1.15em; line-height: 1; }
+.a11y-cue-chip .chip-icon { font-size: 1.1em; line-height: 1; }
+/* intensity meter inside the chip */
+.a11y-cue-chip .chip-bar {
+  width: 54px; height: 7px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25); overflow: hidden;
+}
+.a11y-cue-chip .chip-bar i {
+  display: block; height: 100%;
+  width: var(--chip-strength, 0%);
+  background: var(--a11y-cue-color, var(--a11y-warn));
+}
+
+/* hit flash: brief red vignette over the whole stage */
+#a11yHitFlash {
+  position: absolute; inset: 0; opacity: 0; pointer-events: none;
+  box-shadow: inset 0 0 120px 40px var(--a11y-hit);
+  background: radial-gradient(circle at center, rgba(0,0,0,0) 55%, rgba(255,45,45,0.22) 100%);
+}
+#a11yHitFlash.flash { animation: a11yHit 0.5s ease-out; }
+@keyframes a11yHit { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---------- tactile preview zoom ---------- */
+:root[data-a11y-tactile="zoom"] #screen-game .tactile-dock {
+  transform: scale(1.5);
+  transform-origin: right bottom;
+}
+:root[data-a11y-tactile="zoom"] #screen-game .tactile-dock canvas {
+  image-rendering: pixelated;            /* crisp enlarged dots */
+  filter: contrast(1.25) brightness(1.08);
+}
+
+/* ---------- settings: visual a11y block ---------- */
+.set-block .seg.a11y-seg button[aria-pressed="true"] {
+  background: var(--brand, #3d7d4a);
+  color: #fff;
+}
+
+/* honor reduced-motion for all a11y animations */
+@media (prefers-reduced-motion: reduce) {
+  #a11yCaption.show .cap-text,
+  .a11y-cue-chip.show,
+  #a11yHitFlash.flash { animation: none; }
+  .a11y-edge { transition: none; }
+}

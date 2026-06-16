@@ -13,6 +13,7 @@
 
   <link rel="stylesheet" href="./style.css?v=2" />
   <link rel="stylesheet" href="./screens.css?v=2" />
+  <link rel="stylesheet" href="./a11y.css?v=1" />
   <script type="importmap">
     {
       "imports": {
@@ -205,6 +206,35 @@
             </div>
 
             <div class="set-block">
+              <p class="set-label">저시력 · 화면 접근성</p>
+              <div class="seg a11y-seg" id="a11yScaleSeg" role="group" aria-label="글자 크기">
+                <button type="button" data-scale="1" aria-pressed="true">보통</button>
+                <button type="button" data-scale="1.25" aria-pressed="false">크게</button>
+                <button type="button" data-scale="1.5" aria-pressed="false">더 크게</button>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="a11yContrast" />
+                <span>고대비 모드</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="a11yPalette" />
+                <span>고시인성 색상 (색각 보정)</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="a11yCues" checked />
+                <span>음향 큐 시각 표시 (위험 · 물소리)</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="a11yCaptions" checked />
+                <span>내레이션 자막</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="a11yTactileZoom" />
+                <span>촉각 프리뷰 확대</span>
+              </label>
+            </div>
+
+            <div class="set-block">
               <p class="set-label">개발자 · 접근성</p>
               <div class="set-actions">
                 <button type="button" id="exportMatrix" class="mini-btn" aria-label="현재 60×40 매트릭스 콘솔 출력">Matrix Log 출력</button>
@@ -226,6 +256,7 @@
 
   <script type="module" src="./script.js?v=3"></script>
   <script type="module" src="./narrative-engine.js?v=2"></script>
+  <script src="./a11y.js?v=1"></script>
 <style id="mobileBannerStyle">
 #mobileBanner{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(7,7,15,.97);backdrop-filter:blur(8px);padding:32px;text-align:center;font-family:sans-serif;color:#f0eeff}
 #mobileBanner.show{display:flex}
@@ -301,6 +332,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     "\uc74c\uc131 \ub0b4\ub808\uc774\uc158 (TTS)": "Voice narration (TTS)",
     "\ubd84\uc704\uae30 \ub0b4\ub808\uc774\uc158 (\uc232\uc758 \ubc30\uacbd \ubb18\uc0ac)": "Ambient narration (forest scene description)",
     "\ubc30\uacbd \uc74c\uc545": "Background music",
+    "\uc800\uc2dc\ub825 \u00b7 \ud654\uba74 \uc811\uadfc\uc131": "Low vision \u00b7 Visual access",
+    "\ubcf4\ud1b5": "Normal",
+    "\ud06c\uac8c": "Large",
+    "\ub354 \ud06c\uac8c": "X-Large",
+    "\uace0\ub300\ube44 \ubaa8\ub4dc": "High-contrast mode",
+    "\uace0\uc2dc\uc778\uc131 \uc0c9\uc0c1 (\uc0c9\uac01 \ubcf4\uc815)": "High-visibility colors (CVD-safe)",
+    "\uc74c\ud5a5 \ud050 \uc2dc\uac01 \ud45c\uc2dc (\uc704\ud5d8 \u00b7 \ubb3c\uc18c\ub9ac)": "Visual audio cues (hazard \u00b7 water)",
+    "\ub0b4\ub808\uc774\uc158 \uc790\ub9c9": "Narration captions",
+    "\ucd09\uac01 \ud504\ub9ac\ubdf0 \ud655\ub300": "Enlarge tactile preview",
+    "\uae00\uc790 \ud06c\uae30": "Text size",
     "\uc785\ub825 \ubc29\uc2dd \uc548\ub0b4": "Input methods",
     "\uc785\ub825 \ubc29\uc2dd\uacfc \ud658\uacbd\uc744 \uc5ec\uae30\uc11c \ud55c \ubc88\uc5d0 \uad00\ub9ac\ud574\uc694.": "Manage input methods and environment all in one place.",
     "\uc815\ubcf4 \ub4e3\uae30: 1\u00b72\u00b73\u00b74 \ud0a4 \ub610\ub294 \ud654\uba74 \ubc84\ud2bc \u2014 \uc704\uce58 \u00b7 \uc8fc\ubcc0 \u00b7 \ubbf8\uc158 \u00b7 \ucd09\uac01 \uc9c0\ub3c4 (DotPad\ub294 F1~F4)":

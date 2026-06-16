@@ -705,9 +705,14 @@ function checkMilestone() {
   }
 }
 
+function emitCue(detail) {
+  try { window.dispatchEvent(new CustomEvent('dotforest:cue', { detail })); } catch (e) {}
+}
+
 function playWarn(pan, intensity) {
   if (clock.elapsedTime - lastWarnT < 0.28) return;
   lastWarnT = clock.elapsedTime;
+  emitCue({ type: 'hazard', level: 'near', pan, intensity });
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
@@ -727,6 +732,7 @@ function playWarn(pan, intensity) {
 }
 
 function playWater(pan) {
+  emitCue({ type: 'water', pan });
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
@@ -748,6 +754,7 @@ function playWater(pan) {
 function onHazardHit() {
   if (clock.elapsedTime - lastHitT < 1.4) return;
   lastHitT = clock.elapsedTime;
+  emitCue({ type: 'hazard', level: 'hit', pan: 0, intensity: 1 });
   gameState.forestLight = applyHit(gameState.forestLight);
   applyScene();
   updateLightHUD();

@@ -233,12 +233,24 @@
             </div>
 
             <div class="set-block">
+              <p class="set-label">DotPad 실기기</p>
+              <p class="set-note">연결은 타이틀 화면의 “DotPad 연결” 버튼에서 합니다(Chrome·Edge, HTTPS 필요). 연결 후 아래로 점검하세요.</p>
+              <div class="set-actions">
+                <button type="button" id="dotTestUp" class="mini-btn" aria-label="DotPad 모든 점 올리기">전체 점 올리기</button>
+                <button type="button" id="dotTestDown" class="mini-btn" aria-label="DotPad 모든 점 내리기">전체 점 내리기</button>
+                <button type="button" id="dotTestPattern" class="mini-btn" aria-label="DotPad 테스트 패턴 보내기">테스트 패턴</button>
+                <button type="button" id="dotOrderToggle" class="mini-btn" aria-label="셀 핀 순서 전환 (점자 또는 래스터)">셀 핀 순서: 점자</button>
+              </div>
+              <p class="set-note">셀 안의 핀이 뒤섞여 보이면 “셀 핀 순서”를 바꿔 보세요.</p>
+            </div>
+
+            <div class="set-block">
               <p class="set-label">개발자 · 접근성</p>
               <div class="set-actions">
                 <button type="button" id="exportMatrix" class="mini-btn" aria-label="현재 60×40 매트릭스 콘솔 출력">Matrix Log 출력</button>
                 <button type="button" id="resetButton" class="mini-btn danger" aria-label="게임 다시 시작">게임 다시 시작</button>
               </div>
-              <p class="set-note"><code>sendDotPadFrame(matrix)</code> 함수가 실제 DotPadSDK-1.0.0.js 연결 지점입니다.</p>
+              <p class="set-note"><code>sendDotPadFrame(matrix)</code> 함수가 실제 <code>DotPadSDK-3_0_0.js</code> 연결 지점입니다.</p>
             </div>
 
             <div class="sheet-foot">
@@ -332,6 +344,15 @@
 
     // Dev / DotPad panel
     "\uac1c\ubc1c\uc790 \u00b7 \uc811\uadfc\uc131": "Developer \u00b7 Accessibility",
+    "DotPad \uc2e4\uae30\uae30": "DotPad device",
+    "\uc5f0\uacb0\uc740 \ud0c0\uc774\ud2c0 \ud654\uba74\uc758 \u201cDotPad \uc5f0\uacb0\u201d \ubc84\ud2bc\uc5d0\uc11c \ud569\ub2c8\ub2e4(Chrome\u00b7Edge, HTTPS \ud544\uc694). \uc5f0\uacb0 \ud6c4 \uc544\ub798\ub85c \uc810\uac80\ud558\uc138\uc694.":
+      "Connect from the \u201cConnect DotPad\u201d button on the title screen (Chrome\u00b7Edge, HTTPS required). Then check below.",
+    "\uc804\uccb4 \uc810 \uc62c\ub9ac\uae30": "All pins up",
+    "\uc804\uccb4 \uc810 \ub0b4\ub9ac\uae30": "All pins down",
+    "\ud14c\uc2a4\ud2b8 \ud328\ud134": "Test pattern",
+    "\uc140 \ud540 \uc21c\uc11c: \uc810\uc790": "Cell pin order: Braille",
+    "\uc140 \ud540 \uc21c\uc11c: \ub798\uc2a4\ud130": "Cell pin order: Raster",
+    "\uc140 \uc548\uc758 \ud540\uc774 \ub4a4\uc11e\uc5ec \ubcf4\uc774\uba74 \u201c\uc140 \ud540 \uc21c\uc11c\u201d\ub97c \ubc14\uafd4 \ubcf4\uc138\uc694.": "If pins within a cell look scrambled, switch the cell pin order.",
     "DotPad \ubbf8\uc5f0\uacb0": "DotPad disconnected",
     "DotPad \uc5f0\uacb0": "Connect DotPad",
     "Matrix Log \ucd9c\ub825": "Matrix Log output",

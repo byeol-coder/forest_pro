@@ -61,6 +61,11 @@ let dotPadConnected = false;
 const dotSdk = new DotPadSDK();
 const dotScanner = new DotPadScanner();
 let dotDevice = null;
+let dotDeviceName = '';
+// 그래픽 셀 핀 순서: 'braille'(표준 8점) ↔ 'raster'(행우선). 실기기에서 한 셀 안의
+// 핀이 뒤섞여 보이면 설정에서 토글하면 됨. localStorage에 저장.
+let dotBitOrderKey = 'braille';
+try { const o = localStorage.getItem('dotforest.dotOrder'); if (o === 'braille' || o === 'raster') dotBitOrderKey = o; } catch (e) {}
 let speechRecognition = null;
 
 const initialItems = [
@@ -798,6 +803,20 @@ function setupEventListeners() {
   });
   dom.voiceButton.addEventListener('click', startVoiceCommand);
 
+  // DotPad 실기기 브링업 버튼 (있을 때만 연결)
+  const dpUp = document.getElementById('dotTestUp');
+  if (dpUp) dpUp.addEventListener('click', dotpadAllUp);
+  const dpDown = document.getElementById('dotTestDown');
+  if (dpDown) dpDown.addEventListener('click', dotpadAllDown);
+  const dpPat = document.getElementById('dotTestPattern');
+  if (dpPat) dpPat.addEventListener('click', dotpadTestPattern);
+  const dpOrder = document.getElementById('dotOrderToggle');
+  if (dpOrder) {
+    const syncOrderLabel = () => { dpOrder.textContent = dotBitOrderKey === 'braille' ? '셀 핀 순서: 점자' : '셀 핀 순서: 래스터'; };
+    syncOrderLabel();
+    dpOrder.addEventListener('click', () => { toggleDotBitOrder(); syncOrderLabel(); });
+  }
+
   const fsBtn = document.getElementById('fullscreenBtn');
   if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
 
@@ -1265,18 +1284,26 @@ function setDotPadState(text, connected) {
    셀 = 2×4핀 = 1바이트, 셀 행우선 30×10 = 300바이트 = 600hex. DisplayMode.GraphicMode로 전송.
    실기기에서 '한 셀 안의 핀'이 뒤섞여 보이면 아래 DOTPAD_BIT_ORDER 한 곳만 조정하면 됩니다
    (현재 표준 8점 점자 순서). 셀의 '위치'는 이 순서와 무관하게 항상 맞습니다. */
-const DOTPAD_BIT_ORDER = [
-  { dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 },
-  { dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 3 }, { dx: 1, dy: 3 },
-];
+// 한 그래픽 셀(2×4핀)의 비트→핀 매핑. 실기기에서 셀 안 핀이 뒤섞이면 순서만 바꾸면 됨.
+const DOTPAD_BIT_ORDERS = {
+  braille: [ // 표준 8점 점자 순서 (1,2,3 / 4,5,6 / 7,8)
+    { dx: 0, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 1, dy: 0 },
+    { dx: 1, dy: 1 }, { dx: 1, dy: 2 }, { dx: 0, dy: 3 }, { dx: 1, dy: 3 },
+  ],
+  raster: [  // 행우선 래스터 순서 (좌→우, 위→아래)
+    { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 },
+    { dx: 0, dy: 2 }, { dx: 1, dy: 2 }, { dx: 0, dy: 3 }, { dx: 1, dy: 3 },
+  ],
+};
 function matrixToDotPadHex(matrix) {
   const cols = DOT_WIDTH / 2, rows = DOT_HEIGHT / 4;
+  const order = DOTPAD_BIT_ORDERS[dotBitOrderKey] || DOTPAD_BIT_ORDERS.braille;
   let hex = '';
   for (let cy = 0; cy < rows; cy++) {
     for (let cx = 0; cx < cols; cx++) {
       let byte = 0;
       for (let bit = 0; bit < 8; bit++) {
-        const { dx, dy } = DOTPAD_BIT_ORDER[bit];
+        const { dx, dy } = order[bit];
         const row = matrix[cy * 4 + dy];
         if (row && row[cx * 2 + dx]) byte |= (1 << bit);
       }
@@ -1286,16 +1313,21 @@ function matrixToDotPadHex(matrix) {
   return hex.toUpperCase();
 }
 
-function onDotMessage(device, code) {
-  if (code === DataCodes.Connected) {
+function onDotMessage(device, code, data) {
+  if (code === DataCodes.DeviceName) {
+    dotDeviceName = data || '';
+    console.info('[DotPad] device:', dotDeviceName);
+  } else if (code === DataCodes.Connected) {
     dotDevice = device;
     dotPadConnected = true;
-    setDotPadState('DotPad 연결됨', true);
+    const label = dotDeviceName ? `DotPad 연결됨 · ${dotDeviceName}` : 'DotPad 연결됨';
+    setDotPadState(label, true);
     announce('DotPad에 연결됐어요. 게임 화면이 촉각으로 전송됩니다.', true);
     sendDotPadFrame(lastMatrix);
   } else if (code === DataCodes.Disconnected) {
     dotPadConnected = false;
     dotDevice = null;
+    dotDeviceName = '';
     setDotPadState('DotPad 미연결', false);
     announce('DotPad 연결이 해제됐어요.');
   }
@@ -1356,6 +1388,40 @@ function sendDotPadFrame(matrix) {
   } catch (e) {
     console.error('[DotPad] display failed:', e);
   }
+}
+
+/* ---- 실기기 브링업 도구 (핀 순서와 무관한 통신 확인 + 방향 확인) ---- */
+function dotpadAllUp() {
+  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
+  try { dotSdk.displayAllUp(dotDevice); announce('모든 점을 올렸어요.'); } catch (e) { console.error('[DotPad] allUp:', e); }
+}
+function dotpadAllDown() {
+  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
+  try { dotSdk.displayAllDown(dotDevice); announce('모든 점을 내렸어요.'); } catch (e) { console.error('[DotPad] allDown:', e); }
+}
+// 외곽 실선 + 좌상단 모서리 블록(원점) + 중앙 십자 → 방향·핀 순서 확인용
+function dotpadTestPattern() {
+  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
+  const m = Array.from({ length: DOT_HEIGHT }, () => Array(DOT_WIDTH).fill(0));
+  for (let x = 0; x < DOT_WIDTH; x++) { m[0][x] = 1; m[DOT_HEIGHT - 1][x] = 1; }
+  for (let y = 0; y < DOT_HEIGHT; y++) { m[y][0] = 1; m[y][DOT_WIDTH - 1] = 1; }
+  for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) m[y][x] = 1; // 좌상단 원점
+  const cy = Math.floor(DOT_HEIGHT / 2), cx = Math.floor(DOT_WIDTH / 2);
+  for (let x = cx - 5; x <= cx + 5; x++) m[cy][x] = 1;
+  for (let y = cy - 5; y <= cy + 5; y++) m[y][cx] = 1;
+  try {
+    dotSdk.displayGraphicData(matrixToDotPadHex(m), dotDevice, DisplayMode.GraphicMode);
+    announce('테스트 패턴을 보냈어요. 외곽 실선과 좌상단 모서리 블록이 맞는지 확인하세요.');
+  } catch (e) { console.error('[DotPad] test pattern:', e); }
+}
+function setDotBitOrder(key) {
+  dotBitOrderKey = (key === 'raster') ? 'raster' : 'braille';
+  try { localStorage.setItem('dotforest.dotOrder', dotBitOrderKey); } catch (e) {}
+  sendDotPadFrame(lastMatrix); // 즉시 다시 그려 차이 확인
+}
+function toggleDotBitOrder() {
+  setDotBitOrder(dotBitOrderKey === 'braille' ? 'raster' : 'braille');
+  announce(dotBitOrderKey === 'braille' ? '셀 핀 순서를 점자로 바꿨어요.' : '셀 핀 순서를 래스터로 바꿨어요.');
 }
 
 function matrixToPackedBytes(matrix) {

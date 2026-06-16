@@ -882,10 +882,12 @@ body[data-screen="title"] .app {
 .dot-forest-start-hotspot {
   position: absolute;
   left: 50%;
-  bottom: 7.5%;
+  bottom: 8.3%;
   transform: translateX(-50%);
-  width: clamp(180px, 22vw, 360px);
-  height: clamp(48px, 6vw, 88px);
+  /* 너비/높이는 인트로 박스(=이미지) 기준 %로 잡아 화면 크기와 무관하게
+     "Press Start" 글자(가로 ~50%±9%, 세로 중심 ~14.8%)에 정렬을 유지한다. */
+  width: clamp(180px, 26%, 420px);
+  height: clamp(48px, 13%, 108px);
   border: 0;
   border-radius: 999px;
   background: rgba(255, 236, 170, 0.02);   /* 기본은 거의 투명 */
@@ -913,9 +915,9 @@ body[data-screen="title"] .app {
 /* 모바일: 터치 타깃 충분히 크게 유지 */
 @media (max-width: 640px) {
   .dot-forest-start-hotspot {
-    width: clamp(150px, 46vw, 280px);
-    height: clamp(46px, 12vw, 66px);
-    bottom: 6.5%;
+    width: clamp(150px, 42%, 320px);
+    height: clamp(46px, 13%, 80px);
+    bottom: 8%;
   }
 }
 

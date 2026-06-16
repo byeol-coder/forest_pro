@@ -265,11 +265,27 @@
   <div class="mb-icon">🖥️</div>
   <div class="mb-title">데스크톱에서 최적화된 데모입니다</div>
   <div class="mb-desc">이 프로토타입은 넓은 화면에 맞춰 설계되었습니다. PC나 태블릿 가로 모드에서 열면 가장 좋습니다.</div>
-  <button class="mb-btn" onclick="document.getElementById('mobileBanner').classList.remove('show')">그래도 계속 보기</button>
+  <button class="mb-btn">그래도 계속 보기</button>
 </div>
 <script>
-(function(){function c(){if(window.innerWidth<720)document.getElementById('mobileBanner')?.classList.add('show');}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',c);else c();})();
+/* 데스크톱 최적화 안내 배너:
+   인트로(타이틀)·설정 화면은 가리지 않고, 좁은 화면(<720px)에서
+   게임 화면에 들어갈 때만 표시한다. 한 번 닫으면 세션 동안 다시 뜨지 않음. */
+(function () {
+  var banner = document.getElementById('mobileBanner');
+  if (!banner) return;
+  var dismissed = false;
+  var btn = banner.querySelector('.mb-btn');
+  if (btn) btn.addEventListener('click', function () { dismissed = true; banner.classList.remove('show'); });
+  function sync() {
+    var onGame = document.body.dataset.screen === 'game';
+    if (onGame && !dismissed && window.innerWidth < 720) banner.classList.add('show');
+    else if (!onGame) banner.classList.remove('show');
+  }
+  new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync);
+  else sync();
+})();
 </script>
 <script id="i18nLite">
 (function () {

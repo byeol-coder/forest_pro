@@ -173,10 +173,11 @@ h2 { margin-bottom: 0.35rem; font-size: 1.1rem; }
 }
 .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .dot { width: 0.9rem; height: 0.9rem; border-radius: 999px; display: inline-block; background: #fff; }
-.dot.player { background: #f8f4de; }
+.dot.player { background: #fbf7e6; }
 .dot.item { background: #f5b84b; }
+.dot.hazard { background: #ff5a4d; }
 .dot.path { background: #8ebc7a; }
-.dot.obstacle { background: #4e6a45; }
+.dot.obstacle { background: #5d7a52; }
 
 .live-status {
   min-height: 3rem;

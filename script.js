@@ -11,6 +11,11 @@ const WORLD_LIMIT_Z = 17;
 const MOVE_STEP = 1.2;
 const ITEM_COLLECT_DISTANCE = 2.25;
 
+// 촉각 매트릭스 개체 타입 코드. 0=빈칸이고, 0이 아니면 DotPad 핀이 올라간다
+// (matrixToDotPadHex는 truthy 검사만 하므로 이진 출력은 그대로 유지됨).
+// 프리뷰 캔버스가 이 코드로 색·크기를 구분해 "촉각 지도"를 읽기 쉽게 만든다.
+const DOT_T = { EMPTY: 0, BORDER: 1, PATH: 2, WATER: 3, STONE: 4, OBSTACLE: 5, ITEM: 6, HAZARD: 7, PLAYER: 8 };
+
 const dom = {
   gameCanvas: document.getElementById('gameCanvas'),
   tactileCanvas: document.getElementById('tactileCanvas'),
@@ -974,20 +979,33 @@ function updateScore() {
 function createDotPadMatrix() {
   const matrix = Array.from({ length: DOT_HEIGHT }, () => Array(DOT_WIDTH).fill(0));
 
-  // 1. 근접 장애물(나무) — 플레이어 반경 6 이내만 표시
+  // 0. 맵 경계 프레임 — 방향 감각용(가장 낮은 우선순위, 점선)
+  drawBorderFrame(matrix);
+
+  // 1. 근접 장애물(나무) — 플레이어 반경 6 이내, 꽉 찬 면
   drawNearbyObstacles(matrix, 6);
 
-  // 2. 강가: 물결(물) + 꽉 찬 블록(안전한 돌) 패턴
+  // 2. 강가: 물결(물, 체크무늬) + 꽉 찬 블록(안전한 돌)
   if (gameState.area === 'river') drawRiverCrossing(matrix);
 
-  // 3. 도트링(수집물, 다이아몬드 패턴) + 떠다니는 그림자(위험물, X 패턴)
+  // 3. 도트링(수집물, 속 빈 다이아몬드) + 떠다니는 그림자(위험물, 대각 X)
   drawItems(matrix);
   drawNearbyHazards(matrix, 7);
 
-  // 3. 캐릭터(루미) 워킹 실루엣 — 항상 위에 덮어씀
+  // 4. 캐릭터(루미) 워킹 실루엣 — 항상 위에 덮어씀(가장 큰 솔리드)
   drawPlayerFull(matrix);
 
   return matrix;
+}
+
+/* 맵 경계 점선 프레임 — 시야 없이도 플레이 영역 가장자리를 손끝으로 느끼게 한다. */
+function drawBorderFrame(matrix) {
+  for (let x = 0; x < DOT_WIDTH; x++) {
+    if (x % 2 === 0) { setDot(matrix, x, 0, DOT_T.BORDER); setDot(matrix, x, DOT_HEIGHT - 1, DOT_T.BORDER); }
+  }
+  for (let y = 0; y < DOT_HEIGHT; y++) {
+    if (y % 2 === 0) { setDot(matrix, 0, y, DOT_T.BORDER); setDot(matrix, DOT_WIDTH - 1, y, DOT_T.BORDER); }
+  }
 }
 
 function drawNearbyObstacles(matrix, radius) {
@@ -1011,7 +1029,7 @@ function drawNearbyObstacles(matrix, radius) {
       for (let x = x0; x <= x1; x++) {
         // 채움(매우 근접): 전체 / 테두리(근접): 외곽만
         if (filled || x === x0 || x === x1 || y === y0 || y === y1) {
-          setDot(matrix, x, y, 1);
+          setDot(matrix, x, y, DOT_T.OBSTACLE);
         }
       }
     }
@@ -1027,17 +1045,17 @@ function drawRiverCrossing(matrix) {
   const y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      if ((x + y) % 2 === 0) setDot(matrix, x, y, 1); // 물결(깊은 물)
+      if ((x + y) % 2 === 0) setDot(matrix, x, y, DOT_T.WATER); // 물결(깊은 물)
     }
   }
   cr.stones.forEach((st) => {
     const p = worldToDot(st.x, st.z);
     for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) setDot(matrix, p.x + dx, p.y + dy, 1); // 꽉 찬 안전한 돌
+      for (let dx = -1; dx <= 1; dx++) setDot(matrix, p.x + dx, p.y + dy, DOT_T.STONE); // 꽉 찬 안전한 돌
     }
   });
   const g = worldToDot(cr.goal.x, cr.goal.z);
-  setDot(matrix, g.x, g.y, 1);
+  setDot(matrix, g.x, g.y, DOT_T.STONE);
 }
 
 function drawNearbyHazards(matrix, radius) {
@@ -1045,13 +1063,13 @@ function drawNearbyHazards(matrix, radius) {
   gameState.hazards.forEach((h) => {
     if (Math.hypot(h.x - px, h.z - pz) > radius) return;
     const p = worldToDot(h.x, h.z);
-    // X 패턴 — 다이아몬드(도트링)와 촉각적으로 구분되게
+    // 대각 X 패턴 — 도트링의 직교 다이아몬드와 촉각적으로 확실히 구분
     const shape = [
       [1, 0, 1],
       [0, 1, 0],
       [1, 0, 1],
     ];
-    drawShape(matrix, shape, p.x - 1, p.y - 1);
+    drawShape(matrix, shape, p.x - 1, p.y - 1, DOT_T.HAZARD);
   });
 }
 
@@ -1090,12 +1108,13 @@ function drawObstacles(matrix) {
 function drawItems(matrix) {
   gameState.items.filter((item) => !item.collected).forEach((item) => {
     const p = worldToDot(item.x, item.z);
+    // 속 빈 다이아몬드(고리) — 가운데가 비어 "동그란/열린" 촉감, 플레이어 솔리드와 대비
     const shape = [
       [0, 1, 0],
-      [1, 1, 1],
+      [1, 0, 1],
       [0, 1, 0],
     ];
-    drawShape(matrix, shape, p.x - 1, p.y - 1);
+    drawShape(matrix, shape, p.x - 1, p.y - 1, DOT_T.ITEM);
   });
 }
 
@@ -1144,7 +1163,7 @@ function drawPlayerFull(matrix) {
   };
 
   const shape = shapes[dir] || shapes.down;
-  drawShape(matrix, shape, p.x - 2, p.y - 3);
+  drawShape(matrix, shape, p.x - 2, p.y - 3, DOT_T.PLAYER);
 
   // 이동 중일 때 방향 화살표 (앞쪽에 1~2개 점)
   if (gameState.player.animation === 'walk') {
@@ -1154,36 +1173,55 @@ function drawPlayerFull(matrix) {
       left:  [{dx:-4,dy:0},{dx:-5,dy:0}],
       right: [{dx:4,dy:0},{dx:5,dy:0}],
     };
-    (arrows[dir]||[]).forEach(({dx,dy}) => setDot(matrix, p.x+dx, p.y+dy, 1));
+    (arrows[dir]||[]).forEach(({dx,dy}) => setDot(matrix, p.x+dx, p.y+dy, DOT_T.PLAYER));
   }
 }
 
-function drawShape(matrix, shape, originX, originY) {
+function drawShape(matrix, shape, originX, originY, type = DOT_T.PLAYER) {
   for (let y = 0; y < shape.length; y++) {
     for (let x = 0; x < shape[y].length; x++) {
-      if (shape[y][x]) setDot(matrix, originX + x, originY + y, 1);
+      if (shape[y][x]) setDot(matrix, originX + x, originY + y, type);
     }
   }
 }
+
+// 개체 타입별 색·점 크기 (촉각 지도 범례와 일치)
+const DOT_STYLE = {
+  [DOT_T.BORDER]:   { c: 'rgba(143, 188, 122, 0.45)', r: 0.22 },
+  [DOT_T.PATH]:     { c: '#8ebc7a', r: 0.26 },
+  [DOT_T.WATER]:    { c: '#5ab4e6', r: 0.30 },
+  [DOT_T.STONE]:    { c: '#e3d29a', r: 0.34 },
+  [DOT_T.OBSTACLE]: { c: '#5d7a52', r: 0.34 },
+  [DOT_T.ITEM]:     { c: '#f5b84b', r: 0.34 },
+  [DOT_T.HAZARD]:   { c: '#ff5a4d', r: 0.36 },
+  [DOT_T.PLAYER]:   { c: '#fbf7e6', r: 0.42 },
+};
 
 function drawTactileFrame() {
   lastMatrix = createDotPadMatrix();
   const cellW = dom.tactileCanvas.width / DOT_WIDTH;
   const cellH = dom.tactileCanvas.height / DOT_HEIGHT;
+  const unit = Math.min(cellW, cellH);
 
   tactileCtx.fillStyle = '#162217';
   tactileCtx.fillRect(0, 0, dom.tactileCanvas.width, dom.tactileCanvas.height);
 
+  // 위험 개체는 프리뷰에서만 점멸(매트릭스/DotPad 출력은 정적으로 유지)
+  const hazardPulse = 0.5 + 0.5 * Math.sin(clock.elapsedTime * 6);
+
   for (let y = 0; y < DOT_HEIGHT; y++) {
     for (let x = 0; x < DOT_WIDTH; x++) {
-      if (lastMatrix[y][x]) {
-        tactileCtx.fillStyle = '#e8f2d7';
-        tactileCtx.beginPath();
-        tactileCtx.arc(x * cellW + cellW / 2, y * cellH + cellH / 2, Math.min(cellW, cellH) * 0.33, 0, Math.PI * 2);
-        tactileCtx.fill();
-      }
+      const t = lastMatrix[y][x];
+      if (!t) continue;
+      const s = DOT_STYLE[t] || { c: '#e8f2d7', r: 0.33 };
+      tactileCtx.globalAlpha = (t === DOT_T.HAZARD) ? (0.45 + 0.55 * hazardPulse) : 1;
+      tactileCtx.fillStyle = s.c;
+      tactileCtx.beginPath();
+      tactileCtx.arc(x * cellW + cellW / 2, y * cellH + cellH / 2, unit * s.r, 0, Math.PI * 2);
+      tactileCtx.fill();
     }
   }
+  tactileCtx.globalAlpha = 1;
 
   drawTactileGrid(cellW, cellH);
 }

@@ -818,3 +818,109 @@ body[data-screen="title"] .app {
   border: none;
   box-shadow: none;
 }
+
+/* ---------- 이미지 인트로 + Press Start 핫스팟 ---------- */
+/* 타이틀 스테이지를 다크 레터박스로 쓰고, 16:9 인트로 박스를 중앙 배치 */
+#screen-title .stage--title {
+  display: grid;
+  place-items: center;
+  background: #102315;
+  overflow: hidden;
+}
+.dot-forest-intro {
+  position: relative;
+  /* 16:9 유지: 뷰포트 높이/너비 중 작은 쪽에 맞춰 잘림 없이 표시 */
+  width: min(100%, calc(100vh * 16 / 9));
+  max-height: 100vh;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #102315;
+}
+.dot-forest-intro-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;     /* 16:9 박스에 꽉 차게(이미지도 16:9라 잘림 없음) */
+  display: block;
+}
+
+/* 보조 컨트롤 — 평소 은은, hover/focus-within 시 또렷 */
+.intro-controls {
+  position: absolute;
+  z-index: 3;
+  top: clamp(0.8rem, 2.4vw, 1.6rem);
+  right: clamp(0.8rem, 2.4vw, 1.6rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.45;
+  transition: opacity 180ms ease;
+}
+.intro-controls:hover,
+.intro-controls:focus-within { opacity: 1; }
+.intro-controls .state-pill { font-size: 0.74rem; padding: 0.4rem 0.62rem; }
+.intro-mini {
+  background: rgba(8, 14, 11, 0.5);
+  color: #f4f7ef;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 150ms ease;
+}
+.intro-mini:hover { background: rgba(8, 14, 11, 0.78); }
+.intro-mini:focus-visible {
+  outline: 3px solid rgba(255, 244, 180, 0.95);
+  outline-offset: 2px;
+}
+
+/* 이미지 속 "Press Start" 위에 올린 투명 핫스팟 (실제 <button>) */
+.dot-forest-start-hotspot {
+  position: absolute;
+  left: 50%;
+  bottom: 7.5%;
+  transform: translateX(-50%);
+  width: clamp(180px, 22vw, 360px);
+  height: clamp(48px, 6vw, 88px);
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 236, 170, 0.02);   /* 기본은 거의 투명 */
+  cursor: pointer;
+  z-index: 4;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.dot-forest-start-hotspot:hover {
+  background: rgba(255, 236, 170, 0.12);
+  box-shadow:
+    0 0 24px rgba(255, 220, 120, 0.45),
+    inset 0 0 18px rgba(255, 255, 255, 0.12);
+  transform: translateX(-50%) scale(1.03);
+}
+.dot-forest-start-hotspot:focus-visible {
+  outline: 3px solid rgba(255, 244, 180, 0.95);
+  outline-offset: 4px;
+  background: rgba(255, 236, 170, 0.16);
+  box-shadow:
+    0 0 28px rgba(255, 220, 120, 0.6),
+    0 0 0 6px rgba(34, 80, 42, 0.45);
+}
+.dot-forest-start-hotspot:active { transform: translateX(-50%) scale(0.99); }
+
+/* 모바일: 터치 타깃 충분히 크게 유지 */
+@media (max-width: 640px) {
+  .dot-forest-start-hotspot {
+    width: clamp(150px, 46vw, 280px);
+    height: clamp(46px, 12vw, 66px);
+    bottom: 6.5%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-forest-start-hotspot { transition: none; }
+  .dot-forest-start-hotspot:hover,
+  .dot-forest-start-hotspot:active { transform: translateX(-50%); }
+}

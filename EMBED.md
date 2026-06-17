@@ -83,3 +83,27 @@ document.addEventListener('click', (e) => {
 - **`embed.js` `TW_ORIGINS`(부모 = TW 허브 오리진):** 현재 `https://tib-preview.vercel.app` 포함.
   운영 TW 오리진을 받으면 이 목록만 교체하면 됨(자식 호스팅과 무관).
 - 배포: GitHub Pages(main), `.nojekyll` 포함. (선택) 배포물에서 `package*.json`·`serve.js`·`vite.config.js`는 런타임 불필요.
+
+---
+
+## 9. 임베드 풀필 보강 — TW 정본 embed.css에 반영 요망 (2026-06-17)
+
+정본 패치 `embed.css`를 **그대로만** 적용하면 임베드에서 하단 ~63px 여백 + 스크롤바가
+생깁니다(원인: 단독 빌드의 `.app` 패딩 1.1rem, `#screen-game .stage--game{height:min(92vh,1100px)}`
+제한이 임베드에서 해제되지 않음). 아래 **5줄을 `html.is-embed`에 추가**하면 풀필이 완성됩니다.
+이 저장소의 `embed.css`에는 이미 반영돼 있으니, **TW 정본 embed.css도 동일하게 갱신**해 주세요
+(다음 핸드오프에서 정본으로 덮어쓸 때 여백이 재발하지 않도록).
+
+```css
+/* responsive fill 블록에 추가 */
+html.is-embed, html.is-embed body { ... overflow: hidden; }   /* overflow:hidden 추가 */
+html.is-embed { scrollbar-width: none; }
+html.is-embed::-webkit-scrollbar { display: none; }
+html.is-embed .app { ... max-width: none; margin: 0; padding: 0; }   /* 패딩/마진/최대폭 해제 */
+html.is-embed #screen-game .stage--game { width: 100%; height: 100%; min-height: 0; margin-left: 0; }
+```
+
+> 가장 간단한 반영법: TW 정본 `embed.css`를 이 저장소의 `embed.css`로 교체.
+> `embed.js`·`screens.js`는 정본 패치와 100% 동일(verbatim)하므로 추가 조치 불필요.
+
+검증(런타임): 1920×1080·정사각(760²) 모두 풀필, 종횡비 일치(왜곡 없음), 스크롤바 없음.

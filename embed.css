@@ -1,0 +1,27 @@
+/* ============================================================
+   Dot Forest — TW(Tactile World) embed-mode layout
+   Applied only when ?embed=1 (html.is-embed) / ?preview=0 (html.no-preview).
+   Pure CSS toggles — does NOT touch game logic (script.js).
+   ============================================================ */
+
+/* --- responsive fill: 부모(iframe) 영역을 꽉 채움 --- */
+html.is-embed, html.is-embed body { margin: 0; height: 100%; overflow: hidden; }
+html.is-embed { scrollbar-width: none; }
+html.is-embed::-webkit-scrollbar { display: none; }
+html.is-embed .app { width: 100%; height: 100%; min-height: 100dvh; max-width: none; margin: 0; padding: 0; }
+html.is-embed #screen-game { width: 100%; height: 100%; }
+/* 단독 빌드의 .stage--game(height:min(92vh,1100px)) 제한을 임베드에서 해제 → 하단 여백 제거 */
+html.is-embed #screen-game .stage--game { width: 100%; height: 100%; min-height: 0; margin-left: 0; }
+html.is-embed #gameCanvas,
+html.is-embed .game-canvas { width: 100%; height: 100%; }
+
+/* --- 타이틀/선택 화면 숨김: 게임 선택은 부모 허브(TW)가 담당 --- */
+html.is-embed #screen-title { display: none !important; }
+
+/* --- 잉여 크롬 최소화: 부모가 자체 닫기/전체화면을 제공 --- */
+html.is-embed #fullscreenBtn { display: none !important; }
+html.is-embed #mobileBanner { display: none !important; }
+html.is-embed .icon-btn[data-nav="title"] { display: none !important; }
+
+/* --- DOT PAD PREVIEW 스트립: 렌더 생략 + 공간 회수 (촉각 출력 자체는 유지) --- */
+html.no-preview .tactile-dock { display: none !important; }

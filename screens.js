@@ -38,7 +38,14 @@
   // --- navigation buttons ([data-nav="title|game|settings"]) ---
   document.addEventListener('click', (e) => {
     const nav = e.target.closest('[data-nav]');
-    if (nav) show(nav.dataset.nav);
+    if (!nav) return;
+    // 임베드에서 'title' 이동은 숨긴 타이틀로 가지 않고 부모(TW) 종료 신호로 치환
+    if (window.TW && window.TW.embed && nav.dataset.nav === 'title') {
+      e.preventDefault();
+      if (window.TWBridge) window.TWBridge.exit('user');
+      return;
+    }
+    show(nav.dataset.nav);
   });
 
   // --- ESC from settings returns to the game ---
@@ -99,6 +106,6 @@
     setTimeout(refreshSeg, 60);
   }
 
-  // --- start on the title screen ---
-  show('title');
+  // --- start on the title screen (embed: jump straight to the game) ---
+  show(window.TW && window.TW.embed ? 'game' : 'title');
 })();

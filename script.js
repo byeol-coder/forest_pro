@@ -41,6 +41,7 @@ let lumiHalo = null;
 let lumiLight = null;
 let pipMesh = null;
 let beaconMesh = null;
+let camLeadX = 0, camLeadZ = 0;   // 진행 방향 룩어헤드(부드럽게 따라가는 카메라 선행 오프셋)
 const PIP_POS = { x: 15, z: 7 };
 let actions = {};
 let currentAction = null;
@@ -1579,12 +1580,17 @@ function animate() {
     const camDist = 22;   // 캐릭터 뒤 거리
     const camHeight = 16; // 카메라 높이
 
-    // 월드 고정 방향 카메라: 캐릭터 yaw에 따라 공전하지 않는다.
-    // (방향키는 월드 절대 방향이므로, 카메라가 캐릭터를 따라 돌면
-    //  위/아래·좌/우가 화면에서 뒤집혀 "거꾸로 움직이는" 것처럼 보인다.)
+    // 월드 고정 방향 카메라: 캐릭터 yaw에 따라 공전하지 않는다(조작 반전 방지).
+    // 대신 "진행 방향 룩어헤드" — 캐릭터가 마지막으로 이동한 방향으로 카메라가
+    // 살짝 앞서 따라간다(뒤로 가면 카메라도 그 방향으로 선행). 화면 방향은 고정이라 반전 없음.
     void yaw;
-    const targetX = px;
-    const targetZ = pz + camDist;
+    const LEAD = 6; // 진행 방향 선행 거리
+    const dv = ({ up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] })[gameState.player.direction] || [0, 0];
+    camLeadX += (dv[0] * LEAD - camLeadX) * 0.045;   // 선행 오프셋을 느리게 lerp → 부드럽게 스윙
+    camLeadZ += (dv[1] * LEAD - camLeadZ) * 0.045;
+
+    const targetX = px + camLeadX;
+    const targetZ = pz + camDist + camLeadZ;
 
     // 부드러운 추적 (lerp)
     const lerp = 0.06;
@@ -1592,8 +1598,8 @@ function animate() {
     camera.position.z += (targetZ - camera.position.z) * lerp;
     camera.position.y += (camHeight - camera.position.y) * lerp;
 
-    // 캐릭터를 바라봄 (머리 높이)
-    camera.lookAt(px, 3, pz);
+    // 캐릭터를 바라봄 (룩어헤드 방향으로 시점도 함께 이동)
+    camera.lookAt(px + camLeadX, 3, pz + camLeadZ);
 
     const lf = gameState.forestLight;
     if (lumiHalo) {

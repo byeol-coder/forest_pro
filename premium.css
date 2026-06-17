@@ -156,11 +156,13 @@
 }
 /* 왼쪽 골드 액센트 + 잎 아이콘 */
 #screen-game .quest::before {
-  content: "🌿";
+  content: "";
   position: absolute;
-  left: 0.78rem; top: 50%; transform: translateY(-50%);
-  font-size: 1rem; opacity: 0.9;
-  filter: drop-shadow(0 0 6px rgba(143, 208, 138, 0.7));
+  left: 0.8rem; top: 50%; transform: translateY(-50%);
+  width: 1.05rem; height: 1.05rem;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fd08a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 20A7 7 0 0 1 4 13C4 8 8 4 20 4c0 8-4 12-9 12z'/%3E%3Cpath d='M11 20c0-5 2-9 6-11'/%3E%3C/svg%3E");
+  filter: drop-shadow(0 0 5px rgba(143, 208, 138, 0.6));
 }
 #screen-game .quest {
   padding-left: 2.4rem;
@@ -178,7 +180,6 @@
   line-height: 1.4;
 }
 #screen-game .quest.done { box-shadow: var(--pz-shadow), var(--pz-inset), 0 0 22px rgba(121, 232, 154, 0.35); }
-#screen-game .quest.done::before { content: "🌱"; }
 
 /* ============================================================
    5) 안내 토스트(live-status) — 부드러운 캡션 카드
@@ -307,3 +308,39 @@
 @media (max-width: 720px) {
   #screen-game .tactile-dock { width: 13.5rem; }
 }
+
+/* ============================================================
+   9) 2D 아이콘 정렬 균일화 — 이모지 → 인라인 SVG(.ic) 공통 규격
+   ============================================================ */
+/* HUD 행: 높이 다른 칩/버튼을 세로 중앙 정렬 */
+#screen-game .hud { align-items: center; }
+
+/* 모든 아이콘 버튼: 정사각 + 중앙 정렬(SVG가 정확히 가운데 오도록) */
+#screen-game .icon-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+}
+#screen-game .icon-btn .ic { width: 1.35rem; height: 1.35rem; display: block; }
+
+/* D-pad: 둥근 버튼 안에서 화살표 SVG 중앙 정렬 + 균일 크기 */
+#screen-game .dpad button { display: grid; place-items: center; padding: 0; line-height: 0; }
+#screen-game .dpad button .ic { width: 1.5rem; height: 1.5rem; display: block; }
+#screen-game .dpad .dpad-eat .eat-label {
+  font-size: calc(0.92rem * var(--a11y-scale, 1));
+  font-weight: 900; line-height: 1;
+}
+
+/* 음성 버튼: 아이콘 + 라벨 가로 정렬 */
+#screen-game .voice-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+}
+#screen-game .voice-btn .ic { width: 1.15rem; height: 1.15rem; display: block; flex: 0 0 auto; }
+
+/* 월드맵 닫기(✕)도 동일 규격 */
+#screen-game .wm-close .ic { width: 1.1rem; height: 1.1rem; }
+
+/* 아이콘은 텍스트 색을 그대로 따르되 살짝 또렷하게 */
+#screen-game .icon-btn .ic,
+#screen-game .voice-btn .ic { stroke: currentColor; }

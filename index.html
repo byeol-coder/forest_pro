@@ -70,7 +70,7 @@
 
         <div class="hud">
           <div class="hud-left">
-            <button type="button" class="icon-btn" data-nav="title" aria-label="타이틀 화면으로 나가기">☰</button>
+            <button type="button" class="icon-btn" data-nav="title" aria-label="타이틀 화면으로 나가기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg></button>
             <div class="score" aria-live="polite">
               <span>수집</span>
               <strong id="scoreText">0 / 5</strong>
@@ -82,9 +82,9 @@
           </div>
           <div class="hud-right">
             <span class="state-pill dotpad-mirror" aria-hidden="true">DotPad 미연결</span>
-            <button type="button" class="icon-btn" id="mapBtn" aria-label="여정 지도 열기">🗺</button>
-            <button type="button" class="icon-btn" id="fullscreenBtn" aria-label="전체화면 전환">⛶</button>
-            <button type="button" class="icon-btn" data-nav="settings" aria-label="설정 열기">⚙</button>
+            <button type="button" class="icon-btn" id="mapBtn" aria-label="여정 지도 열기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3 6.5V21l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4z"/><path d="M9 4v14.5M15 6.5V21"/></svg></button>
+            <button type="button" class="icon-btn" id="fullscreenBtn" aria-label="전체화면 전환"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+            <button type="button" class="icon-btn" data-nav="settings" aria-label="설정 열기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="10" cy="7" r="2.1"/><circle cx="15" cy="12" r="2.1"/><circle cx="8" cy="17" r="2.1"/></svg></button>
           </div>
         </div>
 
@@ -122,7 +122,7 @@
           <div class="worldmap-card">
             <div class="wm-head">
               <span class="wm-title">여정 지도</span>
-              <button type="button" class="icon-btn wm-close" id="mapClose" aria-label="지도 닫기">✕</button>
+              <button type="button" class="icon-btn wm-close" id="mapClose" aria-label="지도 닫기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
             </div>
             <div class="wm-path" id="wmPath"></div>
             <div class="wm-progress">
@@ -136,17 +136,17 @@
 
         <div id="dpad" class="dpad" role="group" aria-label="이동 및 상호작용 조작">
           <span class="dpad-sp"></span>
-          <button type="button" data-move="up" aria-label="루미 앞으로 이동">↑</button>
+          <button type="button" data-move="up" aria-label="루미 앞으로 이동"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 19V6M6 12l6-6 6 6"/></svg></button>
           <span class="dpad-sp"></span>
-          <button type="button" data-move="left" aria-label="루미 왼쪽 이동">←</button>
-          <button type="button" id="collectButton" class="dpad-eat" aria-label="도트링 먹기 또는 상호작용">먹기</button>
-          <button type="button" data-move="right" aria-label="루미 오른쪽 이동">→</button>
+          <button type="button" data-move="left" aria-label="루미 왼쪽 이동"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H6M12 6l-6 6 6 6"/></svg></button>
+          <button type="button" id="collectButton" class="dpad-eat" aria-label="도트링 먹기 또는 상호작용"><span class="eat-label">먹기</span></button>
+          <button type="button" data-move="right" aria-label="루미 오른쪽 이동"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h13M12 6l6 6-6 6"/></svg></button>
           <span class="dpad-sp"></span>
-          <button type="button" data-move="down" aria-label="루미 뒤로 이동">↓</button>
+          <button type="button" data-move="down" aria-label="루미 뒤로 이동"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v13M6 12l6 6 6-6"/></svg></button>
           <span class="dpad-sp"></span>
         </div>
 
-        <button type="button" id="voiceButton" class="voice-btn" aria-label="음성 명령 시작">🎙 음성</button>
+        <button type="button" id="voiceButton" class="voice-btn" aria-label="음성 명령 시작"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>음성</span></button>
 
         <aside class="tactile-dock" aria-labelledby="tactileTitle">
           <h3 id="tactileTitle">촉각 지도<span class="td-sub">60×40 DotPad</span></h3>
@@ -280,7 +280,7 @@
 #mobileBanner .mb-btn{margin-top:8px;padding:11px 26px;background:#6b46f0;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 </style>
 <div id="mobileBanner" role="dialog" aria-label="화면 크기 안내">
-  <div class="mb-icon">🖥️</div>
+  <div class="mb-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
   <div class="mb-title">데스크톱에서 최적화된 데모입니다</div>
   <div class="mb-desc">이 프로토타입은 넓은 화면에 맞춰 설계되었습니다. PC나 태블릿 가로 모드에서 열면 가장 좋습니다.</div>
   <button class="mb-btn">그래도 계속 보기</button>

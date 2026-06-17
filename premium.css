@@ -344,3 +344,9 @@
 /* 아이콘은 텍스트 색을 그대로 따르되 살짝 또렷하게 */
 #screen-game .icon-btn .ic,
 #screen-game .voice-btn .ic { stroke: currentColor; }
+
+/* ============================================================
+   10) 상단 퀘스트 카드 ↔ 정보키 바 간격 확보 (겹침 방지·여유)
+   ============================================================ */
+#screen-game .info-keys { top: 6.5rem; }
+@media (max-width: 720px) { #screen-game .info-keys { top: 6rem; } }

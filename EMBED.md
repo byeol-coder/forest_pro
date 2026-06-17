@@ -66,3 +66,20 @@ document.addEventListener('click', (e) => {
 ## 7. (선택) 인게임 '나가기'로 모달까지 닫기
 현재 TW는 자체 닫기(X)를 제공하므로 인게임 나가기 버튼은 임베드에서 숨김 처리됩니다(충분).
 인게임 버튼으로 모달을 닫고 싶다면 TW가 `dotforest:exit` 수신을 추가하면 됩니다(필수 아님).
+
+---
+
+## 8. 호스팅·오리진 확정 (2026-06-17)
+
+- **게임(자식 iframe) 호스팅 URL:** `https://byeol-coder.github.io/forest_pro/` — GitHub Pages, HTTPS ✓, `base:'./'` 상대경로라 `/forest_pro/` 서브경로에서 정상 동작.
+- **자식 오리진(부모가 `event.origin` 검증에 쓸 값):** `https://byeol-coder.github.io`
+- **TW 임베드 예시:**
+  ```html
+  <iframe src="https://byeol-coder.github.io/forest_pro/?embed=1&preview=0"
+          allow="bluetooth; microphone; autoplay; clipboard-write"
+          title="Dot Forest 촉각 게임"
+          style="width:100%;height:100%;border:0"></iframe>
+  ```
+- **`embed.js` `TW_ORIGINS`(부모 = TW 허브 오리진):** 현재 `https://tib-preview.vercel.app` 포함.
+  운영 TW 오리진을 받으면 이 목록만 교체하면 됨(자식 호스팅과 무관).
+- 배포: GitHub Pages(main), `.nojekyll` 포함. (선택) 배포물에서 `package*.json`·`serve.js`·`vite.config.js`는 런타임 불필요.

@@ -7,8 +7,11 @@
    ============================================================ */
 (function () {
   var Q = new URLSearchParams(location.search);
+  // iframe(예: TW) 안에서 실행되면 ?embed=1 이 없어도 자동 임베드 모드.
+  // top-level 단독 실행(직접 접속)은 그대로 타이틀부터. ?embed=0 으로 강제 해제 가능.
+  var inIframe = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
   window.TW = {
-    embed:   Q.get('embed') === '1',
+    embed:   Q.get('embed') === '1' || (inIframe && Q.get('embed') !== '0'),
     preview: Q.get('preview') !== '0',   // 기본 표시, ?preview=0 일 때만 숨김
     lang:    Q.get('lang') || null,
   };

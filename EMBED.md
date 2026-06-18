@@ -107,3 +107,22 @@ html.is-embed #screen-game .stage--game { width: 100%; height: 100%; min-height:
 > `embed.js`·`screens.js`는 정본 패치와 100% 동일(verbatim)하므로 추가 조치 불필요.
 
 검증(런타임): 1920×1080·정사각(760²) 모두 풀필, 종횡비 일치(왜곡 없음), 스크롤바 없음.
+
+---
+
+## 10. iframe 자동 임베드 감지 (2026-06-17) — 화면 잘림 대비
+
+TW가 iframe `src`에 `?embed=1`을 붙이지 않으면 단독 레이아웃이 모달 안에서 잘립니다.
+이를 방지하기 위해 `embed.js`가 **iframe 안에서 실행되면 자동으로 임베드 모드**로 들어갑니다:
+
+```js
+var inIframe = (function(){ try { return window.self !== window.top; } catch(e){ return true; } })();
+window.TW.embed = (Q.get('embed') === '1') || (inIframe && Q.get('embed') !== '0');
+```
+
+- **단독(top-level) 직접 접속**: `inIframe=false` → 기존과 동일(타이틀부터). 회귀 없음.
+- **iframe(TW) 안**: `?embed=1` 없어도 자동 풀필. `?embed=0`으로 강제 해제 가능.
+- 그래도 TW가 `?embed=1&preview=0`을 붙이는 것을 권장(프리뷰 dock off 등 명시적 제어).
+
+> 참고: 자동 감지로도 잘림이 남으면 원인은 **게임이 아니라 TW 모달 CSS**(iframe 컨테이너 크기/overflow)일 가능성이 큽니다.
+> 이때는 TW 쪽에서 iframe 컨테이너를 `overflow:hidden` + 충분한 width/height(권장 모달: 가로 96vw·세로 calc(100vh-96px))로 잡아야 합니다.

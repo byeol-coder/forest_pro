@@ -616,9 +616,10 @@ function placeHazards() {
       new THREE.SphereGeometry(0.7, 16, 16),
       new THREE.MeshStandardMaterial({ color: 0x140f1c, roughness: 1, metalness: 0, emissive: 0x1a1030, emissiveIntensity: 0.4 })
     );
+    // 위험 aura: 은은한 보라빛 가산 발광 — 신비롭지만 저시력자도 명확히 인지(어두운 코어 + 빛나는 후광)
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(1.25, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0x2a1f3a, transparent: true, opacity: 0.28, depthWrite: false })
+      new THREE.SphereGeometry(1.4, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0x7a4fd6, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
     );
     group.add(halo); group.add(core);
     group.position.set(h.x, 1.0, h.z);
@@ -1589,6 +1590,9 @@ function animate() {
     if (item?.collected) return;
     mesh.rotation.y += delta * 1.4;
     mesh.position.y = 1.2 + Math.sin(clock.elapsedTime * 2.2 + item.x) * 0.18;
+    // 수집 glow 맥동(halo = 그룹 첫 자식)
+    const ihalo = mesh.children[0];
+    if (ihalo && ihalo.material) ihalo.material.opacity = 0.2 + Math.abs(Math.sin(clock.elapsedTime * 2.4 + item.x)) * 0.14;
   });
 
   // ── 떠다니는 그림자(위험물): 이동 + 근접 경고/충돌 ──
@@ -1596,7 +1600,16 @@ function animate() {
   gameState.hazards.forEach((h) => {
     wanderStep(h, delta, WORLD_LIMIT_X, WORLD_LIMIT_Z);
     const m = gameState.hazardMeshes.get(h.id);
-    if (m) m.position.set(h.x, 1.0 + Math.sin(clock.elapsedTime * 1.6 + h.x) * 0.2, h.z);
+    if (m) {
+      m.position.set(h.x, 1.0 + Math.sin(clock.elapsedTime * 1.6 + h.x) * 0.2, h.z);
+      // 위험 aura 맥동(scale + opacity) — 다가올수록 더 또렷하게 보이도록
+      const hhalo = m.children[0];
+      if (hhalo) {
+        const pl = 1 + Math.sin(clock.elapsedTime * 3 + h.x) * 0.12;
+        hhalo.scale.set(pl, pl, pl);
+        if (hhalo.material) hhalo.material.opacity = 0.26 + Math.abs(Math.sin(clock.elapsedTime * 3 + h.x)) * 0.18;
+      }
+    }
     const t = threat(gameState.player, h);
     if (t.level !== 'clear' && (!topThreat || t.intensity > topThreat.intensity)) topThreat = t;
   });

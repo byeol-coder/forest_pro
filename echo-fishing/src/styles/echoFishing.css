@@ -1,0 +1,1239 @@
+/* ============================================================
+   Echo Fishing — Premium 3D ocean UI
+   - 입체(3D) 버튼 / 글래스 패널 / 살아있는 바다 분위기(코스틱·빛줄기·기포)
+   - 시각 효과는 보조. 핵심 정보는 소리/촉각/텍스트로 전달하며 a11y 유지.
+   - prefers-reduced-motion 및 .motion-off 에서 무거운 모션 비활성.
+   ============================================================ */
+
+:root {
+  --ocean-0: #02131e;
+  --ocean-1: #073246;
+  --ocean-2: #0c5066;
+  --teal: #1aa9a0;
+  --aqua: #46e6d6;
+  --aqua-bright: #8af6ff;
+  --gold: #ffd36b;
+  --coral: #ff5a6a;
+  --ink: #eef9ff;
+  --ink-dim: #a9cadb;
+  --rare: #7cc6ff;
+  --epic: #c79bff;
+
+  --glass-bg: rgba(7, 28, 40, 0.55);
+  --glass-bd: rgba(140, 220, 255, 0.22);
+  --radius: 16px;
+  --radius-lg: 22px;
+
+  /* 3D 버튼 토큰 */
+  --btn-face-1: #1b5570;
+  --btn-face-2: #0c3245;
+  --btn-edge: #04212e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #02101a;
+  color: var(--ink);
+  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ============ 배경 분위기 레이어 (전체 화면 고정) ============ */
+.ef-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ef-bg__img {
+  position: absolute;
+  inset: -4%;
+  background-size: cover;
+  background-position: center 40%;
+  filter: saturate(1.05) brightness(0.62) blur(2px);
+  transform: scale(1.06);
+  animation: ef-bg-drift 38s ease-in-out infinite alternate;
+}
+@keyframes ef-bg-drift {
+  from {
+    transform: scale(1.06) translate(-1%, -0.5%);
+  }
+  to {
+    transform: scale(1.12) translate(1.5%, 1%);
+  }
+}
+/* 수면 코스틱(춤추는 빛) */
+.ef-bg__caustics {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(40% 30% at 30% 25%, rgba(120, 240, 255, 0.16), transparent 60%),
+    radial-gradient(45% 35% at 70% 40%, rgba(70, 230, 214, 0.14), transparent 60%),
+    radial-gradient(35% 28% at 50% 70%, rgba(120, 240, 255, 0.12), transparent 60%);
+  mix-blend-mode: screen;
+  animation: ef-caustics 16s ease-in-out infinite alternate;
+}
+@keyframes ef-caustics {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(3%, 2%) scale(1.08);
+    opacity: 1;
+  }
+}
+/* 물속 빛줄기(god rays) */
+.ef-bg__rays {
+  position: absolute;
+  inset: -30% -10% 0;
+  background: repeating-linear-gradient(
+    100deg,
+    transparent 0 60px,
+    rgba(150, 240, 255, 0.05) 60px 64px,
+    transparent 64px 130px
+  );
+  transform: skewX(-8deg);
+  mix-blend-mode: screen;
+  animation: ef-rays 22s linear infinite;
+  opacity: 0.7;
+}
+@keyframes ef-rays {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 520px;
+  }
+}
+.ef-bg__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 100% at 50% 0%, transparent 45%, rgba(2, 16, 26, 0.7) 100%),
+    linear-gradient(180deg, rgba(2, 16, 26, 0.35), transparent 25%, transparent 70%, rgba(2, 16, 26, 0.6));
+}
+
+/* 떠오르는 기포 */
+.ef-bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ef-bubble {
+  position: absolute;
+  bottom: -40px;
+  width: var(--sz, 10px);
+  height: var(--sz, 10px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(150, 230, 255, 0.12) 60%, transparent 70%);
+  box-shadow: 0 0 8px rgba(160, 235, 255, 0.35);
+  animation: ef-rise var(--dur, 14s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  opacity: 0;
+}
+@keyframes ef-rise {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.7);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-46vh) translateX(14px) scale(1);
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(-10px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* ============ 앱 골격 ============ */
+.echo-fishing {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(10px, 2vw, 20px);
+  gap: clamp(10px, 1.6vh, 16px);
+}
+
+/* ============ 3D 버튼 시스템 ============ */
+.ef-btn {
+  appearance: none;
+  position: relative;
+  border: 1px solid rgba(180, 235, 255, 0.25);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: clamp(0.95rem, 1vw + 0.6rem, 1.12rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.72em 1.15em;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--btn-face-1), var(--btn-face-2));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 -6px 12px rgba(0, 0, 0, 0.32) inset,
+    0 6px 0 var(--btn-edge),
+    0 12px 20px rgba(0, 0, 0, 0.45);
+  transform: translateY(0);
+  transition: transform 0.09s ease, box-shadow 0.09s ease, filter 0.18s ease, background 0.18s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.ef-btn::after {
+  /* 상단 광택 */
+  content: '';
+  position: absolute;
+  inset: 1px 1px 45% 1px;
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 40% 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent);
+  pointer-events: none;
+}
+.ef-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 -6px 12px rgba(0, 0, 0, 0.32) inset,
+    0 8px 0 var(--btn-edge),
+    0 16px 26px rgba(0, 0, 0, 0.5);
+}
+.ef-btn:active {
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 -4px 10px rgba(0, 0, 0, 0.3) inset,
+    0 1px 0 var(--btn-edge),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+.ef-btn:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+.ef-btn:disabled {
+  filter: grayscale(0.5) brightness(0.7);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.ef-btn--primary {
+  --btn-face-1: #5ff0df;
+  --btn-face-2: #14a596;
+  --btn-edge: #0a6258;
+  color: #042a26;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.ef-btn--primary:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 -6px 12px rgba(0, 0, 0, 0.2) inset,
+    0 8px 0 var(--btn-edge),
+    0 16px 30px rgba(20, 165, 150, 0.45);
+}
+.ef-btn--gold {
+  --btn-face-1: #ffe08a;
+  --btn-face-2: #e9a73c;
+  --btn-edge: #9a6a18;
+  color: #3a2400;
+}
+.ef-btn--big {
+  font-size: clamp(1.15rem, 1.6vw + 0.7rem, 1.55rem);
+  padding: 0.9em 1.8em;
+  border-radius: var(--radius-lg);
+}
+/* 아이콘 전용 원형 3D 버튼 */
+.ef-iconbtn {
+  width: clamp(40px, 5vw, 48px);
+  height: clamp(40px, 5vw, 48px);
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============ 상단 HUD ============ */
+.ef-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ef-hud__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.3em 0.2em;
+}
+.ef-hud__brand b {
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  background: linear-gradient(90deg, var(--aqua-bright), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ef-hud__brand span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.ef-hud__spacer {
+  flex: 1;
+}
+
+/* ============ 무대 ============ */
+.ef-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* glass 패널 공통 */
+.ef-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+
+/* ============ 시작 화면 ============ */
+.ef-start {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(16px, 3vh, 32px);
+  text-align: center;
+  padding: clamp(12px, 3vw, 32px);
+}
+.ef-start__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ef-start__title {
+  margin: 0;
+  font-size: clamp(2.4rem, 7vw, 4.2rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  background: linear-gradient(180deg, #d8fbff 0%, var(--aqua) 55%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* 3D 돌출 그림자 */
+  filter: drop-shadow(0 2px 0 #0a4b54) drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 26px rgba(70, 230, 214, 0.35));
+}
+.ef-start__subtitle {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.ef-start__intro {
+  margin: 0 auto;
+  max-width: 40ch;
+  color: var(--ink-dim);
+  font-size: clamp(0.98rem, 1.6vw, 1.15rem);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.ef-locs {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 880px;
+}
+.ef-locs__legend {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.7em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.ef-locs__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(10px, 1.6vw, 18px);
+  perspective: 900px;
+}
+/* 3D 낚시터 카드 */
+.ef-loc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: clamp(1em, 2.6vh, 1.7em) 0.7em 1.1em;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ef-loc-tone, #0a3450) 78%, #fff 10%), var(--ef-loc-tone, #0a3450));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 -8px 18px rgba(0, 0, 0, 0.3) inset,
+    0 10px 0 rgba(0, 0, 0, 0.28),
+    0 18px 30px rgba(0, 0, 0, 0.45);
+  transform-style: preserve-3d;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.18s ease;
+}
+.ef-loc:hover {
+  transform: translateY(-4px) rotateX(6deg);
+  filter: brightness(1.08);
+}
+.ef-loc:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+.ef-loc.is-selected {
+  border-color: var(--aqua-bright);
+  box-shadow:
+    0 0 0 3px rgba(138, 246, 255, 0.55),
+    0 0 26px rgba(70, 230, 214, 0.5),
+    0 12px 0 rgba(0, 0, 0, 0.28),
+    0 20px 34px rgba(0, 0, 0, 0.5);
+  transform: translateY(-3px);
+}
+.ef-loc__icon {
+  width: clamp(46px, 7vw, 68px);
+  height: clamp(46px, 7vw, 68px);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+.ef-loc__name {
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-weight: 800;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+.ef-loc__sub {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.ef-loc__check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 1rem;
+  color: var(--aqua-bright);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.ef-loc.is-selected .ef-loc__check {
+  opacity: 1;
+  transform: scale(1);
+}
+.ef-start__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.ef-start__secondary {
+  display: flex;
+  gap: 12px;
+}
+
+/* ============ 플레이 화면 ============ */
+.ef-scene {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 14px);
+  min-height: 0;
+}
+.ef-scene__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ef-chip {
+  border: 1px solid var(--glass-bd);
+  border-radius: 999px;
+  padding: 0.4em 0.85em;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+.ef-chip--loc {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ef-loc-tone, #0a3450) 70%, #fff 12%), var(--ef-loc-tone, #0a3450));
+}
+.ef-chip--dot {
+  cursor: pointer;
+  margin-left: auto;
+}
+.ef-chip--dot.is-on {
+  border-color: var(--aqua);
+  color: var(--aqua-bright);
+  box-shadow: 0 0 14px rgba(70, 230, 214, 0.5), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+.ef-steps {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+}
+.ef-step {
+  padding: 0.28em 0.7em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink-dim);
+  border: 1px solid transparent;
+}
+.ef-step.is-done {
+  color: var(--ink);
+  opacity: 0.7;
+}
+.ef-step.is-now {
+  background: linear-gradient(180deg, var(--aqua-bright), var(--teal));
+  color: #042a26;
+  font-weight: 800;
+  box-shadow: 0 0 14px rgba(70, 230, 214, 0.6);
+}
+
+.ef-scene__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 14px);
+  min-height: 0;
+}
+
+/* ---- 낚시터 무대 (포트홀 프레임) ---- */
+.ef-water {
+  position: relative;
+  flex: 1;
+  min-height: clamp(180px, 38vh, 480px);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--ocean-0);
+  border: 1px solid rgba(150, 230, 255, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.15) inset,
+    0 -40px 60px rgba(0, 0, 0, 0.4) inset,
+    0 24px 50px rgba(0, 0, 0, 0.55);
+}
+.ef-water.has-bg {
+  background-size: cover;
+  background-position: center 44%;
+  background-repeat: no-repeat;
+}
+.ef-water__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 48% 46%, transparent 36%, rgba(2, 14, 22, 0.5) 100%),
+    linear-gradient(180deg, rgba(2, 14, 22, 0.3), transparent 28%, transparent 66%, rgba(2, 14, 22, 0.5));
+  pointer-events: none;
+}
+/* 무대 위 코스틱(약하게) */
+.ef-water::after {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(35% 30% at 35% 30%, rgba(140, 246, 255, 0.12), transparent 60%),
+    radial-gradient(40% 30% at 70% 55%, rgba(70, 230, 214, 0.1), transparent 60%);
+  mix-blend-mode: screen;
+  animation: ef-caustics 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+/* 접근하는 물고기 그림자 (방향·근접도 시각 보조) */
+.ef-water__fish {
+  position: absolute;
+  top: 57%;
+  width: clamp(40px, 7vw, 80px);
+  height: clamp(18px, 3vw, 34px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 60% 50%, rgba(2, 20, 28, 0.85), rgba(2, 20, 28, 0.2) 70%, transparent);
+  filter: blur(1px);
+  transform: translate(-50%, -50%);
+  transition: left 0.25s linear, opacity 0.25s linear;
+  pointer-events: none;
+}
+.ef-water__fish::before {
+  content: '';
+  position: absolute;
+  right: -18%;
+  top: 50%;
+  width: 30%;
+  height: 70%;
+  transform: translateY(-50%);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: rgba(2, 20, 28, 0.7);
+}
+/* sonar 링 */
+.ef-water__ripple {
+  position: absolute;
+  top: 57%;
+  left: 48%;
+  width: clamp(130px, 24vw, 260px);
+  height: clamp(130px, 24vw, 260px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(140, 246, 255, 0.85);
+  box-shadow: 0 0 0 6px rgba(140, 246, 255, 0.14), inset 0 0 26px rgba(140, 246, 255, 0.35);
+  animation: ef-pulse 1.25s ease-out infinite;
+}
+.ef-water__ripple.dir-left {
+  left: 22%;
+}
+.ef-water__ripple.dir-right {
+  left: 74%;
+}
+.ef-water__ripple.dir-center {
+  left: 48%;
+}
+@keyframes ef-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.18);
+    opacity: 0.12;
+  }
+}
+.ef-water__bite {
+  position: absolute;
+  left: 48%;
+  top: 57%;
+  width: clamp(80px, 13vw, 130px);
+  height: clamp(80px, 13vw, 130px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold), rgba(255, 211, 107, 0.3) 42%, transparent 72%);
+  animation: ef-bite 0.32s ease-in-out infinite alternate;
+}
+@keyframes ef-bite {
+  from {
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+}
+/* 미끼 부표 + 낚싯줄 */
+.ef-water__bait {
+  position: absolute;
+  top: 57%;
+  bottom: 0;
+  width: 0;
+  transform: translateX(-50%);
+  transition: left 0.18s ease;
+  pointer-events: none;
+}
+.ef-water__line {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), transparent);
+}
+.ef-water__float {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: clamp(14px, 1.8vw, 20px);
+  height: clamp(18px, 2.3vw, 26px);
+  transform: translate(-50%, -50%);
+  border-radius: 50% 50% 48% 48%;
+  background: linear-gradient(180deg, #fff 0 26%, #ff5a6a 26% 55%, #fff 55% 62%, #d11 62% 100%);
+  box-shadow: 0 0 14px rgba(255, 211, 107, 0.8), 0 3px 8px rgba(0, 0, 0, 0.55);
+  animation: ef-bob 2.6s ease-in-out infinite;
+}
+@keyframes ef-bob {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(-4deg);
+  }
+  50% {
+    transform: translate(-50%, -38%) rotate(4deg);
+  }
+}
+.ef-water.phase-bite .ef-water__float,
+.ef-water.phase-pull-window .ef-water__float {
+  animation: ef-bob-fast 0.28s ease-in-out infinite;
+}
+@keyframes ef-bob-fast {
+  0%,
+  100% {
+    transform: translate(-50%, -42%) rotate(-10deg);
+  }
+  50% {
+    transform: translate(-50%, -20%) rotate(10deg);
+  }
+}
+.ef-water.phase-caught .ef-water__float {
+  box-shadow: 0 0 22px var(--aqua), 0 3px 8px rgba(0, 0, 0, 0.55);
+}
+/* 캐스팅/입질 스플래시 */
+.ef-water__splash {
+  position: absolute;
+  left: 48%;
+  top: 57%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  animation: ef-splash 0.6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes ef-splash {
+  from {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(5);
+    opacity: 0;
+  }
+}
+
+/* ---- 상태 안내 (glass) ---- */
+.ef-status {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.ef-status__text {
+  display: inline-block;
+  font-size: clamp(1.15rem, 2.6vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1.3;
+  padding: 0.45em 1em;
+  border-radius: 999px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 24px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.ef-prox {
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(2, 18, 26, 0.6);
+  border: 1px solid var(--glass-bd);
+  overflow: hidden;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) inset;
+}
+.ef-prox__fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--rare), var(--aqua), var(--gold));
+  box-shadow: 0 0 16px rgba(70, 230, 214, 0.6);
+  transition: width 0.1s linear;
+}
+.ef-caught {
+  background: linear-gradient(180deg, rgba(70, 230, 214, 0.2), rgba(70, 230, 214, 0.08));
+  border: 1px solid rgba(70, 230, 214, 0.5);
+  border-radius: var(--radius);
+  padding: 0.7em 1.2em;
+  box-shadow: 0 0 28px rgba(70, 230, 214, 0.35), 0 10px 24px rgba(0, 0, 0, 0.4);
+  animation: ef-pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes ef-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.ef-caught__name {
+  margin: 0;
+  font-size: clamp(1.3rem, 3.2vw, 2rem);
+  font-weight: 900;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.ef-caught__count {
+  margin: 0.3em 0 0;
+  color: var(--ink-dim);
+  font-size: 0.92rem;
+}
+
+/* ---- DOT PAD PREVIEW (디바이스 프레임) ---- */
+.ef-tactile {
+  margin: 0;
+  background: linear-gradient(180deg, #0a2230, #03121b);
+  border: 1px solid rgba(140, 220, 255, 0.25);
+  border-radius: var(--radius);
+  padding: 10px 12px 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 -16px 30px rgba(0, 0, 0, 0.4) inset, 0 12px 26px rgba(0, 0, 0, 0.45);
+}
+.ef-tactile__cap {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: var(--aqua-bright);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ef-tactile__cap::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--aqua);
+  box-shadow: 0 0 8px var(--aqua);
+}
+.ef-tactile canvas {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+}
+
+/* ---- 조작 (3D 패드) ---- */
+.ef-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ef-controls__pad {
+  display: grid;
+  grid-template-columns: 1fr 1.7fr 1fr;
+  gap: 10px;
+}
+.ef-pad {
+  font-size: 1.25rem;
+  padding: 0.65em;
+}
+.ef-pad--main {
+  font-size: clamp(1rem, 1.4vw + 0.6rem, 1.3rem);
+}
+.ef-help {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+}
+.ef-help summary {
+  cursor: pointer;
+  padding: 0.4em 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ef-help__list {
+  margin: 0.4em 0 0;
+  padding-left: 1.2em;
+  line-height: 1.7;
+}
+
+/* ============ 도감 ============ */
+.ef-collection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.ef-collection__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ef-collection__head h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.ef-collection__empty {
+  color: var(--ink-dim);
+}
+.ef-collection__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  overflow: auto;
+  perspective: 1000px;
+}
+.ef-fishcard {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius);
+  padding: 0.85em;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 10px 22px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ef-fishcard:hover {
+  transform: translateY(-3px) rotateX(4deg);
+}
+.ef-fishcard:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.ef-fishcard[aria-selected='true'] {
+  border-color: var(--aqua);
+  box-shadow: 0 0 0 2px rgba(70, 230, 214, 0.5), 0 12px 26px rgba(0, 0, 0, 0.45);
+}
+.ef-fishcard.is-locked {
+  opacity: 0.55;
+}
+.ef-fishcard__name {
+  font-weight: 800;
+  font-size: 1.08rem;
+  margin-bottom: 0.5em;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+}
+.ef-tag {
+  font-size: 0.7rem;
+  padding: 0.18em 0.6em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+}
+.ef-tag.rarity-rare,
+.ef-fishcard.rarity-rare .ef-fishcard__name {
+  color: var(--rare);
+}
+.ef-tag.rarity-epic,
+.ef-fishcard.rarity-epic .ef-fishcard__name {
+  color: var(--epic);
+}
+.ef-fishcard__meta {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.ef-fishcard__meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ef-fishcard__meta dt {
+  color: var(--ink-dim);
+  margin: 0;
+}
+.ef-fishcard__meta dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* ============ 오버레이 / 설정 패널 ============ */
+.ef-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 12, 20, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 60;
+  animation: ef-fade 0.2s ease both;
+}
+@keyframes ef-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ef-overlay__box {
+  background: linear-gradient(180deg, rgba(10, 38, 54, 0.96), rgba(5, 22, 32, 0.96));
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-lg);
+  padding: clamp(18px, 4vw, 30px);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset, 0 30px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: ef-pop 0.32s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.ef-overlay__box h2 {
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.ef-a11y {
+  text-align: left;
+}
+.ef-a11y ul {
+  line-height: 1.8;
+  padding-left: 1.2em;
+  margin: 0;
+}
+/* 설정 행 */
+.ef-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.ef-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0.7em 0.9em;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ef-settings__row > span {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============ Dot Pad 설정 섹션 ============ */
+.ef-settings-box {
+  max-height: 90dvh;
+  overflow-y: auto;
+  width: min(440px, 92vw);
+}
+.ef-settings__dotpad {
+  padding: 0.7em 0.9em;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ef-dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 700;
+}
+.ef-dp-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(180,235,255,0.55);
+}
+.ef-dp-status--on {
+  color: #5ff0df;
+}
+.ef-dp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(180,235,255,0.3);
+  flex-shrink: 0;
+}
+.ef-dp-status--on .ef-dp-dot {
+  background: #5ff0df;
+  box-shadow: 0 0 7px #5ff0df;
+  animation: dp-pulse 2s ease-in-out infinite;
+}
+@keyframes dp-pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
+.ef-dp-actions {}
+
+/* full-width & danger button variants */
+.ef-btn--full {
+  width: 100%;
+  display: block;
+}
+.ef-btn--danger {
+  --btn-face-1: #ff7b85;
+  --btn-face-2: #e03045;
+  --btn-edge: #8c0f1e;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  border-color: rgba(255,200,200,.3);
+}
+.ef-btn--danger:hover {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.3) inset,
+    0 -6px 12px rgba(0,0,0,.25) inset,
+    0 8px 0 var(--btn-edge),
+    0 16px 28px rgba(200,30,60,.4);
+}
+.ef-btn--loading {
+  opacity: .7;
+  cursor: wait;
+}
+
+/* Dot Pad key guide */
+.ef-dp-keyguide {
+  border-top: 1px solid rgba(255,255,255,.1);
+  padding-top: 8px;
+}
+.ef-dp-keyguide > summary {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(180,235,255,.6);
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+  user-select: none;
+}
+.ef-dp-keyguide > summary::-webkit-details-marker { display: none; }
+.ef-dp-keyguide > summary::before { content: '▶ '; font-size: 9px; }
+.ef-dp-keyguide[open] > summary::before { content: '▼ '; }
+.ef-dp-keyguide table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+.ef-dp-keyguide th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: rgba(180,235,255,.45);
+  padding: 0 0 5px;
+}
+.ef-dp-keyguide td {
+  padding: 4px 5px;
+  vertical-align: middle;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.ef-dp-keyguide td:first-child {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #5ff0df;
+  white-space: nowrap;
+  padding-right: 10px;
+}
+
+/* ============ 임베드(?embed=1) ============ */
+html.is-embed,
+html.is-embed body {
+  overflow: hidden;
+  height: 100%;
+}
+html.is-embed {
+  scrollbar-width: none;
+}
+html.is-embed::-webkit-scrollbar {
+  display: none;
+}
+html.is-embed .echo-fishing {
+  max-width: none;
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+html.is-embed .ef-hud__lang {
+  display: none;
+}
+
+/* ?preview=0 — 미리보기 스트립 숨김(렌더 로직은 JS에서 유지) */
+html.no-preview .ef-tactile {
+  display: none;
+}
+
+/* ============ 접근성: 모션 감소 ============ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+.motion-off .ef-bg__img,
+.motion-off .ef-bg__caustics,
+.motion-off .ef-bg__rays,
+.motion-off .ef-bubbles,
+.motion-off .ef-water::after,
+.motion-off .ef-water__ripple,
+.motion-off .ef-water__bite,
+.motion-off .ef-water__float,
+.motion-off .ef-water__splash {
+  animation: none !important;
+}
+.motion-off .ef-loc:hover,
+.motion-off .ef-fishcard:hover {
+  transform: none !important;
+}
+
+/* ============ 좁은 화면 ============ */
+@media (max-width: 580px) {
+  .ef-steps {
+    display: none;
+  }
+  .ef-locs__grid {
+    grid-template-columns: 1fr;
+  }
+  .ef-hud__brand span {
+    display: none;
+  }
+}
+@media (max-height: 560px) {
+  .ef-water {
+    min-height: 110px;
+  }
+}

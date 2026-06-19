@@ -40,6 +40,7 @@ export class DotPadConnectionManager {
     this.lastSendMatrixDotCount = 0;
     this.lastSendAt = '';
     this.lastSendError = '';
+    this.readyResendTimers = [];   // 연결 후 그래픽 활성 지연 대비 재전송 재시도
 
     this.dotSdk.setCallBack(
       (device, code, data) => this.handleSdkMessage(device, code, data),
@@ -100,6 +101,8 @@ export class DotPadConnectionManager {
         this.setConnectedState(dev, 'connect-return-fallback');
         this.announce('DotPad Connected. The tactile frame is ready. / DotPad 연결 성공.', true);
         await this.sendMatrix(this.getCurrentMatrix(), 'connect-success');
+        // 보드정보 핸드셰이크가 늦어 그래픽이 잠시 비활성일 수 있어, 수 초간 재전송 재시도.
+        this.scheduleReadyResends();
       }
 
       return this.getDebugStatus();
@@ -258,7 +261,25 @@ export class DotPadConnectionManager {
     return this.getDebugStatus();
   }
 
+  scheduleReadyResends() {
+    this.clearReadyResends();
+    // 0.5~5s 동안 몇 번 재전송 — 그래픽 활성(#w)이 늦게 켜지면 이때 실제로 출력됨.
+    [500, 1200, 2500, 4500].forEach((delay) => {
+      this.readyResendTimers.push(setTimeout(() => {
+        if (this.dotPadConnected && this.dotDevice && !this.mockMode) {
+          this.sendMatrix(this.getCurrentMatrix(), 'post-connect-retry');
+        }
+      }, delay));
+    });
+  }
+
+  clearReadyResends() {
+    (this.readyResendTimers || []).forEach((t) => clearTimeout(t));
+    this.readyResendTimers = [];
+  }
+
   setDisconnectedState(reason = 'disconnected') {
+    this.clearReadyResends();
     this.dotDevice = null;
     this.dotDeviceName = '';
     this.dotPadConnected = false;

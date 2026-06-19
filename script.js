@@ -41,6 +41,8 @@ let lumiHalo = null;
 let lumiLight = null;
 let hemiLight = null, sunLight = null, fillLight = null;   // 구역별 환경 프리셋이 조절
 let envTint = null;   // 구역별 배경/안개 미세 색 틴트(THREE.Color | null)
+let qualityLevel = 'auto';   // 'auto'|'low'|'med'|'high' (URL ?quality= 또는 자동)
+let fpsStart = 0, fpsFrames = 0, autoDowngraded = false;
 let pipMesh = null;
 let beaconMesh = null;
 let fireflies = null, fireflyBase = null, fireflyPhase = null;   // 분위기용 반딧불 입자(장식)
@@ -121,6 +123,7 @@ async function init() {
   ]);
 
   loadArea('forest_entrance', { initial: true });
+  try { applyQualityPreset(new URLSearchParams(location.search).get('quality') || 'auto'); } catch (e) {}
   animate();
 }
 
@@ -196,8 +199,51 @@ function setupThreeScene() {
 
 /* 분위기용 반딧불 입자 — 순수 장식(게임 로직·촉각 매트릭스와 무관).
    글로우 텍스처를 재사용한 Points 1개. 모바일에서도 가벼움(개수 적음). */
-function createFireflyParticles() {
-  const COUNT = PREFERS_REDUCE ? 0 : 44;
+function rebuildFireflies(count) {
+  if (fireflies) {
+    scene.remove(fireflies);
+    try { fireflies.geometry.dispose(); if (fireflies.material.map) fireflies.material.map.dispose(); fireflies.material.dispose(); } catch (e) {}
+    fireflies = null;
+  }
+  createFireflyParticles(count);
+}
+
+/* 품질 프리셋 — pixelRatio·그림자맵·파티클 수를 단계화. auto는 기기 휴리스틱으로 해석.
+   비주얼이 늘어도 모바일/저사양 fps를 보호하는 안전망(접근성·게임성엔 영향 없음). */
+function detectQuality() {
+  const dpr = window.devicePixelRatio || 1;
+  const cores = navigator.hardwareConcurrency || 4;
+  const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const small = Math.min(window.innerWidth, window.innerHeight) < 560;
+  if (mobile || cores <= 2 || small) return 'low';
+  if (cores >= 8 && dpr <= 2) return 'high';
+  return 'med';
+}
+function applyQualityPreset(level) {
+  qualityLevel = level || qualityLevel || 'auto';
+  const resolved = qualityLevel === 'auto' ? detectQuality() : qualityLevel;
+  const P = {
+    low:  { pr: 1,   shadow: false, map: 0,    fireflies: 0 },
+    med:  { pr: 1.5, shadow: true,  map: 1024, fireflies: 24 },
+    high: { pr: 2,   shadow: true,  map: 2048, fireflies: 44 },
+  }[resolved] || { pr: 1.5, shadow: true, map: 1024, fireflies: 24 };
+  if (renderer) {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, P.pr));
+    renderer.shadowMap.enabled = P.shadow;
+  }
+  if (sunLight) {
+    sunLight.castShadow = P.shadow;
+    if (sunLight.shadow.map) { sunLight.shadow.map.dispose(); sunLight.shadow.map = null; }  // mapSize 변경 반영
+    if (P.map) sunLight.shadow.mapSize.set(P.map, P.map);
+  }
+  rebuildFireflies(P.fireflies);
+  document.documentElement.setAttribute('data-quality', resolved);
+  window.DotForest = window.DotForest || {};
+  window.DotForest.quality = resolved;
+}
+
+function createFireflyParticles(count) {
+  const COUNT = PREFERS_REDUCE ? 0 : (count == null ? 44 : count);
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(COUNT * 3);
   fireflyBase = new Float32Array(COUNT * 3);
@@ -1564,6 +1610,20 @@ function animate() {
   // 일시정지(부모 DOT_FOREST_PAUSE): 시뮬레이션·애니메이션은 멈추되 마지막 프레임은 계속 렌더.
   // getDelta()는 위에서 소비했으므로 재개 시 시간 점프 없음.
   if (paused) { if (renderer) renderer.render(scene, camera); return; }
+  // ── fps 워치독: auto 품질에서 3초 평균 fps가 낮으면 1회 다운그레이드 ──
+  if (qualityLevel === 'auto' && !autoDowngraded) {
+    fpsFrames++;
+    if (!fpsStart) fpsStart = clock.elapsedTime;
+    const span = clock.elapsedTime - fpsStart;
+    if (span >= 3) {
+      if (fpsFrames / span < 28) {
+        const cur = (window.DotForest && window.DotForest.quality) || 'med';
+        const next = cur === 'high' ? 'med' : cur === 'med' ? 'low' : null;
+        if (next) { applyQualityPreset(next); autoDowngraded = true; }
+      }
+      fpsStart = clock.elapsedTime; fpsFrames = 0;
+    }
+  }
   if (mixer) mixer.update(delta);
 
   if (swayables.length) {

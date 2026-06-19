@@ -928,6 +928,260 @@ body[data-screen="title"] .app {
   }
 }
 
+/* ===========================================================
+   DotPad hardware demo console
+   =========================================================== */
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  box-shadow: none;
+}
+
+.intro-controls {
+  max-width: min(94%, 54rem);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.intro-controls .state-pill {
+  background: rgba(8, 14, 11, 0.62);
+  color: #f4f7ef;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.intro-controls .state-pill.connected {
+  background: rgba(49, 132, 70, 0.92);
+}
+
+#screen-game .dotpad-hud-cluster {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+#screen-game .dotpad-hud-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  max-width: 31rem;
+}
+
+#screen-game .hud-mini {
+  padding: 0.36rem 0.52rem;
+  border-radius: 9px;
+  background: rgba(18, 28, 22, 0.78);
+  color: #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+  font-size: 0.64rem;
+  line-height: 1.15;
+}
+
+#screen-game .hud-mini:hover {
+  background: rgba(38, 59, 43, 0.95);
+}
+
+#screen-game .dotpad-demo-panel {
+  top: 8.6rem;
+  right: 1.1rem;
+  bottom: 1rem;
+  width: min(25rem, calc(100vw - 2.2rem));
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  z-index: 5;
+}
+
+#screen-game .dotpad-demo-panel h4 {
+  margin: 0;
+  color: #f2f6ee;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+#screen-game .dotpad-game-status,
+#screen-game .dotpad-key-status,
+#screen-game .dotpad-send-status {
+  margin: 0 0 0.55rem;
+  padding: 0.48rem 0.58rem;
+  border-radius: 10px;
+  color: #eaf6e6;
+  background: rgba(4, 10, 6, 0.38);
+  border: 1px solid rgba(196, 228, 188, 0.18);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+#screen-game .dotpad-game-status.connected,
+#screen-game .dotpad-send-status.sent {
+  border-color: rgba(121, 232, 154, 0.52);
+  background: rgba(44, 116, 61, 0.34);
+}
+
+#screen-game .dotpad-send-status.failed {
+  border-color: rgba(255, 119, 100, 0.7);
+  background: rgba(128, 35, 28, 0.38);
+}
+
+#screen-game .dotpad-send-status.skipped {
+  border-color: rgba(245, 184, 75, 0.65);
+  background: rgba(102, 73, 20, 0.38);
+}
+
+#screen-game .dotpad-panel-section {
+  margin-top: 0.75rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(196, 228, 188, 0.16);
+}
+
+#screen-game .dotpad-panel-actions,
+#screen-game .dotpad-pattern-grid,
+#screen-game .dotpad-mock-key-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.38rem;
+  margin-top: 0.48rem;
+}
+
+#screen-game .dotpad-panel-actions button,
+#screen-game .dotpad-pattern-grid button,
+#screen-game .dotpad-mock-key-grid button,
+#screen-game .guided-demo button {
+  min-height: 2.2rem;
+  padding: 0.42rem 0.5rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow: none;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+#screen-game .dotpad-panel-actions button:hover,
+#screen-game .dotpad-pattern-grid button:hover,
+#screen-game .dotpad-mock-key-grid button:hover,
+#screen-game .guided-demo button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+#screen-game .dotpad-mock[aria-pressed="true"] {
+  color: #2c220d;
+  background: linear-gradient(180deg, #ffe39a, #f5b84b);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+#screen-game .dotpad-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+#screen-game .guided-demo .guided-next {
+  min-height: 0;
+  padding: 0.35rem 0.55rem;
+  color: #2c220d;
+  background: #f5b84b;
+  font-weight: 900;
+}
+
+#screen-game #guidedDemoSteps {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#screen-game #guidedDemoSteps button {
+  width: 100%;
+  min-height: 0;
+  text-align: left;
+}
+
+#screen-game #guidedDemoSteps li.active button {
+  border-color: #ffe39a;
+  background: rgba(245, 184, 75, 0.25);
+}
+
+#screen-game #guidedDemoSteps li.complete button::after {
+  content: " ✓";
+  color: #79e89a;
+}
+
+#screen-game .dotpad-input-log {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.48rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(238, 246, 230, 0.82);
+  font-size: 0.67rem;
+  line-height: 1.35;
+}
+
+#screen-game .dotpad-input-log li {
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(4, 10, 6, 0.3);
+  border-left: 2px solid rgba(143, 208, 138, 0.62);
+}
+
+#screen-game .dotpad-debug-status {
+  max-height: 11rem;
+  overflow: auto;
+  margin: 0.48rem 0 0;
+  padding: 0.58rem;
+  border-radius: 10px;
+  color: #dff4d8;
+  background: rgba(3, 8, 5, 0.62);
+  border: 1px solid rgba(196, 228, 188, 0.16);
+  font: 0.65rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+#screen-game .voice-btn {
+  right: 26.8rem;
+}
+
+@media (max-width: 1040px) {
+  #screen-game .dotpad-demo-panel {
+    width: min(22rem, calc(100vw - 2.2rem));
+  }
+  #screen-game .voice-btn {
+    right: 23.8rem;
+  }
+  #screen-game .hud-right .icon-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  #screen-game .dotpad-demo-panel {
+    display: block;
+    top: 10.5rem;
+    right: 0.65rem;
+    bottom: 8.8rem;
+    width: min(19rem, calc(100vw - 1.3rem));
+  }
+  #screen-game .dotpad-hud-actions {
+    display: none;
+  }
+  #screen-game .voice-btn {
+    right: 0.9rem;
+  }
+  .intro-controls .state-pill,
+  .intro-controls .dotpad-disconnect,
+  .intro-controls .dotpad-test {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dot-forest-start-hotspot { transition: none; }
   .dot-forest-start-hotspot:hover,

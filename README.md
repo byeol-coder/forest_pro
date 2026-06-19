@@ -11,6 +11,8 @@
 |---|---|
 | `index.html` | 화면 구조 (타이틀 · 게임 · 설정), 정적 i18n(한/영) |
 | `script.js` | Three.js 게임 로직, 60×40 매트릭스 변환, DotPad 출력, 입력 처리 |
+| `dotpad-connection-manager.js` | 실기기/Mock 연결, fallback, 600hex 검증, 전송 진단, SDK 콜백 |
+| `dotpad-demo.css` | 게임 화면 DotPad 데모 콘솔 전용 레이아웃 |
 | `dotforest-mechanics.js` | 순수 게임 메커니즘 (위험 추적·충돌·돌다리 퍼즐·빛 복원) — DOM/Three 비의존, 테스트 가능 |
 | `areas.js` | 구역 데이터 (숲의 입구 · 베리 숲 · 강가): 아이템·위험물·장애물·출구 |
 | `narrative-engine.js` | 내러티브·미션·동료·대화 + 접근성(`aria-live`, TTS, 온디맨드 안내) |
@@ -45,7 +47,11 @@ python3 -m http.server 8080
 
 | 입력 | 동작 |
 |---|---|
-| 방향키 / WASD / D-pad / DotPad 패닝키 | 루미 이동 |
+| 방향키 / WASD / D-pad | 루미 이동 |
+| DotPad `PanningLeft` / `PanningRight` | 좌 / 우 이동 |
+| DotPad `LPF1` / `RPF4` | 상 / 하 이동 |
+| DotPad `KeyFunction12`·`34` 등 조합키 | 도트링 수집 / 상호작용 |
+| DotPad `PanningAll` | 현재 촉각 프레임 재전송 |
 | `Enter` · `Space` · "먹기" 버튼 | 도트링 수집 / 상호작용 |
 | 음성: "앞으로 · 뒤로 · 왼쪽 · 오른쪽 · 먹기" | 이동 / 수집 |
 | `1` / `2` / `3` / `4` (DotPad `F1`~`F4`) | 위치 · 주변 · 미션 · 촉각 지도 안내 듣기 |
@@ -66,18 +72,23 @@ python3 -m http.server 8080
 
 `prefers-reduced-motion`을 존중합니다.
 
-## DotPad 연동 지점
+## DotPad 인도 시연 흐름
 
-`script.js`의 아래 함수가 실제 하드웨어 출력 지점입니다.
+게임 화면 오른쪽 **DotPad Demo Console**에서 아래 흐름을 한 화면으로 확인할 수 있습니다.
 
-```js
-function sendDotPadFrame(matrix) {
-  dotSdk.displayGraphicData(matrixToDotPadHex(matrix), dotDevice, DisplayMode.GraphicMode);
-}
-```
+1. `Connect DotPad` 또는 `Demo / Mock Mode`
+2. `Border + origin` 등 테스트 패턴 전송
+3. 전송 진단에서 `600hex`, 올라간 점 개수, reason 확인
+4. 물리키 또는 Mock Physical Keys로 상·하·좌·우, 수집, F1~F4 실행
+5. 최근 입력 5개와 실제 key code 확인
+6. Guided Demo 1~8단계 진행
 
-`connectDotPad()`가 `DotPadSDK-3_0_0.js`를 통해 기기를 연결하며, 미연결 시
-`dotpad-adapter.js`의 시뮬레이션 브리지가 콘솔/프리뷰로 동작을 확인시켜 줍니다.
+`DotPadConnectionManager`는 `connectBleDevice()`가 기기를 반환했지만
+`DataCodes.Connected`가 늦거나 누락되는 경우에도 연결 fallback을 적용합니다.
+실제 보드 정보가 준비된 `Connected` 콜백이 뒤늦게 도착하면 현재 프레임을 다시 전송합니다.
+
+실기기 연결은 Web Bluetooth가 가능한 데스크톱 Chrome/Edge와 HTTPS 또는 localhost 환경이 필요합니다.
+Mock Mode에서는 SDK 전송 대신 같은 60×40 프리뷰, 600hex 검증, 입력/키 매핑 로그가 동작합니다.
 
 ## Matrix 구조
 

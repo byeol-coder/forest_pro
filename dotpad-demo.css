@@ -1,0 +1,47 @@
+/* Loaded last so the hardware demo console keeps its layout over the visual theme. */
+#screen-game .tactile-dock.dotpad-demo-panel {
+  top: 8.6rem;
+  right: 1.1rem;
+  bottom: 1rem;
+  width: min(25rem, calc(100vw - 2.2rem));
+  max-height: none;
+  overflow: auto;
+}
+
+#screen-game .dotpad-demo-panel .dotpad-panel-actions button,
+#screen-game .dotpad-demo-panel .dotpad-pattern-grid button,
+#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button,
+#screen-game .dotpad-demo-panel .guided-demo button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f2f6ee;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow: none;
+}
+
+#screen-game .dotpad-demo-panel .dotpad-panel-actions button:hover,
+#screen-game .dotpad-demo-panel .dotpad-pattern-grid button:hover,
+#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button:hover,
+#screen-game .dotpad-demo-panel .guided-demo button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+#screen-game .dotpad-demo-panel .dotpad-mock[aria-pressed="true"] {
+  color: #2c220d;
+  background: linear-gradient(180deg, #ffe39a, #f5b84b);
+}
+
+@media (max-width: 1040px) {
+  #screen-game .tactile-dock.dotpad-demo-panel {
+    width: min(22rem, calc(100vw - 2.2rem));
+  }
+}
+
+@media (max-width: 720px) {
+  #screen-game .tactile-dock.dotpad-demo-panel {
+    display: block;
+    top: 10.5rem;
+    right: 0.65rem;
+    bottom: 8.8rem;
+    width: min(19rem, calc(100vw - 1.3rem));
+  }
+}

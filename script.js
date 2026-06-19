@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { wanderStep, threat, applyHit, lightFromProgress, lightToScene, atExit, riverStep, atGoal } from './dotforest-mechanics.js';
 import { AREAS, AREA_ORDER } from './areas.js';
-import { DotPadSDK, DotPadScanner, DisplayMode, DataCodes, KeyCodes } from './DotPadSDK-3_0_0.js';
+import { KeyCodes } from './DotPadSDK-3_0_0.js';
+import { DotPadConnectionManager } from './dotpad-connection-manager.js';
 
 const DOT_WIDTH = 60;
 const DOT_HEIGHT = 40;
@@ -22,7 +23,11 @@ const dom = {
   liveStatus: document.getElementById('liveStatus'),
   scoreText: document.getElementById('scoreText'),
   dotpadState: document.getElementById('dotpadState'),
-  connectDotPad: document.getElementById('connectDotPad'),
+  dotpadGameStatus: document.getElementById('dotpadGameStatus'),
+  dotpadSendStatus: document.getElementById('dotpadSendStatus'),
+  dotpadDebugStatus: document.getElementById('dotpadDebugStatus'),
+  dotpadKeyStatus: document.getElementById('dotpadKeyStatus'),
+  dotpadInputLog: document.getElementById('dotpadInputLog'),
   exportMatrix: document.getElementById('exportMatrix'),
   collectButton: document.getElementById('collectButton'),
   voiceButton: document.getElementById('voiceButton'),
@@ -65,11 +70,11 @@ let audioUnlocked = false;
 let lightMilestone = 0;
 const GRAND_TOTAL = AREA_ORDER.reduce((n, id) => n + AREAS[id].items.length, 0);
 let lastMatrix = [];
-let dotPadConnected = false;
-const dotSdk = new DotPadSDK();
-const dotScanner = new DotPadScanner();
-let dotDevice = null;
-let dotDeviceName = '';
+let lastGameMatrix = [];
+let tactilePreviewOverrideUntil = 0;
+let dotPadManager = null;
+let guidedDemoStep = 0;
+const inputLogEntries = [];
 // 그래픽 셀 핀 순서: 'braille'(표준 8점) ↔ 'raster'(행우선). 실기기에서 한 셀 안의
 // 핀이 뒤섞여 보이면 설정에서 토글하면 됨. localStorage에 저장.
 let dotBitOrderKey = 'braille';
@@ -111,9 +116,9 @@ init();
 
 async function init() {
   setupThreeScene();
+  setupDotPadManager();
   setupEventListeners();
   setupSpeechRecognition();
-  dotSdk.setCallBack(onDotMessage, onDotKey);
   gameState.lightTotal = GRAND_TOTAL;
   announce('루미가 숲 입구에서 기다리고 있어요. 방향키나 패닝키 구조로 이동할 수 있습니다.');
 
@@ -469,8 +474,9 @@ function loadArea(id, opts = {}) {
   createEnvironmentPreset(id);   // 구역별 조명/틴트 (applyScene 전에)
   applyScene();
   updateLightHUD();
-  drawTactileFrame();
-  sendDotPadFrame(lastMatrix);
+  syncTactileFrame('area-load').then((result) => {
+    recordInputLog(`Area loaded: ${cfg.name} → ${summarizeSendResult(result)}`);
+  });
 
   // hand the location to the narrative engine (it narrates the area + starts its mission)
   if (!opts.initial && window.DotForest && window.DotForest.narrative && window.DotForest.narrative.enterArea) {
@@ -871,6 +877,54 @@ function onHazardHit() {
   announce('그림자가 스쳐 지나갔어요. 숲의 빛이 잠시 흐려집니다.', true);
 }
 
+function setupDotPadManager() {
+  dotPadManager = new DotPadConnectionManager({
+    matrixToHex: matrixToDotPadHex,
+    getCurrentMatrix: () => {
+      if (Array.isArray(lastMatrix) && lastMatrix.length === DOT_HEIGHT) return lastMatrix;
+      return createDotPadMatrix();
+    },
+    renderMatrix: (matrix, meta = {}) => {
+      const isTestPattern = String(meta.reason || '').startsWith('test-pattern');
+      drawTactileFrame(matrix, { holdMs: isTestPattern ? 1800 : 0 });
+    },
+    createTestPattern: createDotPadTestPattern,
+    onStateChange: setDotPadState,
+    onDebugChange: updateDotPadDebugPanel,
+    onInputLog: recordInputLog,
+    onPhysicalKey: onDotKey,
+    announce,
+  });
+  window.DotForest = window.DotForest || {};
+  window.DotForest.dotPad = {
+    manager: dotPadManager,
+    connect: () => dotPadManager.connect(),
+    disconnect: () => dotPadManager.disconnect(),
+    sendMatrix: (matrix, reason = 'external') => dotPadManager.sendMatrix(matrix, reason),
+    sendTestPattern: (type) => dotPadManager.sendTestPattern(type),
+    getDebugStatus: () => dotPadManager.getDebugStatus(),
+    simulateKey: (keyName) => onDotKey(null, KeyCodes[keyName] || keyName, 'external-mock'),
+  };
+}
+
+function recordInputLog(message) {
+  if (!message) return;
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  inputLogEntries.unshift(`${time} · ${message}`);
+  inputLogEntries.splice(5);
+  if (!dom.dotpadInputLog) return;
+  dom.dotpadInputLog.replaceChildren(...inputLogEntries.map((entry) => {
+    const li = document.createElement('li');
+    li.textContent = entry;
+    return li;
+  }));
+}
+
+function summarizeSendResult(result) {
+  if (!result) return 'DotPad status unavailable';
+  return result.message || (result.ok ? 'Frame sent to DotPad' : 'DotPad send failed');
+}
+
 function setupEventListeners() {
   document.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
@@ -882,21 +936,20 @@ function setupEventListeners() {
     };
     if (map[key]) {
       event.preventDefault();
-      handlePanningKeyInput(map[key]);
+      handlePanningKeyInput(map[key], `Keyboard ${event.key}`);
     }
     if (key === 'enter' || key === ' ') {
       event.preventDefault();
-      collectNearbyDotling();
+      collectNearbyDotling(`Keyboard ${event.key === ' ' ? 'Space' : 'Enter'}`);
     }
   });
 
   document.querySelectorAll('[data-move]').forEach((button) => {
-    button.addEventListener('click', () => handlePanningKeyInput(button.dataset.move));
+    button.addEventListener('click', () => handlePanningKeyInput(button.dataset.move, `On-screen D-pad ${button.dataset.move}`));
   });
 
-  dom.collectButton.addEventListener('click', collectNearbyDotling);
+  dom.collectButton.addEventListener('click', () => collectNearbyDotling('On-screen Collect'));
   dom.resetButton.addEventListener('click', resetGame);
-  dom.connectDotPad.addEventListener('click', connectDotPad);
   dom.exportMatrix.addEventListener('click', () => {
     console.table(lastMatrix);
     announce('현재 60×40 매트릭스를 브라우저 콘솔에 출력했습니다.');
@@ -905,11 +958,11 @@ function setupEventListeners() {
 
   // DotPad 실기기 브링업 버튼 (있을 때만 연결)
   const dpUp = document.getElementById('dotTestUp');
-  if (dpUp) dpUp.addEventListener('click', dotpadAllUp);
+  if (dpUp) dpUp.addEventListener('click', () => dotPadManager.sendTestPattern('all-up'));
   const dpDown = document.getElementById('dotTestDown');
-  if (dpDown) dpDown.addEventListener('click', dotpadAllDown);
+  if (dpDown) dpDown.addEventListener('click', () => dotPadManager.sendTestPattern('all-down'));
   const dpPat = document.getElementById('dotTestPattern');
-  if (dpPat) dpPat.addEventListener('click', dotpadTestPattern);
+  if (dpPat) dpPat.addEventListener('click', () => dotPadManager.sendTestPattern('border-origin'));
   const dpOrder = document.getElementById('dotOrderToggle');
   if (dpOrder) {
     const syncOrderLabel = () => { dpOrder.textContent = dotBitOrderKey === 'braille' ? '셀 핀 순서: 점자' : '셀 핀 순서: 래스터'; };
@@ -944,14 +997,53 @@ function setupEventListeners() {
       if (musicOn) { ensureAudio(); startMusic(); } else { stopMusic(); }
     });
   }
+
+  document.querySelectorAll('[data-dotpad-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const action = button.dataset.dotpadAction;
+      if (action === 'connect') await dotPadManager.connect();
+      if (action === 'disconnect') await dotPadManager.disconnect();
+      if (action === 'test') await dotPadManager.sendTestPattern('border-origin');
+      if (action === 'resend') {
+        const result = await sendDotPadFrame(lastMatrix, 'manual-resend');
+        recordInputLog(`Resend Current Frame → ${summarizeSendResult(result)}`);
+        announce(result.message, !result.ok);
+      }
+      if (action === 'mock') await dotPadManager.setMockMode(!dotPadManager.mockMode);
+    });
+  });
+
+  document.querySelectorAll('[data-dotpad-pattern]').forEach((button) => {
+    button.addEventListener('click', () => dotPadManager.sendTestPattern(button.dataset.dotpadPattern));
+  });
+
+  document.querySelectorAll('[data-mock-key]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const keyName = button.dataset.mockKey;
+      const key = KeyCodes[keyName] || keyName;
+      recordInputLog(`Mock physical key received: ${key}`);
+      onDotKey(null, key, 'mock-key-panel');
+    });
+  });
+
+  document.querySelectorAll('[data-demo-step]').forEach((button) => {
+    button.addEventListener('click', () => runGuidedDemoStep(Number(button.dataset.demoStep)));
+  });
+  const guidedNext = document.getElementById('guidedDemoNext');
+  if (guidedNext) {
+    guidedNext.addEventListener('click', () => runGuidedDemoStep((guidedDemoStep % 8) + 1));
+  }
+
+  document.querySelectorAll('[data-info]').forEach((button) => {
+    button.addEventListener('click', () => recordInputLog(`On-screen info ${button.dataset.info} → narration requested`));
+  });
 }
 
-function handlePanningKeyInput(direction) {
-  // 실제 DotPad 패닝키 이벤트가 들어오면 이 함수에 direction만 넘기면 됩니다.
-  movePlayer(direction);
+function handlePanningKeyInput(direction, source = 'Input') {
+  return movePlayer(direction, source);
 }
 
-function movePlayer(direction) {
+function movePlayer(direction, source = 'Input') {
   const next = { x: gameState.player.x, z: gameState.player.z };
   if (direction === 'up') next.z -= MOVE_STEP;
   if (direction === 'down') next.z += MOVE_STEP;
@@ -964,7 +1056,10 @@ function movePlayer(direction) {
   if (isBlocked(next.x, next.z)) {
     playAction('idle');
     announce('앞에 나무 장애물이 있어요. 다른 방향으로 이동해 주세요.', true);
-    return;
+    return syncTactileFrame(`move-blocked-${direction}`).then((result) => {
+      recordInputLog(`${source} → movement blocked → ${summarizeSendResult(result)}`);
+      return result;
+    });
   }
 
   if (gameState.area === 'river') {
@@ -974,7 +1069,10 @@ function movePlayer(direction) {
       const pan = direction === 'left' ? -0.7 : direction === 'right' ? 0.7 : 0;
       playWater(pan);
       announce('그쪽은 물이 노래해요. 깊은 물입니다. 침묵하는 안전한 돌을 디뎌요.');
-      return;
+      return syncTactileFrame(`move-blocked-water-${direction}`).then((result) => {
+        recordInputLog(`${source} → deep water blocked movement → ${summarizeSendResult(result)}`);
+        return result;
+      });
     }
   }
 
@@ -996,12 +1094,14 @@ function movePlayer(direction) {
       }
     }
   }
-  checkNearbyHint();
-  drawTactileFrame();
-  sendDotPadFrame(lastMatrix);
+  const sendPromise = checkNearbyHint(`move-${direction}`);
+  sendPromise.then((result) => {
+    recordInputLog(`${source} → Lumi moved ${direction} → ${summarizeSendResult(result)}`);
+  });
 
   clearTimeout(movePlayer.idleTimer);
   movePlayer.idleTimer = setTimeout(() => playAction('idle'), 450);
+  return sendPromise;
 }
 
 function isBlocked(x, z) {
@@ -1043,11 +1143,14 @@ function playAction(name) {
   currentAction = nextAction;
 }
 
-function collectNearbyDotling() {
+function collectNearbyDotling(source = 'Input') {
   const target = gameState.items.find((item) => !item.collected && distance2D(item, gameState.player) <= ITEM_COLLECT_DISTANCE);
   if (!target) {
     announce('가까운 곳에 먹을 수 있는 도트링이 없어요. 조금 더 다가가 보세요.', true);
-    return;
+    return syncTactileFrame('collect-missed').then((result) => {
+      recordInputLog(`${source} → no nearby Dotling → ${summarizeSendResult(result)}`);
+      return result;
+    });
   }
 
   target.collected = true;
@@ -1065,15 +1168,18 @@ function collectNearbyDotling() {
   exposurePulse = 0.35;
   bumpHud();
   checkMilestone();
-  drawTactileFrame();
-  sendDotPadFrame(lastMatrix);
+  const sendPromise = syncTactileFrame('collect');
+  sendPromise.then((result) => {
+    recordInputLog(`${source} → Dotling collected → ${summarizeSendResult(result)}`);
+  });
 
   if (gameState.items.every((item) => item.collected)) {
     announce('흩어진 빛을 모두 모았어요. 숲이 다시 환하게 깨어납니다!', true);
   }
+  return sendPromise;
 }
 
-function checkNearbyHint() {
+function checkNearbyHint(reason = 'nearby-hint') {
   // 도트링 근접 안내
   const nearItem = gameState.items.find((item) => !item.collected && distance2D(item, gameState.player) <= 4);
   if (nearItem) {
@@ -1084,6 +1190,7 @@ function checkNearbyHint() {
   if (nearObstacle) {
     announce('나무가 가까이 있어요. Dot Pad에서 느껴보세요.');
   }
+  return syncTactileFrame(reason);
 }
 
 function distance2D(a, b) {
@@ -1316,8 +1423,20 @@ const DOT_STYLE = {
   [DOT_T.PLAYER]:   { c: '#fbf7e6', r: 0.42 },
 };
 
-function drawTactileFrame() {
-  lastMatrix = createDotPadMatrix();
+function cloneMatrix(matrix) {
+  return matrix.map((row) => row.slice());
+}
+
+function drawTactileFrame(matrix = null, options = {}) {
+  const suppliedMatrix = Array.isArray(matrix);
+  if (suppliedMatrix) {
+    lastMatrix = cloneMatrix(matrix);
+    if (options.holdMs) tactilePreviewOverrideUntil = Date.now() + options.holdMs;
+  } else {
+    lastGameMatrix = createDotPadMatrix();
+    lastMatrix = cloneMatrix(lastGameMatrix);
+    tactilePreviewOverrideUntil = 0;
+  }
   const cellW = dom.tactileCanvas.width / DOT_WIDTH;
   const cellH = dom.tactileCanvas.height / DOT_HEIGHT;
   const unit = Math.min(cellW, cellH);
@@ -1343,6 +1462,11 @@ function drawTactileFrame() {
   tactileCtx.globalAlpha = 1;
 
   drawTactileGrid(cellW, cellH);
+}
+
+function syncTactileFrame(reason) {
+  drawTactileFrame();
+  return sendDotPadFrame(lastMatrix, reason);
 }
 
 function drawTactileGrid(cellW, cellH) {
@@ -1375,9 +1499,91 @@ function toggleFullscreen() {
   } catch (e) { console.error('[fullscreen]', e); }
 }
 
-function setDotPadState(text, connected) {
-  dom.dotpadState.textContent = text;
-  dom.dotpadState.classList.toggle('connected', !!connected);
+function setDotPadState(text, connected, status = {}) {
+  const stateTargets = [
+    dom.dotpadState,
+    ...document.querySelectorAll('.dotpad-mirror'),
+  ].filter(Boolean);
+
+  stateTargets.forEach((element) => {
+    element.textContent = text;
+    element.classList.toggle('connected', !!connected);
+  });
+
+  const busy = status.connectionState === 'searching' || status.connectionState === 'connecting';
+  document.querySelectorAll('.dotpad-connect').forEach((button) => {
+    button.disabled = !!connected || busy;
+  });
+  document.querySelectorAll('.dotpad-disconnect').forEach((button) => {
+    button.disabled = !connected && !busy;
+  });
+  document.querySelectorAll('.dotpad-resend').forEach((button) => {
+    button.disabled = !Array.isArray(lastMatrix) || lastMatrix.length !== DOT_HEIGHT;
+  });
+  document.querySelectorAll('.dotpad-mock').forEach((button) => {
+    button.setAttribute('aria-pressed', status.mockMode ? 'true' : 'false');
+  });
+
+  if (dom.dotpadGameStatus) {
+    dom.dotpadGameStatus.textContent = text;
+    dom.dotpadGameStatus.classList.toggle('connected', !!connected);
+  }
+  updateDotPadDebugPanel(status);
+}
+
+function updateDotPadDebugPanel(status = {}) {
+  if (!status || Object.keys(status).length === 0) return;
+  const {
+    connectionState = 'disconnected',
+    connectionReason = '',
+    connected = false,
+    mockMode = false,
+    deviceName = '',
+    hasDevice = false,
+    lastSendStatus = 'idle',
+    lastSendReason = '',
+    lastSendHexLength = 0,
+    lastSendMatrixDotCount = 0,
+    lastSendAt = '',
+    lastSendError = '',
+  } = status;
+
+  const messages = {
+    sent: `Frame sent to DotPad · ${lastSendHexLength}hex · dots: ${lastSendMatrixDotCount}`,
+    'mock-sent': `Mock DotPad frame sent · ${lastSendHexLength}hex · dots: ${lastSendMatrixDotCount}`,
+    skipped: 'Skipped: DotPad not connected',
+    failed: `DotPad send failed: ${lastSendError || 'Unknown error'}`,
+    idle: connected ? 'Tactile map updated / 촉각 지도 준비' : 'Waiting for DotPad connection / DotPad 연결 대기',
+  };
+
+  if (dom.dotpadSendStatus) {
+    dom.dotpadSendStatus.textContent = messages[lastSendStatus] || messages.idle;
+    dom.dotpadSendStatus.className = `dotpad-send-status ${lastSendStatus}`;
+  }
+
+  if (dom.dotpadDebugStatus) {
+    dom.dotpadDebugStatus.textContent = [
+      `connectionState: ${connectionState}`,
+      `connectionReason: ${connectionReason || '—'}`,
+      `connected: ${connected}`,
+      `mockMode: ${mockMode}`,
+      `deviceName: ${deviceName || '—'}`,
+      `hasDevice: ${hasDevice}`,
+      `lastSendStatus: ${lastSendStatus}`,
+      `lastSendReason: ${lastSendReason || '—'}`,
+      `lastSendHexLength: ${lastSendHexLength}`,
+      `lastSendMatrixDotCount: ${lastSendMatrixDotCount}`,
+      `lastSendAt: ${lastSendAt || '—'}`,
+      `lastSendError: ${lastSendError || '—'}`,
+    ].join('\n');
+  }
+
+  document.querySelectorAll('.dotpad-resend').forEach((button) => {
+    button.disabled = !Array.isArray(lastMatrix) || lastMatrix.length !== DOT_HEIGHT;
+  });
+  document.querySelectorAll('[data-mock-key]').forEach((button) => {
+    button.disabled = !mockMode;
+  });
 }
 
 /* 60×40 픽셀 매트릭스 → DotPad 그래픽 셀 hex.
@@ -1413,111 +1619,227 @@ function matrixToDotPadHex(matrix) {
   return hex.toUpperCase();
 }
 
-function onDotMessage(device, code, data) {
-  if (code === DataCodes.DeviceName) {
-    dotDeviceName = data || '';
-    console.info('[DotPad] device:', dotDeviceName);
-  } else if (code === DataCodes.Connected) {
-    dotDevice = device;
-    dotPadConnected = true;
-    const label = dotDeviceName ? `DotPad 연결됨 · ${dotDeviceName}` : 'DotPad 연결됨';
-    setDotPadState(label, true);
-    announce('DotPad에 연결됐어요. 게임 화면이 촉각으로 전송됩니다.', true);
-    sendDotPadFrame(lastMatrix);
-  } else if (code === DataCodes.Disconnected) {
-    dotPadConnected = false;
-    dotDevice = null;
-    dotDeviceName = '';
-    setDotPadState('DotPad 미연결', false);
-    announce('DotPad 연결이 해제됐어요.');
+function runInfoAction(type, source) {
+  if (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction) {
+    window.DotForest.narrative.infoAction(type);
   }
+  recordInputLog(`${source} → ${type} information / 정보 듣기`);
 }
 
-// 기기 물리 키 → 게임 동작 (패닝키 = 좌·우 이동, F1~F4 = 정보 듣기 — 웹의 1·2·3·4와 동일)
-function onDotKey(device, key) {
+// DotPad physical key → movement, interaction, information, or tactile resend.
+function onDotKey(device, key, rawCode = '') {
+  if (dom.dotpadKeyStatus) {
+    dom.dotpadKeyStatus.textContent = `DotPad key received: ${key}${rawCode ? ` · raw ${rawCode}` : ''}`;
+  }
   switch (key) {
-    case KeyCodes.PanningLeft: handlePanningKeyInput('left'); break;
-    case KeyCodes.PanningRight: handlePanningKeyInput('right'); break;
-    case KeyCodes.KeyFunction1: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('position'); break;
-    case KeyCodes.KeyFunction2: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('surroundings'); break;
-    case KeyCodes.KeyFunction3: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('mission'); break;
-    case KeyCodes.KeyFunction4: window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction('tactileMap'); break;
-    // TODO: 상/하 이동·수집 키는 기기 키 구성에 맞춰 매핑 추가 (예: LPF1 / RPF4)
-    default: break;
+    case KeyCodes.PanningLeft:
+      recordInputLog('Action mapped: move left / 왼쪽 이동');
+      handlePanningKeyInput('left', 'DotPad PanningLeft');
+      break;
+    case KeyCodes.PanningRight:
+      recordInputLog('Action mapped: move right / 오른쪽 이동');
+      handlePanningKeyInput('right', 'DotPad PanningRight');
+      break;
+    case KeyCodes.LPF1:
+      recordInputLog('Action mapped: move up / 위 이동');
+      handlePanningKeyInput('up', 'DotPad LPF1');
+      break;
+    case KeyCodes.RPF4:
+      recordInputLog('Action mapped: move down / 아래 이동');
+      handlePanningKeyInput('down', 'DotPad RPF4');
+      break;
+    case KeyCodes.PanningAll:
+      recordInputLog('Action mapped: tactile map resend / 촉각 지도 재전송');
+      sendDotPadFrame(lastMatrix, 'physical-key-resend').then((result) => {
+        recordInputLog(`DotPad PanningAll → ${summarizeSendResult(result)}`);
+      });
+      break;
+    case KeyCodes.KeyFunction1:
+      recordInputLog('Action mapped: read current position / 현재 위치');
+      runInfoAction('position', 'DotPad F1');
+      break;
+    case KeyCodes.KeyFunction2:
+      recordInputLog('Action mapped: explore surroundings / 주변 탐색');
+      runInfoAction('surroundings', 'DotPad F2');
+      break;
+    case KeyCodes.KeyFunction3:
+      recordInputLog('Action mapped: current mission / 현재 미션');
+      runInfoAction('mission', 'DotPad F3');
+      break;
+    case KeyCodes.KeyFunction4:
+      recordInputLog('Action mapped: tactile map description + resend / 지도 설명 + 재전송');
+      runInfoAction('tactileMap', 'DotPad F4');
+      sendDotPadFrame(lastMatrix, 'physical-key-map-resend').then((result) => {
+        recordInputLog(`DotPad F4 → ${summarizeSendResult(result)}`);
+      });
+      break;
+    case KeyCodes.KeyFunction12:
+    case KeyCodes.KeyFunction13:
+    case KeyCodes.KeyFunction14:
+    case KeyCodes.KeyFunction23:
+    case KeyCodes.KeyFunction24:
+    case KeyCodes.KeyFunction34:
+      recordInputLog(`Action mapped: collect / interact (${key})`);
+      collectNearbyDotling(`DotPad ${key}`);
+      break;
+    default:
+      recordInputLog(`Action mapped: none for ${key} / 미매핑 키`);
+      break;
   }
 }
 
-async function connectDotPad() {
-  if (dotPadConnected) { disconnectDotPad(); return; }
-  if (!navigator.bluetooth) {
-    announce('이 브라우저는 Web Bluetooth를 지원하지 않아요. Chrome 또는 Edge(데스크톱·안드로이드)에서 열어 주세요. iOS Safari·Firefox는 지원하지 않습니다.', true);
-    return;
+function sendDotPadFrame(matrix, reason = 'unspecified') {
+  if (!dotPadManager) {
+    return Promise.resolve({
+      ok: false,
+      skipped: true,
+      message: 'Skipped: DotPad manager not ready',
+    });
   }
-  try {
-    setDotPadState('DotPad 검색 중…', false);
-    const device = await dotScanner.startBleScan(); // 기기 선택창 (namePrefix "DotPad")
-    if (!device) {
-      setDotPadState('DotPad 미연결', false);
-      announce('연결할 기기를 고르지 않았어요. 다시 시도해 주세요.');
-      return;
+  return dotPadManager.sendMatrix(matrix, reason);
+}
+
+function emptyDotPadMatrix(fill = 0) {
+  return Array.from({ length: DOT_HEIGHT }, () => Array(DOT_WIDTH).fill(fill));
+}
+
+function createDotPadTestPattern(patternType) {
+  const centerX = Math.floor(DOT_WIDTH / 2);
+  const centerY = Math.floor(DOT_HEIGHT / 2);
+  const labels = {
+    'all-up': 'All pins up / 전체 점 올리기',
+    'all-down': 'All pins down / 전체 점 내리기',
+    'border-origin': 'Border + origin / 외곽선 + 원점',
+    'center-cross': 'Center cross / 중앙 십자',
+    'player-only': 'Player marker only / 루미 위치',
+    'current-game': 'Current game frame / 현재 게임 프레임',
+    'success-animation': 'Success animation / 성공 애니메이션',
+  };
+
+  if (patternType === 'all-up') return { label: labels[patternType], frames: [emptyDotPadMatrix(1)] };
+  if (patternType === 'all-down') return { label: labels[patternType], frames: [emptyDotPadMatrix(0)] };
+  if (patternType === 'current-game') return { label: labels[patternType], frames: [createDotPadMatrix()] };
+
+  if (patternType === 'player-only') {
+    const matrix = emptyDotPadMatrix();
+    drawPlayerFull(matrix);
+    return { label: labels[patternType], frames: [matrix] };
+  }
+
+  if (patternType === 'border-origin') {
+    const matrix = emptyDotPadMatrix();
+    for (let x = 0; x < DOT_WIDTH; x += 1) {
+      matrix[0][x] = DOT_T.BORDER;
+      matrix[DOT_HEIGHT - 1][x] = DOT_T.BORDER;
     }
-    setDotPadState('DotPad 연결 중…', false);
-    const dev = await dotSdk.connectBleDevice(device); // 연결 완료는 onDotMessage(Connected)로 전달됨
-    if (!dev) {
-      setDotPadState('DotPad 미연결', false);
-      announce('DotPad 연결에 실패했어요. 기기 전원과 블루투스를 확인해 주세요.', true);
+    for (let y = 0; y < DOT_HEIGHT; y += 1) {
+      matrix[y][0] = DOT_T.BORDER;
+      matrix[y][DOT_WIDTH - 1] = DOT_T.BORDER;
     }
-  } catch (err) {
-    setDotPadState('DotPad 미연결', false);
-    announce('연결 중 문제가 생겼어요. 다시 시도해 주세요.', true);
-    console.error('[DotPad] connect failed:', err);
+    for (let y = 0; y < 4; y += 1) {
+      for (let x = 0; x < 4; x += 1) matrix[y][x] = DOT_T.PLAYER;
+    }
+    return { label: labels[patternType], frames: [matrix] };
   }
-}
 
-function disconnectDotPad() {
-  try { dotSdk.disconnect(dotDevice || null); } catch (e) { console.error('[DotPad] disconnect:', e); }
-  dotPadConnected = false;
-  dotDevice = null;
-  setDotPadState('DotPad 미연결', false);
-}
-
-function sendDotPadFrame(matrix) {
-  if (!dotPadConnected || !dotDevice) return;
-  try {
-    dotSdk.displayGraphicData(matrixToDotPadHex(matrix), dotDevice, DisplayMode.GraphicMode);
-  } catch (e) {
-    console.error('[DotPad] display failed:', e);
+  if (patternType === 'center-cross') {
+    const matrix = emptyDotPadMatrix();
+    for (let x = centerX - 10; x <= centerX + 10; x += 1) matrix[centerY][x] = DOT_T.PLAYER;
+    for (let y = centerY - 8; y <= centerY + 8; y += 1) matrix[y][centerX] = DOT_T.PLAYER;
+    return { label: labels[patternType], frames: [matrix] };
   }
+
+  if (patternType === 'success-animation') {
+    const frames = [3, 7, 11, 15].map((radius, index) => {
+      const matrix = emptyDotPadMatrix();
+      for (let x = -radius; x <= radius; x += 1) {
+        setDot(matrix, centerX + x, centerY - radius, DOT_T.ITEM);
+        setDot(matrix, centerX + x, centerY + radius, DOT_T.ITEM);
+      }
+      for (let y = -radius; y <= radius; y += 1) {
+        setDot(matrix, centerX - radius, centerY + y, DOT_T.ITEM);
+        setDot(matrix, centerX + radius, centerY + y, DOT_T.ITEM);
+      }
+      if (index === 3) {
+        for (let y = centerY - 2; y <= centerY + 2; y += 1) {
+          for (let x = centerX - 2; x <= centerX + 2; x += 1) setDot(matrix, x, y, DOT_T.PLAYER);
+        }
+      }
+      return matrix;
+    });
+    return { label: labels[patternType], frames, delayMs: 240 };
+  }
+
+  return null;
 }
 
-/* ---- 실기기 브링업 도구 (핀 순서와 무관한 통신 확인 + 방향 확인) ---- */
-function dotpadAllUp() {
-  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
-  try { dotSdk.displayAllUp(dotDevice); announce('모든 점을 올렸어요.'); } catch (e) { console.error('[DotPad] allUp:', e); }
+function updateGuidedDemoUi(step) {
+  document.querySelectorAll('#guidedDemoSteps li').forEach((item, index) => {
+    item.classList.toggle('active', index + 1 === step);
+    item.classList.toggle('complete', index + 1 < step);
+  });
 }
-function dotpadAllDown() {
-  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
-  try { dotSdk.displayAllDown(dotDevice); announce('모든 점을 내렸어요.'); } catch (e) { console.error('[DotPad] allDown:', e); }
+
+function moveLumiNearNearestDotling() {
+  const target = gameState.items
+    .filter((item) => !item.collected)
+    .sort((a, b) => distance2D(a, gameState.player) - distance2D(b, gameState.player))[0];
+  if (!target) {
+    announce('All Dotlings are already collected. / 모든 도트링을 수집했습니다.', true);
+    return syncTactileFrame('guided-find-empty');
+  }
+  gameState.player.x = THREE.MathUtils.clamp(target.x - 1.2, -WORLD_LIMIT_X, WORLD_LIMIT_X);
+  gameState.player.z = target.z;
+  gameState.player.direction = 'right';
+  updateLumiTransform('right');
+  announce('Dotling found. Lumi is beside it. / 도트링을 찾았습니다.', true);
+  return checkNearbyHint('guided-find-dotling');
 }
-// 외곽 실선 + 좌상단 모서리 블록(원점) + 중앙 십자 → 방향·핀 순서 확인용
-function dotpadTestPattern() {
-  if (!dotPadConnected || !dotDevice) { announce('먼저 DotPad를 연결해 주세요.'); return; }
-  const m = Array.from({ length: DOT_HEIGHT }, () => Array(DOT_WIDTH).fill(0));
-  for (let x = 0; x < DOT_WIDTH; x++) { m[0][x] = 1; m[DOT_HEIGHT - 1][x] = 1; }
-  for (let y = 0; y < DOT_HEIGHT; y++) { m[y][0] = 1; m[y][DOT_WIDTH - 1] = 1; }
-  for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) m[y][x] = 1; // 좌상단 원점
-  const cy = Math.floor(DOT_HEIGHT / 2), cx = Math.floor(DOT_WIDTH / 2);
-  for (let x = cx - 5; x <= cx + 5; x++) m[cy][x] = 1;
-  for (let y = cy - 5; y <= cy + 5; y++) m[y][cx] = 1;
-  try {
-    dotSdk.displayGraphicData(matrixToDotPadHex(m), dotDevice, DisplayMode.GraphicMode);
-    announce('테스트 패턴을 보냈어요. 외곽 실선과 좌상단 모서리 블록이 맞는지 확인하세요.');
-  } catch (e) { console.error('[DotPad] test pattern:', e); }
+
+async function runGuidedDemoStep(step) {
+  guidedDemoStep = Math.max(1, Math.min(8, step));
+  updateGuidedDemoUi(guidedDemoStep);
+  recordInputLog(`Guided Demo Step ${guidedDemoStep} started`);
+
+  if (guidedDemoStep === 1) {
+    await dotPadManager.connect();
+  } else if (guidedDemoStep === 2) {
+    await dotPadManager.sendTestPattern('border-origin');
+  } else if (guidedDemoStep === 3) {
+    await dotPadManager.sendTestPattern('current-game');
+  } else if (guidedDemoStep === 4) {
+    if (dotPadManager.mockMode) {
+      onDotKey(null, KeyCodes.PanningRight, 'mock-demo');
+    } else {
+      announce('Press a DotPad panning key now. / DotPad 패닝키를 눌러주세요.', true);
+      recordInputLog('Waiting for physical PanningLeft or PanningRight');
+    }
+  } else if (guidedDemoStep === 5) {
+    if (dotPadManager.mockMode) {
+      const demoKeys = [KeyCodes.KeyFunction1, KeyCodes.KeyFunction2, KeyCodes.KeyFunction3, KeyCodes.KeyFunction4];
+      for (const key of demoKeys) {
+        onDotKey(null, key, 'mock-demo');
+        await new Promise((resolve) => window.setTimeout(resolve, 280));
+      }
+    } else {
+      announce('Press F1, F2, F3, and F4 on DotPad. / DotPad F1~F4를 눌러주세요.', true);
+      recordInputLog('Waiting for DotPad F1 / F2 / F3 / F4');
+    }
+  } else if (guidedDemoStep === 6) {
+    const result = await moveLumiNearNearestDotling();
+    recordInputLog(`Find Dotling → ${summarizeSendResult(result)}`);
+  } else if (guidedDemoStep === 7) {
+    await collectNearbyDotling('Guided Demo Step 7');
+  } else if (guidedDemoStep === 8) {
+    await dotPadManager.sendTestPattern('success-animation');
+  }
 }
 function setDotBitOrder(key) {
   dotBitOrderKey = (key === 'raster') ? 'raster' : 'braille';
   try { localStorage.setItem('dotforest.dotOrder', dotBitOrderKey); } catch (e) {}
-  sendDotPadFrame(lastMatrix); // 즉시 다시 그려 차이 확인
+  sendDotPadFrame(lastMatrix, 'bit-order-change').then((result) => {
+    recordInputLog(`Cell pin order: ${dotBitOrderKey} → ${summarizeSendResult(result)}`);
+  });
 }
 function toggleDotBitOrder() {
   setDotBitOrder(dotBitOrderKey === 'braille' ? 'raster' : 'braille');
@@ -1570,11 +1892,11 @@ function startVoiceCommand() {
 
 function handleVoiceCommand(text) {
   const normalized = text.replaceAll(' ', '');
-  if (normalized.includes('앞')) return handlePanningKeyInput('up');
-  if (normalized.includes('뒤')) return handlePanningKeyInput('down');
-  if (normalized.includes('왼')) return handlePanningKeyInput('left');
-  if (normalized.includes('오른')) return handlePanningKeyInput('right');
-  if (normalized.includes('먹') || normalized.includes('수집')) return collectNearbyDotling();
+  if (normalized.includes('앞')) return handlePanningKeyInput('up', `Voice "${text}"`);
+  if (normalized.includes('뒤')) return handlePanningKeyInput('down', `Voice "${text}"`);
+  if (normalized.includes('왼')) return handlePanningKeyInput('left', `Voice "${text}"`);
+  if (normalized.includes('오른')) return handlePanningKeyInput('right', `Voice "${text}"`);
+  if (normalized.includes('먹') || normalized.includes('수집')) return collectNearbyDotling(`Voice "${text}"`);
   announce(`인식한 명령은 ${text}입니다. 지원하는 명령이 아니에요.`, true);
 }
 
@@ -1707,7 +2029,7 @@ function animate() {
     if (exposurePulse === 0) renderer.toneMappingExposure = base;
   }
   // 위험물/도트링이 움직이므로 촉각 프리뷰를 주기적으로 갱신 (약 8fps)
-  if (clock.elapsedTime - lastTactileT > 0.12) {
+  if (Date.now() >= tactilePreviewOverrideUntil && clock.elapsedTime - lastTactileT > 0.12) {
     lastTactileT = clock.elapsedTime;
     drawTactileFrame();
   }

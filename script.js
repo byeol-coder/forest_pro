@@ -39,6 +39,8 @@ let swayables = [];
 let waterMesh = null;
 let lumiHalo = null;
 let lumiLight = null;
+let hemiLight = null, sunLight = null, fillLight = null;   // 구역별 환경 프리셋이 조절
+let envTint = null;   // 구역별 배경/안개 미세 색 틴트(THREE.Color | null)
 let pipMesh = null;
 let beaconMesh = null;
 let fireflies = null, fireflyBase = null, fireflyPhase = null;   // 분위기용 반딧불 입자(장식)
@@ -145,10 +147,10 @@ function setupThreeScene() {
   renderer.toneMappingExposure = 1.0;
   dom.gameCanvas.appendChild(renderer.domElement);
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x4d6f43, 1.6);
+  const hemi = hemiLight = new THREE.HemisphereLight(0xffffff, 0x4d6f43, 1.6);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xfff1d6, 2.7);
+  const sun = sunLight = new THREE.DirectionalLight(0xfff1d6, 2.7);
   sun.position.set(-18, 28, 18);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -160,7 +162,7 @@ function setupThreeScene() {
   scene.add(sun);
 
   // 반대편 쿨톤 필 라이트 (그림자 부드럽게 + 입체감)
-  const fill = new THREE.DirectionalLight(0xbfe0ff, 0.55);
+  const fill = fillLight = new THREE.DirectionalLight(0xbfe0ff, 0.55);
   fill.position.set(22, 14, -18);
   scene.add(fill);
 
@@ -418,6 +420,7 @@ function loadArea(id, opts = {}) {
   updateLumiTransform('down');
   playAction('idle');
   updateScore();
+  createEnvironmentPreset(id);   // 구역별 조명/틴트 (applyScene 전에)
   applyScene();
   updateLightHUD();
   drawTactileFrame();
@@ -632,10 +635,27 @@ function placeHazards() {
 function applyScene() {
   if (!scene || !renderer) return;
   const sc = lightToScene(gameState.forestLight);
-  if (scene.background && scene.background.setHex) scene.background.setHex(sc.bg);
-  else scene.background = new THREE.Color(sc.bg);
-  if (scene.fog) { scene.fog.color.setHex(sc.bg); scene.fog.near = sc.fogNear; scene.fog.far = sc.fogFar; }
+  const bg = new THREE.Color(sc.bg);
+  if (envTint) bg.multiply(envTint);   // 구역별 미세 톤(숲의 빛 기반 밝기는 유지)
+  if (scene.background && scene.background.copy) scene.background.copy(bg);
+  else scene.background = bg.clone();
+  if (scene.fog) { scene.fog.color.copy(bg); scene.fog.near = sc.fogNear; scene.fog.far = sc.fogFar; }
   renderer.toneMappingExposure = sc.exposure;
+}
+
+/* 구역별 환경 프리셋 — 조명 색/세기 + 배경/안개 미세 틴트로 분위기 차별화.
+   숲의 빛(forestLight) 기반 밝기·노출은 그대로 유지(접근성·대비 보존). */
+function createEnvironmentPreset(areaId) {
+  const P = {
+    forest_entrance: { hemiSky: 0xfff4e0, hemiGround: 0x4d6f43, hemiInt: 1.6, sunColor: 0xfff1d6, sunInt: 2.7, fillColor: 0xbfe0ff, fillInt: 0.55, tint: [1.03, 1.0, 0.92] },
+    berry_grove:     { hemiSky: 0xeafff0, hemiGround: 0x3f7a3a, hemiInt: 1.75, sunColor: 0xfff7e6, sunInt: 2.95, fillColor: 0xcfeecb, fillInt: 0.5, tint: [1.0, 1.02, 0.95] },
+    river:           { hemiSky: 0xdff7ff, hemiGround: 0x3a6f6a, hemiInt: 1.5, sunColor: 0xeaffff, sunInt: 2.4, fillColor: 0xa9e6ff, fillInt: 0.7, tint: [0.92, 1.0, 1.07] },
+  };
+  const p = P[areaId] || P.forest_entrance;
+  if (hemiLight) { hemiLight.color.setHex(p.hemiSky); hemiLight.groundColor.setHex(p.hemiGround); hemiLight.intensity = p.hemiInt; }
+  if (sunLight)  { sunLight.color.setHex(p.sunColor); sunLight.intensity = p.sunInt; }
+  if (fillLight) { fillLight.color.setHex(p.fillColor); fillLight.intensity = p.fillInt; }
+  envTint = new THREE.Color(p.tint[0], p.tint[1], p.tint[2]);
 }
 
 function updateLightHUD() {

@@ -201,16 +201,16 @@
           <div class="dotpad-panel-section">
             <h4>Mock Physical Keys / 모의 물리키</h4>
             <div class="dotpad-mock-key-grid">
-              <button type="button" data-mock-key="PanningLeft">PanningLeft · Left</button>
-              <button type="button" data-mock-key="PanningRight">PanningRight · Right</button>
-              <button type="button" data-mock-key="LPF1">LPF1 · Up</button>
-              <button type="button" data-mock-key="RPF4">RPF4 · Down</button>
-              <button type="button" data-mock-key="KeyFunction12">F1+F2 · Collect</button>
-              <button type="button" data-mock-key="PanningAll">PanningAll · Resend</button>
-              <button type="button" data-mock-key="KeyFunction1">F1 · Position</button>
-              <button type="button" data-mock-key="KeyFunction2">F2 · Around</button>
-              <button type="button" data-mock-key="KeyFunction3">F3 · Mission</button>
-              <button type="button" data-mock-key="KeyFunction4">F4 · Map + resend</button>
+              <button type="button" data-mock-key="PanningLeft">PanningLeft · Left/왼쪽</button>
+              <button type="button" data-mock-key="PanningRight">PanningRight · Right/오른쪽</button>
+              <button type="button" data-mock-key="KeyFunction1">F1 · Up/앞으로</button>
+              <button type="button" data-mock-key="KeyFunction2">F2 · Down/뒤로</button>
+              <button type="button" data-mock-key="KeyFunction3">F3 · Collect/수집</button>
+              <button type="button" data-mock-key="KeyFunction4">F4 · Map/촉각지도</button>
+              <button type="button" data-mock-key="PanningAll">PanAll · Voice/주변</button>
+              <button type="button" data-mock-key="LPF1">LPF1 · Up(alt)</button>
+              <button type="button" data-mock-key="RPF4">RPF4 · Down(alt)</button>
+              <button type="button" data-mock-key="KeyFunction12">F1+F2 · Collect(alt)</button>
             </div>
           </div>
 
@@ -269,7 +269,8 @@ lastSendHexLength: 0</pre>
                 <li>음성: “앞으로”, “뒤로”, “왼쪽”, “오른쪽”, “먹기”</li>
                 <li>DotPad movement: PanningLeft/Right and LPF1/RPF4 / 좌·우·상·하 이동</li>
                 <li>DotPad combos (KeyFunction12/34 etc.): collect or interact / 먹기·상호작용</li>
-                <li>정보 듣기: 1·2·3·4 키 또는 화면 버튼 — 위치 · 주변 · 미션 · 촉각 지도 (DotPad는 F1~F4)</li>
+                <li>DotPad: 패닝 좌·우 = 좌우 이동, F1·F2 = 앞·뒤 이동, F3 = 먹기, F4 = 촉각 지도, Pan All = 주변 안내</li>
+                <li>정보 듣기: 1·2·3·4 키 또는 화면 버튼 — 위치 · 주변 · 미션 · 촉각 지도</li>
               </ul>
             </div>
 
@@ -477,8 +478,10 @@ lastSendHexLength: 0</pre>
     "\uae00\uc790 \ud06c\uae30": "Text size",
     "\uc785\ub825 \ubc29\uc2dd \uc548\ub0b4": "Input methods",
     "\uc785\ub825 \ubc29\uc2dd\uacfc \ud658\uacbd\uc744 \uc5ec\uae30\uc11c \ud55c \ubc88\uc5d0 \uad00\ub9ac\ud574\uc694.": "Manage input methods and environment all in one place.",
-    "\uc815\ubcf4 \ub4e3\uae30: 1\u00b72\u00b73\u00b74 \ud0a4 \ub610\ub294 \ud654\uba74 \ubc84\ud2bc \u2014 \uc704\uce58 \u00b7 \uc8fc\ubcc0 \u00b7 \ubbf8\uc158 \u00b7 \ucd09\uac01 \uc9c0\ub3c4 (DotPad\ub294 F1~F4)":
-      "Hear info: keys 1\u00b72\u00b73\u00b74 or on-screen buttons \u2014 Position \u00b7 Surroundings \u00b7 Mission \u00b7 Tactile map (F1\u2013F4 on DotPad)",
+    "DotPad: \ud328\ub2dd \uc88c\u00b7\uc6b0 = \uc88c\uc6b0 \uc774\ub3d9, F1\u00b7F2 = \uc55e\u00b7\ub4a4 \uc774\ub3d9, F3 = \uba39\uae30, F4 = \ucd09\uac01 \uc9c0\ub3c4, Pan All = \uc8fc\ubcc0 \uc548\ub0b4":
+      "DotPad: Pan L/R = move left/right, F1/F2 = move forward/back, F3 = collect, F4 = tactile map, Pan All = surroundings",
+    "\uc815\ubcf4 \ub4e3\uae30: 1\u00b72\u00b73\u00b74 \ud0a4 \ub610\ub294 \ud654\uba74 \ubc84\ud2bc \u2014 \uc704\uce58 \u00b7 \uc8fc\ubcc0 \u00b7 \ubbf8\uc158 \u00b7 \ucd09\uac01 \uc9c0\ub3c4":
+      "Hear info: keys 1\u00b72\u00b73\u00b74 or on-screen buttons \u2014 Position \u00b7 Surroundings \u00b7 Mission \u00b7 Tactile map",
     "\uc74c\uc131: \u201c\uc55e\uc73c\ub85c\u201d, \u201c\ub4a4\ub85c\u201d, \u201c\uc67c\ucabd\u201d, \u201c\uc624\ub978\ucabd\u201d, \u201c\uba39\uae30\u201d":
       "Voice: \u201cforward\u201d, \u201cback\u201d, \u201cleft\u201d, \u201cright\u201d, \u201ceat\u201d",
     "\ud0a4\ubcf4\ub4dc: \ubc29\ud5a5\ud0a4 \ub610\ub294 WASD": "Keyboard: arrow keys or WASD",

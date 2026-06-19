@@ -1640,38 +1640,38 @@ function onDotKey(device, key, rawCode = '') {
       recordInputLog('Action mapped: move right / 오른쪽 이동');
       handlePanningKeyInput('right', 'DotPad PanningRight');
       break;
-    case KeyCodes.LPF1:
-      recordInputLog('Action mapped: move up / 위 이동');
-      handlePanningKeyInput('up', 'DotPad LPF1');
-      break;
-    case KeyCodes.RPF4:
-      recordInputLog('Action mapped: move down / 아래 이동');
-      handlePanningKeyInput('down', 'DotPad RPF4');
-      break;
-    case KeyCodes.PanningAll:
-      recordInputLog('Action mapped: tactile map resend / 촉각 지도 재전송');
-      sendDotPadFrame(lastMatrix, 'physical-key-resend').then((result) => {
-        recordInputLog(`DotPad PanningAll → ${summarizeSendResult(result)}`);
-      });
-      break;
+    // Dot Games 규격 §6 키맵 — 단순 키로 완전 4방향 이동 + 수집
     case KeyCodes.KeyFunction1:
-      recordInputLog('Action mapped: read current position / 현재 위치');
-      runInfoAction('position', 'DotPad F1');
+      recordInputLog('Action mapped: move up / 앞으로(위) 이동');
+      handlePanningKeyInput('up', 'DotPad F1');
       break;
     case KeyCodes.KeyFunction2:
-      recordInputLog('Action mapped: explore surroundings / 주변 탐색');
-      runInfoAction('surroundings', 'DotPad F2');
+      recordInputLog('Action mapped: move down / 뒤로(아래) 이동');
+      handlePanningKeyInput('down', 'DotPad F2');
       break;
     case KeyCodes.KeyFunction3:
-      recordInputLog('Action mapped: current mission / 현재 미션');
-      runInfoAction('mission', 'DotPad F3');
+      recordInputLog('Action mapped: collect / 수집(먹기)');
+      collectNearbyDotling('DotPad F3');
       break;
     case KeyCodes.KeyFunction4:
-      recordInputLog('Action mapped: tactile map description + resend / 지도 설명 + 재전송');
+      recordInputLog('Action mapped: tactile map + resend / 촉각 지도 + 재전송');
       runInfoAction('tactileMap', 'DotPad F4');
       sendDotPadFrame(lastMatrix, 'physical-key-map-resend').then((result) => {
         recordInputLog(`DotPad F4 → ${summarizeSendResult(result)}`);
       });
+      break;
+    case KeyCodes.PanningAll:
+      recordInputLog('Action mapped: voice surroundings / 주변 음성 안내');
+      runInfoAction('surroundings', 'DotPad PanAll');
+      break;
+    // 보조(조합키): 상/하 이동·수집 backward-compat (기기 키 구성 차이 대비)
+    case KeyCodes.LPF1:
+      recordInputLog('Action mapped: move up (LPF1) / 위 이동');
+      handlePanningKeyInput('up', 'DotPad LPF1');
+      break;
+    case KeyCodes.RPF4:
+      recordInputLog('Action mapped: move down (RPF4) / 아래 이동');
+      handlePanningKeyInput('down', 'DotPad RPF4');
       break;
     case KeyCodes.KeyFunction12:
     case KeyCodes.KeyFunction13:

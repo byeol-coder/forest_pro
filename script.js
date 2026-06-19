@@ -41,6 +41,8 @@ let lumiHalo = null;
 let lumiLight = null;
 let pipMesh = null;
 let beaconMesh = null;
+let fireflies = null, fireflyBase = null, fireflyPhase = null;   // 분위기용 반딧불 입자(장식)
+const PREFERS_REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let camLeadX = 0, camLeadZ = 0;   // 진행 방향 룩어헤드(부드럽게 따라가는 카메라 선행 오프셋)
 let paused = false, muted = false;   // 임베드 라이프사이클(부모 제어) — 렌더는 유지, 시뮬만 정지
 const PIP_POS = { x: 15, z: 7 };
@@ -183,9 +185,38 @@ function setupThreeScene() {
   beaconMesh.visible = false;
   scene.add(beaconMesh);
 
+  createFireflyParticles();
+
   window.addEventListener('resize', onResize);
   document.addEventListener('fullscreenchange', () => window.dispatchEvent(new Event('resize')));
   document.addEventListener('webkitfullscreenchange', () => window.dispatchEvent(new Event('resize')));
+}
+
+/* 분위기용 반딧불 입자 — 순수 장식(게임 로직·촉각 매트릭스와 무관).
+   글로우 텍스처를 재사용한 Points 1개. 모바일에서도 가벼움(개수 적음). */
+function createFireflyParticles() {
+  const COUNT = PREFERS_REDUCE ? 0 : 44;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  fireflyBase = new Float32Array(COUNT * 3);
+  fireflyPhase = new Float32Array(COUNT);
+  for (let i = 0; i < COUNT; i++) {
+    const x = (Math.random() * 2 - 1) * (WORLD_LIMIT_X - 2);
+    const z = (Math.random() * 2 - 1) * (WORLD_LIMIT_Z - 2);
+    const y = 1.4 + Math.random() * 5.5;
+    pos[i * 3] = fireflyBase[i * 3] = x;
+    pos[i * 3 + 1] = fireflyBase[i * 3 + 1] = y;
+    pos[i * 3 + 2] = fireflyBase[i * 3 + 2] = z;
+    fireflyPhase[i] = Math.random() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    map: makeGlowTexture(), color: 0xffe79a, size: 1.5, sizeAttenuation: true,
+    transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  fireflies = new THREE.Points(geo, mat);
+  fireflies.frustumCulled = false;
+  if (COUNT > 0) scene.add(fireflies);
 }
 
 function makeGlowTexture() {
@@ -1521,6 +1552,18 @@ function animate() {
   if (waterMesh) {
     waterMesh.material.opacity = 0.72 + Math.sin(clock.elapsedTime * 1.4) * 0.08;
     waterMesh.position.y = 0.05 + Math.sin(clock.elapsedTime * 0.9) * 0.015;
+  }
+  if (fireflies && fireflyBase) {
+    const t = clock.elapsedTime;
+    const arr = fireflies.geometry.attributes.position.array;
+    for (let i = 0; i < fireflyPhase.length; i++) {
+      const ph = fireflyPhase[i];
+      arr[i * 3]     = fireflyBase[i * 3]     + Math.sin(t * 0.5 + ph) * 1.6;
+      arr[i * 3 + 1] = fireflyBase[i * 3 + 1] + Math.sin(t * 0.9 + ph * 1.7) * 0.7;
+      arr[i * 3 + 2] = fireflyBase[i * 3 + 2] + Math.cos(t * 0.4 + ph) * 1.6;
+    }
+    fireflies.geometry.attributes.position.needsUpdate = true;
+    fireflies.material.opacity = 0.6 + Math.sin(t * 1.3) * 0.25;
   }
   {
     const bflags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)

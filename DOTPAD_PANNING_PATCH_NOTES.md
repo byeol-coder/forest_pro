@@ -12,3 +12,5 @@ Expected mapping:
 - F1-F4 -> position, surroundings, mission, map resend
 
 If the SDK returns raw labels instead of canonical KeyCodes, normalize the physical key before passing it to the game handler.
+
+Status: implementation patch pending if hardware still reports raw labels.

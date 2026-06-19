@@ -42,6 +42,7 @@ let lumiLight = null;
 let pipMesh = null;
 let beaconMesh = null;
 let camLeadX = 0, camLeadZ = 0;   // 진행 방향 룩어헤드(부드럽게 따라가는 카메라 선행 오프셋)
+let paused = false, muted = false;   // 임베드 라이프사이클(부모 제어) — 렌더는 유지, 시뮬만 정지
 const PIP_POS = { x: 15, z: 7 };
 let actions = {};
 let currentAction = null;
@@ -1492,7 +1493,7 @@ function resetGame() {
 
 function announce(message, speak = false) {
   dom.liveStatus.textContent = message;
-  if (speak && 'speechSynthesis' in window) {
+  if (speak && !muted && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = 'ko-KR';
@@ -1508,6 +1509,9 @@ function directionToKorean(direction) {
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+  // 일시정지(부모 DOT_FOREST_PAUSE): 시뮬레이션·애니메이션은 멈추되 마지막 프레임은 계속 렌더.
+  // getDelta()는 위에서 소비했으므로 재개 시 시간 점프 없음.
+  if (paused) { if (renderer) renderer.render(scene, camera); return; }
   if (mixer) mixer.update(delta);
 
   if (swayables.length) {
@@ -1648,4 +1652,32 @@ window.DotForest.bridge = {
   reset: () => resetGame(),
   announce: (msg, speak = false) => announce(msg, speak),
   constants: { WORLD_LIMIT_X, WORLD_LIMIT_Z, MOVE_STEP, ITEM_COLLECT_DISTANCE },
+
+  /* ---- 임베드 라이프사이클 hook (append-only, 게임 로직 불변) ---- */
+  get paused() { return paused; },
+  pause() {
+    paused = true;
+    try { if (audioCtx) audioCtx.suspend(); } catch (e) {}
+    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+  },
+  resume() {
+    paused = false;
+    try { if (audioCtx && !muted) audioCtx.resume(); } catch (e) {}
+  },
+  setMuted(m) {
+    muted = !!m;
+    try { if (audioCtx) { if (muted) audioCtx.suspend(); else if (!paused) audioCtx.resume(); } } catch (e) {}
+    try { if (muted && 'speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+  },
+  get muted() { return muted; },
+  getProgress() {
+    const items = gameState.items || [];
+    return {
+      areaId: gameState.area,
+      collected: items.filter((i) => i.collected).length,
+      total: items.length,
+      grandTotal: GRAND_TOTAL,
+      forestLight: gameState.forestLight,
+    };
+  },
 };

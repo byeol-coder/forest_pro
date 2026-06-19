@@ -154,7 +154,8 @@ function say(text, priority = 'polite') {
     region.textContent = '';
     requestAnimationFrame(() => { region.textContent = text; });
   }
-  if (state.settings.ttsEnabled && 'speechSynthesis' in window) {
+  const embedMuted = !!(window.DotForest && window.DotForest.bridge && window.DotForest.bridge.muted);
+  if (state.settings.ttsEnabled && !embedMuted && 'speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);

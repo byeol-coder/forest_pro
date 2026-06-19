@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dot Forest — 임베드 QA 하니스</title>
+<style>
+  :root { --bd:#2a3550; --acc:#7aa2ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1020; color: #e8ecf6; }
+  header { padding: 10px 14px; border-bottom: 1px solid var(--bd); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 14px; margin: 0 12px 0 0; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  button, select { background: #16203a; color: #e8ecf6; border: 1px solid var(--bd); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+  button:hover { border-color: var(--acc); }
+  main { display: grid; grid-template-columns: 1fr 360px; gap: 12px; padding: 12px; height: calc(100vh - 52px); }
+  .stage { background: #000; border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
+  /* TW 모달 흉내: 비율 토글 */
+  .frameWrap { width: 100%; height: 100%; display: grid; place-items: center; }
+  iframe { border: 0; width: 100%; height: 100%; display: block; background: #06100a; }
+  .log { background: #0c1426; border: 1px solid var(--bd); border-radius: 12px; padding: 8px; overflow: auto; font: 11px/1.5 ui-monospace, monospace; }
+  .log .e { padding: 2px 4px; border-bottom: 1px solid #18223c; white-space: pre-wrap; word-break: break-all; }
+  .log .e.in { color: #9fe8b0; } .log .e.out { color: #ffd591; } .log .e.err { color: #ff8f8f; }
+  .tag { font-size: 11px; color: #8ea0c8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dot Forest — 임베드 QA</h1>
+  <div class="row">
+    <button data-msg='{"type":"DOT_FOREST_START"}'>Start</button>
+    <button data-msg='{"type":"DOT_FOREST_PAUSE"}'>Pause</button>
+    <button data-msg='{"type":"DOT_FOREST_RESUME"}'>Resume</button>
+    <button data-msg='{"type":"DOT_FOREST_RESET"}'>Reset</button>
+    <button data-msg='{"type":"DOT_FOREST_SET_PREVIEW","visible":false}'>Preview off</button>
+    <button data-msg='{"type":"DOT_FOREST_SET_PREVIEW","visible":true}'>Preview on</button>
+    <button data-msg='{"type":"DOT_FOREST_SET_COMPACT","enabled":true}'>Compact on</button>
+    <button data-msg='{"type":"DOT_FOREST_SET_COMPACT","enabled":false}'>Compact off</button>
+    <button data-msg='{"type":"DOT_FOREST_MUTE","muted":true}'>Mute</button>
+    <button data-msg='{"type":"DOT_FOREST_MUTE","muted":false}'>Unmute</button>
+    <button data-msg='{"type":"DOT_FOREST_FOCUS"}'>Focus</button>
+    <button id="getState">getState()</button>
+  </div>
+  <div class="row">
+    <span class="tag">src:</span>
+    <select id="src">
+      <option value="./index.html?embed=1&preview=0&controls=compact">embed=1&amp;preview=0&amp;controls=compact (TW)</option>
+      <option value="./index.html?embed=1">embed=1</option>
+      <option value="./index.html?embed=1&preview=0">embed=1&amp;preview=0</option>
+      <option value="./index.html?embed=1&autostart=1">embed=1&amp;autostart=1</option>
+      <option value="./index.html?embed=1&theme=dark">embed=1&amp;theme=dark</option>
+      <option value="./index.html">standalone</option>
+    </select>
+    <span class="tag">size:</span>
+    <select id="size">
+      <option value="100%x100%">fill</option>
+      <option value="1100x760">1100×760</option>
+      <option value="900x520">900×520 (short)</option>
+      <option value="520x720">520×720 (tall)</option>
+      <option value="640x640">640²</option>
+    </select>
+    <button id="reload">Reload iframe</button>
+  </div>
+</header>
+<main>
+  <div class="stage"><div class="frameWrap" id="wrap">
+    <iframe id="game" allow="bluetooth; microphone; autoplay; clipboard-write" title="Dot Forest 촉각 게임"></iframe>
+  </div></div>
+  <div class="log" id="log"></div>
+</main>
+<script>
+  var iframe = document.getElementById('game');
+  var logEl = document.getElementById('log');
+  var srcSel = document.getElementById('src');
+  var sizeSel = document.getElementById('size');
+
+  function log(kind, obj) {
+    var d = document.createElement('div');
+    d.className = 'e ' + kind;
+    var t = new Date().toLocaleTimeString();
+    d.textContent = t + '  ' + (typeof obj === 'string' ? obj : JSON.stringify(obj));
+    logEl.insertBefore(d, logEl.firstChild);
+  }
+  function loadFrame() {
+    var s = sizeSel.value, wrap = document.getElementById('wrap');
+    if (s === '100%x100%') { iframe.style.width = '100%'; iframe.style.height = '100%'; }
+    else { var p = s.split('x'); iframe.style.width = p[0] + 'px'; iframe.style.height = p[1] + 'px'; }
+    iframe.src = srcSel.value;
+    log('out', 'load ' + srcSel.value);
+  }
+  function send(msg) {
+    try { iframe.contentWindow.postMessage(msg, '*'); log('out', msg); }
+    catch (e) { log('err', String(e)); }
+  }
+  document.querySelectorAll('button[data-msg]').forEach(function (b) {
+    b.addEventListener('click', function () { send(JSON.parse(b.getAttribute('data-msg'))); });
+  });
+  document.getElementById('getState').addEventListener('click', function () {
+    try { log('in', 'getState() = ' + JSON.stringify(iframe.contentWindow.DotForestEmbed.getState())); }
+    catch (e) { log('err', 'getState (cross-origin?): ' + e); }
+  });
+  document.getElementById('reload').addEventListener('click', loadFrame);
+  srcSel.addEventListener('change', loadFrame);
+  sizeSel.addEventListener('change', loadFrame);
+
+  // 게임 → 부모 메시지 로그
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (typeof d.type === 'string' && (d.type.indexOf('DOT_FOREST_') === 0 || d.source === 'dotforest')) {
+      log(d.type === 'DOT_FOREST_ERROR' ? 'err' : 'in', d);
+    }
+  });
+  loadFrame();
+</script>
+</body>
+</html>

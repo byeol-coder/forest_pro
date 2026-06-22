@@ -15,8 +15,10 @@
   <link rel="stylesheet" href="./screens.css?v=2" />
   <link rel="stylesheet" href="./a11y.css?v=1" />
   <link rel="stylesheet" href="./premium.css?v=1" />
+  <link rel="stylesheet" href="./game-ui-system.css?v=1" />
   <link rel="stylesheet" href="./embed.css?v=1" />
   <link rel="stylesheet" href="./dotpad-demo.css?v=1" />
+  <link rel="stylesheet" href="./forest-redesign.css?v=1" />
 
   <!-- TW iframe 임베드 레이어: screens.js·script.js보다 먼저(importmap 앞) 로드 -->
   <script src="./embed.js?v=1"></script>
@@ -75,6 +77,11 @@
         <div class="hud">
           <div class="hud-left">
             <button type="button" class="icon-btn" data-nav="title" aria-label="타이틀 화면으로 나가기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg></button>
+            <!-- 챕터 배지 -->
+            <div class="chapter-badge" id="chapterBadge" aria-label="현재 챕터">
+              <span class="ch-label" id="chapterLabel">Chapter 1</span>
+              <span class="ch-name" id="chapterName">씨앗의 숲</span>
+            </div>
             <div class="score" aria-live="polite">
               <span>수집</span>
               <strong id="scoreText">0 / 5</strong>
@@ -83,11 +90,24 @@
               <span class="light-label">숲의 빛</span>
               <span class="light-track"><span class="light-fill" id="lightFill" style="width:12%"></span></span>
             </div>
+            <!-- TTS 토글 버튼 -->
+            <button type="button" id="ttsToggleBtn" aria-pressed="true" aria-label="음성 내레이션 켜기/끄기 (TTS)">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </button>
           </div>
           <div class="hud-right">
             <div class="dotpad-hud-cluster" aria-label="DotPad controls / DotPad 제어">
-              <span class="state-pill dotpad-mirror" aria-live="polite">DotPad Disconnected / 미연결</span>
-              <div class="dotpad-hud-actions">
+              <div class="dotpad-hud-toprow">
+                <span class="state-pill dotpad-mirror" aria-live="polite">DotPad Disconnected / 미연결</span>
+                <button type="button" class="dotpad-hud-toggle" id="dotpadHudToggle"
+                        aria-label="DotPad 제어 메뉴" aria-expanded="true" aria-controls="dotpadHudActions">
+                  <span>DotPad</span>
+                  <svg class="dotpad-hud-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                       aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+              </div>
+              <div class="dotpad-hud-actions" id="dotpadHudActions" hidden>
                 <button type="button" class="hud-mini dotpad-connect" data-dotpad-action="connect">Connect / 연결</button>
                 <button type="button" class="hud-mini dotpad-disconnect" data-dotpad-action="disconnect" disabled>Disconnect / 해제</button>
                 <button type="button" class="hud-mini dotpad-test" data-dotpad-action="test">Test / 테스트</button>
@@ -95,6 +115,10 @@
                 <button type="button" class="hud-mini dotpad-mock" data-dotpad-action="mock" aria-pressed="false">Mock / 모의</button>
               </div>
             </div>
+            <!-- 도움말 버튼 (신규) -->
+            <button type="button" class="icon-btn" id="helpBtn" aria-label="조작 안내 열기">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
             <button type="button" class="icon-btn" id="mapBtn" aria-label="여정 지도 열기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3 6.5V21l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4z"/><path d="M9 4v14.5M15 6.5V21"/></svg></button>
             <button type="button" class="icon-btn" id="fullscreenBtn" aria-label="전체화면 전환"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
             <button type="button" class="icon-btn" data-nav="settings" aria-label="설정 열기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="10" cy="7" r="2.1"/><circle cx="15" cy="12" r="2.1"/><circle cx="8" cy="17" r="2.1"/></svg></button>
@@ -162,7 +186,15 @@
         <button type="button" id="voiceButton" class="voice-btn" aria-label="음성 명령 시작"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>음성</span></button>
 
         <aside class="tactile-dock dotpad-demo-panel" aria-labelledby="tactileTitle">
-          <h3 id="tactileTitle">DotPad Demo Console<span class="td-sub">60×40 tactile matrix / 촉각 매트릭스</span></h3>
+          <div class="dp-panel-hdr">
+            <h3 id="tactileTitle">DotPad 60×40<span class="td-sub">촉각 그래픽 · Tactile Graphics</span></h3>
+            <button type="button" class="dp-collapse-btn" id="dotpadPanelToggle"
+                    aria-label="DotPad 패널 접기" aria-expanded="true">
+              <svg class="dp-collapse-icon ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                   aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
           <div id="dotpadGameStatus" class="dotpad-game-status" role="status" aria-live="polite">
             Waiting for DotPad connection / DotPad 연결 대기
           </div>
@@ -247,6 +279,169 @@ lastSendStatus: idle
 lastSendHexLength: 0</pre>
           </div>
         </aside>
+
+        <!-- DotPad 콤팩트 상태 카드 (no-preview 모드에서 표시) -->
+        <div id="dotpadCompact" aria-label="DotPad 상태" role="status">
+          <div class="dp-compact-head">
+            <div class="dp-compact-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+            <span class="dp-compact-label">DotPad</span>
+            <span class="dp-compact-pill disconnected" id="dpCompactStatus" aria-live="polite">미연결</span>
+          </div>
+          <div class="dp-mini-matrix" id="dpMiniMatrix" aria-hidden="true" aria-label="촉각 그래픽 미니 프리뷰"></div>
+          <p class="dp-compact-msg" id="dpCompactMsg">연결 대기 중…</p>
+          <div class="dp-fn-guide" aria-label="DotPad 기능 키 안내">
+            <div class="dp-fn-item"><span class="dp-fn-key">F1</span><span>위치</span></div>
+            <div class="dp-fn-item"><span class="dp-fn-key">F2</span><span>상호작용</span></div>
+            <div class="dp-fn-item"><span class="dp-fn-key">F3</span><span>미션</span></div>
+            <div class="dp-fn-item"><span class="dp-fn-key">F4</span><span>지도</span></div>
+          </div>
+        </div>
+
+        <!-- TTS 설정 패널 -->
+        <div id="ttsPanelOverlay" hidden aria-label="음성 안내 설정">
+          <div class="tts-panel" role="dialog" aria-modal="false">
+            <p class="tts-panel-title">음성 안내 설정</p>
+
+            <!-- 모드 표시 배지 -->
+            <div class="tts-mode-row" aria-live="polite">
+              <span class="tts-mode-badge" id="ttsModeLabel">Web Speech</span>
+              <span class="tts-mode-desc" id="ttsModeDesc">브라우저 내장 TTS</span>
+            </div>
+
+            <!-- Web Speech API 음성 선택 -->
+            <div class="tts-section" id="ttsSectionWebspeech">
+              <label class="tts-section-title" for="ttsVoiceSelect">브라우저 음성</label>
+              <select id="ttsVoiceSelect" class="tts-voice-select" aria-label="TTS 음성 선택"></select>
+              <div class="tts-panel-row">
+                <label for="ttsRateSlider">속도</label>
+                <input type="range" class="tts-panel-slider" id="ttsRateSlider" min="0.6" max="1.4" step="0.05" value="0.92" aria-label="TTS 재생 속도">
+                <span class="tts-panel-val" id="ttsRateVal">0.92</span>
+              </div>
+              <div class="tts-panel-row">
+                <label for="ttsPitchSlider">음높이</label>
+                <input type="range" class="tts-panel-slider" id="ttsPitchSlider" min="0.8" max="1.2" step="0.05" value="1.0" aria-label="TTS 음높이">
+                <span class="tts-panel-val" id="ttsPitchVal">1.0</span>
+              </div>
+            </div>
+
+            <!-- GPT-SoVITS 설정 -->
+            <div class="tts-section tts-section--gsv" id="ttsSectionGSV">
+              <label class="tts-section-title">
+                <input type="checkbox" id="ttsGSVEnabled" aria-label="GPT-SoVITS 활성화">
+                GPT-SoVITS 고품질 TTS
+              </label>
+              <p class="tts-section-hint">로컬 서버 실행 필요: <code>python api_v2.py -p 9880</code></p>
+              <div class="tts-panel-row tts-row--full">
+                <label for="ttsGSVEndpoint">서버 URL</label>
+                <input type="text" id="ttsGSVEndpoint" class="tts-text-input" value="http://127.0.0.1:9880" placeholder="http://127.0.0.1:9880" aria-label="GPT-SoVITS 서버 URL">
+              </div>
+              <div class="tts-panel-row tts-row--full">
+                <label for="ttsGSVRefAudio">참조 음성 경로</label>
+                <input type="text" id="ttsGSVRefAudio" class="tts-text-input" placeholder="/path/to/voice.wav" aria-label="참조 음성 파일 경로 (서버 측 절대 경로)">
+              </div>
+              <div class="tts-panel-row tts-row--full">
+                <label for="ttsGSVPromptText">음성 트랜스크립트</label>
+                <input type="text" id="ttsGSVPromptText" class="tts-text-input" placeholder="참조 음성의 내용 텍스트" aria-label="참조 음성 트랜스크립트">
+              </div>
+              <div class="tts-panel-row">
+                <label for="ttsGSVSpeed">속도</label>
+                <input type="range" class="tts-panel-slider" id="ttsGSVSpeed" min="0.5" max="2.0" step="0.05" value="1.0" aria-label="GPT-SoVITS 속도">
+                <span class="tts-panel-val" id="ttsGSVSpeedVal">1.0×</span>
+              </div>
+              <button type="button" class="tts-test-btn" id="ttsGSVTestBtn" aria-label="GPT-SoVITS 서버 연결 테스트">
+                <span id="ttsGSVTestIcon">⚡</span> 연결 테스트
+              </button>
+              <div class="tts-connect-status" id="ttsGSVStatus" aria-live="polite" hidden></div>
+            </div>
+
+            <div class="tts-panel-actions">
+              <button type="button" class="tts-action-btn" id="ttsStopBtn" aria-label="음성 중지">■ 중지</button>
+              <button type="button" class="tts-action-btn" id="ttsReplayBtn" aria-label="마지막 음성 다시 재생">▶ 다시</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 조작 안내 오버레이 -->
+        <div id="helpOverlay" hidden role="dialog" aria-modal="true" aria-label="조작 안내">
+          <div class="help-card">
+            <div class="help-card-head">
+              <h3 class="help-card-title">조작 안내</h3>
+              <button type="button" class="help-card-close" id="helpClose" aria-label="안내 닫기">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              </button>
+            </div>
+            <p class="help-sect-title">키보드 조작</p>
+            <div class="help-grid">
+              <div class="help-key-item"><kbd class="help-key arrow">←</kbd><span class="help-desc">왼쪽 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key arrow">→</kbd><span class="help-desc">오른쪽 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key arrow">↑</kbd><span class="help-desc">앞으로</span></div>
+              <div class="help-key-item"><kbd class="help-key arrow">↓</kbd><span class="help-desc">뒤로</span></div>
+              <div class="help-key-item"><kbd class="help-key">Space</kbd><span class="help-desc">수집 / 상호작용</span></div>
+              <div class="help-key-item"><kbd class="help-key">Enter</kbd><span class="help-desc">확인</span></div>
+              <div class="help-key-item"><kbd class="help-key">1</kbd><span class="help-desc">현재 위치 읽기</span></div>
+              <div class="help-key-item"><kbd class="help-key">2</kbd><span class="help-desc">주변 탐색</span></div>
+              <div class="help-key-item"><kbd class="help-key">3</kbd><span class="help-desc">미션 읽기</span></div>
+              <div class="help-key-item"><kbd class="help-key">4</kbd><span class="help-desc">촉각 지도</span></div>
+            </div>
+            <p class="help-sect-title">DotPad 조작</p>
+            <div class="help-grid">
+              <div class="help-key-item"><kbd class="help-key arrow">◀ ▶</kbd><span class="help-desc">패닝키 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F1</kbd><span class="help-desc">현재 위치</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F2</kbd><span class="help-desc">상호작용</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F3</kbd><span class="help-desc">미션 읽기</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F4</kbd><span class="help-desc">주변+지도</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F1+F2</kbd><span class="help-desc">도트링 수집</span></div>
+            </div>
+            <p class="help-sect-title">촉각 그래픽 기호</p>
+            <div class="help-grid">
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#fbf7e6"></span><span class="help-desc">루미 (나)</span></div>
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#f5b84b"></span><span class="help-desc">도트링 (수집)</span></div>
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#ff5a4d"></span><span class="help-desc">위험 그림자</span></div>
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#8ebc7a"></span><span class="help-desc">숲길 / 경계</span></div>
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#5d7a52"></span><span class="help-desc">나무 장애물</span></div>
+              <div class="help-key-item"><span class="help-dot-swatch" style="background:#60c8e8"></span><span class="help-desc">강 / 물</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결과 오버레이 (챕터/미션 완료) -->
+        <div id="resultOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="챕터 완료">
+          <div class="result-stars-bg" aria-hidden="true">
+            <div class="result-star" style="left:18%;top:28%;--tx:90px;--ty:-110px;--dur:1.9s;--del:0.1s"></div>
+            <div class="result-star" style="left:48%;top:18%;--tx:-70px;--ty:-130px;--dur:2.2s;--del:0.4s;background:#88d888"></div>
+            <div class="result-star" style="left:74%;top:32%;--tx:-100px;--ty:-100px;--dur:2s;--del:0.7s"></div>
+            <div class="result-star" style="left:30%;top:58%;--tx:110px;--ty:-90px;--dur:2.4s;--del:0.2s;background:#60c8e8"></div>
+            <div class="result-star" style="left:62%;top:52%;--tx:-80px;--ty:-120px;--dur:1.8s;--del:0.6s"></div>
+            <div class="result-star" style="left:82%;top:22%;--tx:-60px;--ty:-140px;--dur:2.1s;--del:0.9s;background:#88d888"></div>
+          </div>
+          <div class="result-card">
+            <div class="result-badge" id="resultBadge">챕터 완료</div>
+            <h2 class="result-title" id="resultTitle">숲이 깨어났어요!</h2>
+            <p class="result-subtitle" id="resultSubtitle">루미가 도트링을 모두 모아 숲의 빛을 되살렸습니다.</p>
+            <div class="result-stats" aria-label="결과 통계">
+              <div class="result-stat">
+                <span class="result-stat-label">수집</span>
+                <strong class="result-stat-value" id="resultCollected">0</strong>
+              </div>
+              <div class="result-stat">
+                <span class="result-stat-label">숲의 빛</span>
+                <strong class="result-stat-value" id="resultLight">0%</strong>
+              </div>
+              <div class="result-stat">
+                <span class="result-stat-label">동료</span>
+                <strong class="result-stat-value" id="resultCompanions">0</strong>
+              </div>
+            </div>
+            <div class="result-actions">
+              <button type="button" class="result-btn primary" id="resultNext" aria-label="다음 미션으로 계속">다음 미션</button>
+              <button type="button" class="result-btn secondary" id="resultReplay" aria-label="현재 미션 내레이션 다시 듣기">다시 듣기</button>
+              <button type="button" class="result-btn ghost" id="resultRetry" aria-label="처음부터 다시 시작">처음부터</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -360,6 +555,8 @@ lastSendHexLength: 0</pre>
 
   <script type="module" src="./script.js?v=3"></script>
   <script type="module" src="./narrative-engine.js?v=2"></script>
+  <script src="./tts-engine.js?v=1"></script>
+  <script src="./ui-controls.js?v=1"></script>
   <script src="./a11y.js?v=1"></script>
 <style id="mobileBannerStyle">
 #mobileBanner{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(7,7,15,.97);backdrop-filter:blur(8px);padding:32px;text-align:center;font-family:sans-serif;color:#f0eeff}

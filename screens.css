@@ -30,6 +30,17 @@ body { font-family: var(--body); }
 .screen.is-active { display: block; animation: screenIn .28s ease; }
 @keyframes screenIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+/* BrowserQuest / Phaser 패턴: 화면 나가기 exit fade */
+.screen.is-leaving {
+  display: block;
+  animation: screenOut 0.18s ease forwards;
+  pointer-events: none;
+}
+@keyframes screenOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
 /* ---------- shared stage ---------- */
 .stage {
   position: relative;
@@ -249,6 +260,7 @@ body { font-family: var(--body); }
 
 @media (prefers-reduced-motion: reduce) {
   .screen.is-active { animation: none; }
+  .screen.is-leaving { animation: none; opacity: 0; }
 }
 
 /* ===========================================================

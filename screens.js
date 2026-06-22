@@ -14,25 +14,41 @@
   let current = 'title';
 
   function show(name) {
-    if (!SCREENS[name]) return;
-    current = name;
-    Object.keys(SCREENS).forEach((key) => {
-      const el = document.getElementById(SCREENS[key]);
-      if (!el) return;
-      const active = key === name;
-      el.classList.toggle('is-active', active);
-      el.setAttribute('aria-hidden', active ? 'false' : 'true');
-    });
-    document.body.dataset.screen = name;
+    if (!SCREENS[name] || name === current) return;
 
-    // The 3D canvas may have initialised at 0×0 while hidden — re-measure it.
-    if (name === 'game') {
-      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    const prevName = current;
+
+    // BrowserQuest / Phaser 패턴: 나가는 화면은 먼저 fade-out, 그 후 새 화면 진입
+    function commit() {
+      current = name;
+      Object.keys(SCREENS).forEach((key) => {
+        const el = document.getElementById(SCREENS[key]);
+        if (!el) return;
+        const active = key === name;
+        el.classList.remove('is-leaving');
+        el.classList.toggle('is-active', active);
+        el.setAttribute('aria-hidden', active ? 'false' : 'true');
+      });
+      document.body.dataset.screen = name;
+
+      // The 3D canvas may have initialised at 0×0 while hidden — re-measure it.
+      if (name === 'game') {
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+      }
+
+      const heading = document.getElementById(HEADINGS[name]);
+      if (heading) heading.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
     }
 
-    const heading = document.getElementById(HEADINGS[name]);
-    if (heading) heading.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    const prevEl = document.getElementById(SCREENS[prevName]);
+    if (prevEl && prevEl.classList.contains('is-active') && !reduceMotion) {
+      prevEl.classList.add('is-leaving');
+      setTimeout(commit, 185);
+    } else {
+      if (prevEl) prevEl.classList.remove('is-leaving');
+      commit();
+    }
   }
 
   // --- navigation buttons ([data-nav="title|game|settings"]) ---

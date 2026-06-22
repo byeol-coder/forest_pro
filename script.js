@@ -64,6 +64,11 @@ let areaGroup = null;
 let riverCrossed = false;
 let stageTransitioning = false;
 let exposurePulse = 0;
+// LittleJS 패턴: 수집 파티클 버스트 풀
+const _activeBursts = [];
+let _burstGlowTex = null;
+// Phaser 패턴: 카메라 쉐이크 상태
+const _camShake = { active: false, t: 0, dur: 0, intensity: 0 };
 let musicNodes = null;
 let musicOn = true;
 let audioUnlocked = false;
@@ -283,6 +288,42 @@ function makeGlowTexture() {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(c);
+}
+
+// LittleJS 패턴: 씨앗 수집 시 Three.js 파티클 버스트
+// 16개 점이 방사형으로 퍼지며 0.4초 동안 fade-out
+function burstCollect(wx, wy, wz) {
+  if (PREFERS_REDUCE || !scene) return;
+  const COUNT = 16;
+  const pos = new Float32Array(COUNT * 3);
+  const vel = [];
+  for (let i = 0; i < COUNT; i++) {
+    pos[i * 3] = wx; pos[i * 3 + 1] = wy; pos[i * 3 + 2] = wz;
+    const a = (i / COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    const sp = 0.04 + Math.random() * 0.08;
+    vel.push({ x: Math.cos(a) * sp, y: 0.05 + Math.random() * 0.07, z: Math.sin(a) * sp });
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (!_burstGlowTex) _burstGlowTex = makeGlowTexture();
+  const mat = new THREE.PointsMaterial({
+    map: _burstGlowTex, color: 0xffd97a, size: 2.4, sizeAttenuation: true,
+    transparent: true, opacity: 0.95,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.frustumCulled = false;
+  scene.add(pts);
+  _activeBursts.push({ pts, geo, mat, vel, life: 0 });
+}
+
+// Phaser 패턴: 일시적 카메라 쉐이크
+function shakeCamera(duration, intensity) {
+  if (PREFERS_REDUCE) return;
+  _camShake.active = true;
+  _camShake.t = 0;
+  _camShake.dur = duration || 0.35;
+  _camShake.intensity = intensity || 0.018;
 }
 
 // 현재 목표 위치(빛기둥/안내용): 숲 입구는 Pip→출구, 그 외는 잠금 해제된 출구.
@@ -1167,6 +1208,7 @@ function collectNearbyDotling(source = 'Input') {
   playCollect();
   exposurePulse = 0.35;
   bumpHud();
+  burstCollect(target.x, 1.2, target.z);  // LittleJS 패턴: 파티클 버스트
   checkMilestone();
   const sendPromise = syncTactileFrame('collect');
   sendPromise.then((result) => {
@@ -1175,6 +1217,7 @@ function collectNearbyDotling(source = 'Input') {
 
   if (gameState.items.every((item) => item.collected)) {
     announce('흩어진 빛을 모두 모았어요. 숲이 다시 환하게 깨어납니다!', true);
+    shakeCamera(0.5, 0.022);  // Phaser 패턴: 전체 수집 완료 카메라 쉐이크
   }
   return sendPromise;
 }
@@ -2073,6 +2116,35 @@ function animate() {
     if (lumiLight) {
       lumiLight.position.set(px, 3.2, pz);
       lumiLight.intensity = 0.4 + lf * 2.0;
+    }
+  }
+
+  // ── 수집 파티클 버스트 틱 (LittleJS 패턴) ──
+  for (let i = _activeBursts.length - 1; i >= 0; i--) {
+    const b = _activeBursts[i];
+    b.life += delta * 2.4;
+    if (b.life >= 1) {
+      scene.remove(b.pts); b.geo.dispose(); b.mat.dispose();
+      _activeBursts.splice(i, 1); continue;
+    }
+    const bp = b.geo.attributes.position.array;
+    for (let j = 0; j < b.vel.length; j++) {
+      bp[j * 3] += b.vel[j].x; bp[j * 3 + 1] += b.vel[j].y; bp[j * 3 + 2] += b.vel[j].z;
+      b.vel[j].y -= 0.003;
+    }
+    b.geo.attributes.position.needsUpdate = true;
+    b.mat.opacity = 0.95 * (1 - b.life * b.life);
+  }
+
+  // ── 카메라 쉐이크 (Phaser 패턴) — 카메라 lerp 이후 적용 ──
+  if (_camShake.active && camera) {
+    _camShake.t += delta;
+    if (_camShake.t >= _camShake.dur) {
+      _camShake.active = false;
+    } else {
+      const decay = 1 - _camShake.t / _camShake.dur;
+      camera.position.x += (Math.random() - 0.5) * _camShake.intensity * decay;
+      camera.position.y += (Math.random() - 0.5) * _camShake.intensity * 0.4 * decay;
     }
   }
 

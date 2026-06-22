@@ -313,6 +313,12 @@ lastSendHexLength: 0</pre>
             <!-- Web Speech API 음성 선택 -->
             <div class="tts-section" id="ttsSectionWebspeech">
               <label class="tts-section-title" for="ttsVoiceSelect">브라우저 음성</label>
+              <!-- 현재 선택 음성 표시 -->
+              <div class="tts-voice-info" id="ttsVoiceInfo" aria-live="polite">
+                <span class="tts-vi-label">선택 음성</span>
+                <span class="tts-vi-name" id="ttsVoiceName">불러오는 중…</span>
+                <span class="tts-vi-badge" id="ttsVoiceBadge"></span>
+              </div>
               <select id="ttsVoiceSelect" class="tts-voice-select" aria-label="TTS 음성 선택"></select>
               <div class="tts-panel-row">
                 <label for="ttsRateSlider">속도</label>
@@ -323,6 +329,11 @@ lastSendHexLength: 0</pre>
                 <label for="ttsPitchSlider">음높이</label>
                 <input type="range" class="tts-panel-slider" id="ttsPitchSlider" min="0.8" max="1.2" step="0.05" value="1.0" aria-label="TTS 음높이">
                 <span class="tts-panel-val" id="ttsPitchVal">1.0</span>
+              </div>
+              <div class="tts-panel-row">
+                <label for="ttsVolumeSlider">음량</label>
+                <input type="range" class="tts-panel-slider" id="ttsVolumeSlider" min="0" max="1" step="0.05" value="1.0" aria-label="TTS 음량">
+                <span class="tts-panel-val" id="ttsVolumeVal">1.0</span>
               </div>
             </div>
 

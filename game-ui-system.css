@@ -776,6 +776,58 @@ html.no-preview #dotpadCompact { display: block; }
 .tts-voice-select:focus { outline: 2px solid var(--st-gold); outline-offset: 2px; }
 .tts-voice-select option { background: #0c1610; color: #eef5ea; }
 
+/* 현재 선택 음성 표시 */
+.tts-voice-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.5rem;
+  margin-bottom: 0.4rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--ds-r-sm);
+  font-size: 0.6rem;
+  flex-wrap: wrap;
+  min-height: 1.7rem;
+}
+.tts-vi-label {
+  color: rgba(238, 245, 234, 0.45);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tts-vi-name {
+  color: rgba(238, 245, 234, 0.9);
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.tts-vi-badge {
+  flex-shrink: 0;
+  padding: 0.1rem 0.36rem;
+  border-radius: 20px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tts-vi-badge.ok {
+  background: rgba(63, 208, 128, 0.18);
+  color: var(--st-ok);
+  border: 1px solid rgba(63, 208, 128, 0.3);
+}
+.tts-vi-badge.warn {
+  background: rgba(245, 184, 75, 0.15);
+  color: var(--st-gold);
+  border: 1px solid rgba(245, 184, 75, 0.28);
+}
+.tts-vi-badge.fallback {
+  background: rgba(230, 80, 80, 0.15);
+  color: #f08080;
+  border: 1px solid rgba(230, 80, 80, 0.28);
+}
+
 /* TTS mode row (active engine indicator) */
 .tts-mode-row {
   display: flex;

@@ -67,11 +67,11 @@ const DYN_EN = {
   "흩어진 빛이 모두 제자리로 돌아왔어요. 숲이 환하게 깨어납니다.": "All the scattered light has returned to its place. The forest awakens bright.",
   "오른쪽에서 작고 높은 떨림이 느껴집니다. 가까워지고 있어요.": "A small, high tremor comes from the right. You're getting closer.",
   "Pip을 찾았어요!": "Found Pip!",
-  "오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.": "Head to the exit on the far right to move to the Berry Grove.",
-  "베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.": "The path to the Berry Grove has opened. Reach the far right to move on.",
+  "오른쪽으로 나아가면 베리 숲이 기다려요.": "Head right — the Berry Grove is waiting.",
+  "베리 숲으로 가는 길이 열렸어요. 오른쪽 끝까지 나아가 봐요.": "The path to the Berry Grove has opened. Keep going right.",
   "베리 3개를 모았어요!": "Gathered 3 berries!",
-  "위쪽 끝 출구로 가서 강가로 이동하세요.": "Head to the exit at the far top to move to the Riverside.",
-  "강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.": "The path to the Riverside has opened. Reach the far top to move on.",
+  "위쪽으로 올라가면 강가가 나와요.": "Head upward — the Riverside awaits.",
+  "강가로 가는 길이 열렸어요. 위쪽 끝까지 올라가 봐요.": "The path to the Riverside has opened. Keep going up.",
   "선택지": "Choices",
   "계속": "Continue"
 };
@@ -366,8 +366,8 @@ function checkChapter1() {
       questComplete('Pip을 찾았어요!');
       say(state.mission.completion_narration, 'assertive');
       window.setTimeout(() => {
-        setQuest('오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.');
-        say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite');
+        setQuest('오른쪽으로 나아가면 베리 숲이 기다려요.');
+        say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝까지 나아가 봐요.', 'polite');
       }, 1800);
     }), 1300);
   }
@@ -388,8 +388,8 @@ function checkChapter2() {
       state.companions.push('Bramble');
       renderParty();
       questComplete('베리 3개를 모았어요!');
-      window.setTimeout(() => setQuest('위쪽 끝 출구로 가서 강가로 이동하세요.'), 1800);
-      say('강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.', 'polite');
+      window.setTimeout(() => setQuest('위쪽으로 올라가면 강가가 나와요.'), 1800);
+      say('강가로 가는 길이 열렸어요. 위쪽 끝까지 올라가 봐요.', 'polite');
     }), 1500);
   }
 }

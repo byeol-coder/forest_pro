@@ -173,15 +173,19 @@
      4. TTS 설정 패널 (Web Speech + GPT-SoVITS)
      =========================================================== */
   function initTTSPanel() {
-    const rateSlider  = $('ttsRateSlider');
-    const rateVal     = $('ttsRateVal');
-    const pitchSlider = $('ttsPitchSlider');
-    const pitchVal    = $('ttsPitchVal');
-    const voiceSel    = $('ttsVoiceSelect');
-    const stopBtn     = $('ttsStopBtn');
-    const replayBtn   = $('ttsReplayBtn');
-    const modeLbl     = $('ttsModeLabel');
-    const modeDesc    = $('ttsModeDesc');
+    const rateSlider    = $('ttsRateSlider');
+    const rateVal       = $('ttsRateVal');
+    const pitchSlider   = $('ttsPitchSlider');
+    const pitchVal      = $('ttsPitchVal');
+    const volumeSlider  = $('ttsVolumeSlider');
+    const volumeVal     = $('ttsVolumeVal');
+    const voiceSel      = $('ttsVoiceSelect');
+    const voiceNameEl   = $('ttsVoiceName');
+    const voiceBadgeEl  = $('ttsVoiceBadge');
+    const stopBtn       = $('ttsStopBtn');
+    const replayBtn     = $('ttsReplayBtn');
+    const modeLbl       = $('ttsModeLabel');
+    const modeDesc      = $('ttsModeDesc');
 
     /* ---- 모드 상태 표시 ---- */
     function syncModeLabel(detail) {
@@ -198,6 +202,46 @@
       }
     }
     document.addEventListener('dotforest:tts-status', (e) => syncModeLabel(e.detail));
+
+    /* ---- 선택된 음성 이름 표시 ---- */
+    function updateVoiceInfo() {
+      const tts = window.DotForest && window.DotForest.tts;
+      if (!tts || !voiceNameEl) return;
+      const info = tts.getVoiceInfo();
+      if (!info.name) {
+        voiceNameEl.textContent = info.fallback ? '한국어 음성 없음' : '불러오는 중…';
+        if (voiceBadgeEl) {
+          voiceBadgeEl.textContent = info.fallback ? '⚠ fallback' : '';
+          voiceBadgeEl.className = 'tts-vi-badge' + (info.fallback ? ' fallback' : '');
+        }
+      } else {
+        voiceNameEl.textContent = info.name;
+        if (voiceBadgeEl) {
+          voiceBadgeEl.textContent = info.isKorean ? 'ko-KR ✓' : info.lang || '';
+          voiceBadgeEl.className = 'tts-vi-badge' + (info.isKorean ? ' ok' : ' warn');
+        }
+      }
+    }
+    document.addEventListener('dotforest:tts-voices-loaded', () => {
+      updateVoiceInfo();
+      /* repopulate dropdown too */
+      const tts = window.DotForest && window.DotForest.tts;
+      if (!tts || !voiceSel) return;
+      const voices = tts.getVoices();
+      const cur    = tts.getSelectedVoice();
+      const lang   = (window.DotForest && window.DotForest.lang) || 'ko';
+      const filt   = voices.filter(v => v.lang.startsWith(lang === 'en' ? 'en' : 'ko'));
+      voiceSel.innerHTML = '';
+      (filt.length ? filt : voices).forEach(v => {
+        const opt = document.createElement('option');
+        opt.value       = v.name;
+        opt.textContent = v.name + ' (' + v.lang + ')';
+        if (cur && v.name === cur.name) opt.selected = true;
+        voiceSel.appendChild(opt);
+      });
+    });
+    // also try immediately in case voices already loaded
+    setTimeout(updateVoiceInfo, 700);
 
     /* ---- Web Speech: 속도 슬라이더 ---- */
     if (rateSlider) {
@@ -233,6 +277,23 @@
       });
     }
 
+    /* ---- Web Speech: 음량 슬라이더 ---- */
+    if (volumeSlider) {
+      const loadVolume = () => {
+        const tts = window.DotForest && window.DotForest.tts;
+        const val = tts ? tts.getConfig().webspeech.volume : 1.0;
+        volumeSlider.value = typeof val === 'number' ? val : 1.0;
+        if (volumeVal) volumeVal.textContent = parseFloat(volumeSlider.value).toFixed(2);
+      };
+      setTimeout(loadVolume, 500);
+      volumeSlider.addEventListener('input', () => {
+        const v = parseFloat(volumeSlider.value);
+        if (volumeVal) volumeVal.textContent = v.toFixed(2);
+        const tts = window.DotForest && window.DotForest.tts;
+        if (tts) tts.setConfig({ webspeech: { volume: v } });
+      });
+    }
+
     /* ---- Web Speech: 음성 목록 ---- */
     if (voiceSel) {
       const populate = () => {
@@ -251,11 +312,13 @@
           if (cur && v.name === cur.name) opt.selected = true;
           voiceSel.appendChild(opt);
         });
+        updateVoiceInfo();
       };
       setTimeout(populate, 900);
       voiceSel.addEventListener('change', () => {
         const tts = window.DotForest && window.DotForest.tts;
         if (tts) tts.setVoiceByName(voiceSel.value);
+        updateVoiceInfo();
       });
       document.addEventListener('dotforest:lang', () => setTimeout(populate, 150));
     }

@@ -25,7 +25,7 @@
   'use strict';
 
   const STORE_KEY = 'dotforest.tts2';
-  const DEDUP_MS  = 350;   // 동일 텍스트 중복 발화 방지 (ms)
+  const DEDUP_MS  = 600;   // 동일 텍스트 중복 발화 방지 (ms)
   const CACHE_MAX = 12;    // 오디오 캐시 최대 항목 수
 
   /* ---- 기본 설정 ---- */
@@ -59,6 +59,7 @@
   let _queue         = [];
   let _lastText      = '';
   let _lastTime      = 0;
+  let _currentSpoken = '';  // 현재 발화 중인 텍스트 (중복 방지용)
   let _mode          = 'webspeech'; // 실제 사용 중인 모드
   const _cache       = new Map();   // text → AudioBuffer 캐시
 
@@ -330,8 +331,13 @@
   function loadVoices() {
     if (!('speechSynthesis' in window)) return;
     const populate = () => {
-      _voices = window.speechSynthesis.getVoices();
+      const list = window.speechSynthesis.getVoices();
+      if (!list.length) return; // not ready yet
+      _voices = list;
       _selectedVoice = pickBestVoice();
+      document.dispatchEvent(new CustomEvent('dotforest:tts-voices-loaded', {
+        detail: { voices: _voices, selected: _selectedVoice }
+      }));
     };
     populate();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -387,13 +393,19 @@
       u.lang   = curLang === 'en' ? 'en-US' : (cfg.webspeech.lang || 'ko-KR');
       u.rate   = cfg.webspeech.rate   || 0.92;
       u.pitch  = cfg.webspeech.pitch  || 1.0;
-      u.volume = cfg.webspeech.volume || 1.0;
+      u.volume = typeof cfg.webspeech.volume === 'number' ? cfg.webspeech.volume : 1.0;
 
       // lang이 바뀐 경우 음성 재선택
       if (!_selectedVoice || !_selectedVoice.lang.startsWith(curLang === 'en' ? 'en' : 'ko')) {
         _selectedVoice = pickBestVoice();
       }
-      if (_selectedVoice) u.voice = _selectedVoice;
+
+      if (_selectedVoice) {
+        u.voice = _selectedVoice;
+      } else {
+        // 한국어 음성 없음: lang만 설정하고 브라우저 기본값 사용
+        console.warn('[TTS] ko-KR 음성을 찾지 못했습니다. 브라우저 기본 음성으로 폴백합니다.');
+      }
 
       u.onend   = () => resolve();
       u.onerror = () => resolve();
@@ -412,6 +424,7 @@
     while (_queue.length) {
       const text = _queue.shift();
       if (!text) continue;
+      _currentSpoken = text;
       try {
         if (_mode === 'gptsovits') {
           await speakGPTSoVITS(cleanText(text));
@@ -429,6 +442,7 @@
       }
     }
 
+    _currentSpoken = '';
     _speaking = false;
     dispatchStatus();
   }
@@ -460,8 +474,16 @@
     speak(text, { priority = 'polite', force = false } = {}) {
       if (!text || !cfg.enabled) return;
       const now = Date.now();
-      // 빠른 중복 방지
-      if (!force && text === _lastText && now - _lastTime < DEDUP_MS) return;
+
+      if (!force) {
+        // 1) 동일 텍스트 빠른 중복 방지 (DEDUP_MS 내 재호출)
+        if (text === _lastText && now - _lastTime < DEDUP_MS) return;
+        // 2) 이미 큐에 대기 중인 텍스트 → 중복 추가 방지
+        if (_queue.includes(text)) return;
+        // 3) 현재 발화 중인 텍스트와 동일 → 스킵
+        if (_currentSpoken === text) return;
+      }
+
       _lastText = text;
       _lastTime = now;
 
@@ -483,6 +505,7 @@
     stop() {
       _queue = [];
       _speaking = false;
+      _currentSpoken = '';
       if (_currentSrc) { try { _currentSrc.stop(); } catch (e) {} _currentSrc = null; }
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       dispatchStatus();
@@ -524,16 +547,39 @@
     getSelectedVoice()  { return _selectedVoice; },
     setVoiceByName(name) {
       const v = _voices.find(v => v.name === name);
-      if (v) { _selectedVoice = v; cfg.webspeech.voice = name; saveCfg(); }
+      if (v) {
+        _selectedVoice = v;
+        cfg.webspeech.voice = name;
+        saveCfg();
+        document.dispatchEvent(new CustomEvent('dotforest:tts-voices-loaded', {
+          detail: { voices: _voices, selected: _selectedVoice }
+        }));
+      }
+    },
+
+    /* 현재 선택된 음성 정보 (UI 표시용) */
+    getVoiceInfo() {
+      const v = _selectedVoice;
+      if (!v) {
+        const koAvail = _voices.some(x => x.lang.startsWith('ko'));
+        return { name: null, lang: null, isKorean: false, fallback: !koAvail };
+      }
+      return {
+        name:      v.name,
+        lang:      v.lang,
+        isKorean:  v.lang.startsWith('ko'),
+        fallback:  false,
+      };
     },
 
     getStatus() {
       return {
-        mode:      _mode,
-        available: _gsvAvail,
-        speaking:  _speaking,
-        enabled:   cfg.enabled,
-        queueLen:  _queue.length,
+        mode:         _mode,
+        available:    _gsvAvail,
+        speaking:     _speaking,
+        enabled:      cfg.enabled,
+        queueLen:     _queue.length,
+        currentSpoken: _currentSpoken,
       };
     },
 

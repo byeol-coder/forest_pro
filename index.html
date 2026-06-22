@@ -187,7 +187,7 @@
 
         <aside class="tactile-dock dotpad-demo-panel" aria-labelledby="tactileTitle">
           <div class="dp-panel-hdr">
-            <h3 id="tactileTitle">DotPad 60×40<span class="td-sub">촉각 그래픽 · Tactile Graphics</span></h3>
+            <h3 id="tactileTitle">DotPad 60×40<span class="td-sub">촉각 그래픽</span></h3>
             <button type="button" class="dp-collapse-btn" id="dotpadPanelToggle"
                     aria-label="DotPad 패널 접기" aria-expanded="true">
               <svg class="dp-collapse-icon ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -195,9 +195,16 @@
                    aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
             </button>
           </div>
-          <div id="dotpadGameStatus" class="dotpad-game-status" role="status" aria-live="polite">
-            Waiting for DotPad connection / DotPad 연결 대기
+
+          <div class="dp-connect-row">
+            <button type="button" class="dotpad-connect" data-dotpad-action="connect">DotPad 연결</button>
+            <button type="button" class="dotpad-disconnect" data-dotpad-action="disconnect" disabled>해제</button>
+            <button type="button" class="dotpad-mock dp-mock-subtle" data-dotpad-action="mock" aria-pressed="false">모의 모드</button>
           </div>
+          <div id="dotpadGameStatus" class="dotpad-game-status" role="status" aria-live="polite">
+            DotPad 연결 대기
+          </div>
+
           <canvas id="tactileCanvas" width="600" height="400" aria-label="60×40 촉각 그래픽 프리뷰 캔버스"></canvas>
           <div class="legend" aria-hidden="true">
             <span><i class="dot player"></i>루미</span>
@@ -205,78 +212,6 @@
             <span><i class="dot hazard"></i>위험</span>
             <span><i class="dot path"></i>경계·길</span>
             <span><i class="dot obstacle"></i>장애물</span>
-          </div>
-
-          <div class="dotpad-panel-section">
-            <h4>Connection / 연결</h4>
-            <div class="dotpad-panel-actions">
-              <button type="button" class="dotpad-connect" data-dotpad-action="connect">Connect DotPad / 연결</button>
-              <button type="button" class="dotpad-disconnect" data-dotpad-action="disconnect" disabled>Disconnect / 해제</button>
-              <button type="button" class="dotpad-mock" data-dotpad-action="mock" aria-pressed="false">Demo / Mock Mode</button>
-              <button type="button" class="dotpad-resend" data-dotpad-action="resend">Resend Current Frame / 현재 프레임</button>
-            </div>
-          </div>
-
-          <div class="dotpad-panel-section">
-            <h4>Test Tactile Output / 촉각 출력 테스트</h4>
-            <div class="dotpad-pattern-grid">
-              <button type="button" data-dotpad-pattern="all-up">All pins up</button>
-              <button type="button" data-dotpad-pattern="all-down">All pins down</button>
-              <button type="button" data-dotpad-pattern="border-origin">Border + origin</button>
-              <button type="button" data-dotpad-pattern="center-cross">Center cross</button>
-              <button type="button" data-dotpad-pattern="player-only">Player marker only</button>
-              <button type="button" data-dotpad-pattern="current-game">Current game frame</button>
-              <button type="button" data-dotpad-pattern="success-animation">Success animation</button>
-            </div>
-          </div>
-
-          <div class="dotpad-panel-section">
-            <h4>Mock Physical Keys / 모의 물리키</h4>
-            <div class="dotpad-mock-key-grid">
-              <button type="button" data-mock-key="PanningLeft">PanningLeft · Left</button>
-              <button type="button" data-mock-key="PanningRight">PanningRight · Right</button>
-              <button type="button" data-mock-key="LPF1">LPF1 · Up</button>
-              <button type="button" data-mock-key="RPF4">RPF4 · Down</button>
-              <button type="button" data-mock-key="KeyFunction12">F1+F2 · Collect</button>
-              <button type="button" data-mock-key="PanningAll">PanningAll · Resend</button>
-              <button type="button" data-mock-key="KeyFunction1">F1 · Position</button>
-              <button type="button" data-mock-key="KeyFunction2">F2 · Around</button>
-              <button type="button" data-mock-key="KeyFunction3">F3 · Mission</button>
-              <button type="button" data-mock-key="KeyFunction4">F4 · Map + resend</button>
-            </div>
-          </div>
-
-          <div class="dotpad-panel-section guided-demo">
-            <div class="dotpad-section-heading">
-              <h4>Guided Demo / 시연 순서</h4>
-              <button type="button" id="guidedDemoNext" class="guided-next">Next Step / 다음</button>
-            </div>
-            <ol id="guidedDemoSteps">
-              <li><button type="button" data-demo-step="1">1. Connect DotPad</button></li>
-              <li><button type="button" data-demo-step="2">2. Send test pattern</button></li>
-              <li><button type="button" data-demo-step="3">3. Show tactile map</button></li>
-              <li><button type="button" data-demo-step="4">4. Move Lumi with panning keys</button></li>
-              <li><button type="button" data-demo-step="5">5. Use F1 / F2 / F3 / F4</button></li>
-              <li><button type="button" data-demo-step="6">6. Find Dotling</button></li>
-              <li><button type="button" data-demo-step="7">7. Collect Dotling</button></li>
-              <li><button type="button" data-demo-step="8">8. Success tactile animation</button></li>
-            </ol>
-          </div>
-
-          <div class="dotpad-panel-section">
-            <h4>Debug Key Log / 물리키 로그</h4>
-            <div id="dotpadKeyStatus" class="dotpad-key-status">Physical key received: —</div>
-            <ol id="dotpadInputLog" class="dotpad-input-log" aria-live="polite">
-              <li>Demo console ready / 데모 콘솔 준비</li>
-            </ol>
-          </div>
-
-          <div class="dotpad-panel-section">
-            <h4>Send Diagnostics / 전송 진단</h4>
-            <div id="dotpadSendStatus" class="dotpad-send-status">Waiting for DotPad connection</div>
-            <pre id="dotpadDebugStatus" class="dotpad-debug-status">connectionState: disconnected
-lastSendStatus: idle
-lastSendHexLength: 0</pre>
           </div>
         </aside>
 

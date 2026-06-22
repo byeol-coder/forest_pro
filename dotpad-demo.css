@@ -8,24 +8,44 @@
   overflow: auto;
 }
 
-#screen-game .dotpad-demo-panel .dotpad-panel-actions button,
-#screen-game .dotpad-demo-panel .dotpad-pattern-grid button,
-#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button,
-#screen-game .dotpad-demo-panel .guided-demo button {
+/* 연결 행 */
+#screen-game .dotpad-demo-panel .dp-connect-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem 0;
+  flex-wrap: wrap;
+}
+
+#screen-game .dotpad-demo-panel .dp-connect-row button {
   background: rgba(255, 255, 255, 0.1);
   color: #f2f6ee;
   border: 1px solid rgba(255, 255, 255, 0.17);
   box-shadow: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-#screen-game .dotpad-demo-panel .dotpad-panel-actions button:hover,
-#screen-game .dotpad-demo-panel .dotpad-pattern-grid button:hover,
-#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button:hover,
-#screen-game .dotpad-demo-panel .guided-demo button:hover {
+#screen-game .dotpad-demo-panel .dp-connect-row button:hover {
   background: rgba(255, 255, 255, 0.18);
 }
 
+#screen-game .dotpad-demo-panel .dp-connect-row button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 모의 모드 버튼 — 기본은 흐리게, 활성 시 강조 */
+#screen-game .dotpad-demo-panel .dp-mock-subtle {
+  opacity: 0.55;
+  font-size: 0.72rem;
+}
+
 #screen-game .dotpad-demo-panel .dotpad-mock[aria-pressed="true"] {
+  opacity: 1;
   color: #2c220d;
   background: linear-gradient(180deg, #ffe39a, #f5b84b);
 }

@@ -573,29 +573,30 @@
      DotPad panel collapse toggle
      =========================================================== */
   function initDotpadPanelCollapse() {
-    const btn = $('dotpadPanelToggle');
-    const panel = btn && btn.closest('.tactile-dock');
-    if (!btn || !panel) return;
+    const closeBtn = $('dotpadPanelToggle');
+    const hudBtn = $('dotpadHudToggle');
+    const panel = closeBtn && closeBtn.closest('.tactile-dock');
+    if (!closeBtn || !panel) return;
 
-    btn.addEventListener('click', () => {
-      const willCollapse = !panel.classList.contains('is-collapsed');
-      panel.classList.toggle('is-collapsed', willCollapse);
-      btn.setAttribute('aria-expanded', String(!willCollapse));
-      btn.setAttribute('aria-label', willCollapse ? 'DotPad 패널 펼치기' : 'DotPad 패널 접기');
+    closeBtn.addEventListener('click', () => {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+      if (hudBtn) hudBtn.setAttribute('aria-expanded', 'false');
     });
   }
 
   /* ===========================================================
-     DotPad HUD actions collapse toggle
+     DotPad HUD 버튼 → 손끝 지도 드로어 열기/닫기
      =========================================================== */
   function initDotpadHudToggle() {
     const btn = $('dotpadHudToggle');
-    const actions = $('dotpadHudActions');
-    if (!btn || !actions) return;
+    const panel = document.querySelector('.tactile-dock.dotpad-demo-panel');
+    if (!btn || !panel) return;
 
     btn.addEventListener('click', () => {
-      const isOpen = !actions.hidden;
-      actions.hidden = isOpen;
+      const isOpen = panel.classList.contains('is-open');
+      panel.classList.toggle('is-open', !isOpen);
+      panel.setAttribute('aria-hidden', String(isOpen));
       btn.setAttribute('aria-expanded', String(!isOpen));
     });
   }

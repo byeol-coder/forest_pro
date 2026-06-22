@@ -185,28 +185,32 @@
 
         <button type="button" id="voiceButton" class="voice-btn" aria-label="음성 명령 시작"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>음성</span></button>
 
-        <aside class="tactile-dock dotpad-demo-panel" aria-labelledby="tactileTitle">
-          <div class="dp-panel-hdr">
-            <h3 id="tactileTitle">DotPad 60×40<span class="td-sub">촉각 그래픽</span></h3>
-            <button type="button" class="dp-collapse-btn" id="dotpadPanelToggle"
-                    aria-label="DotPad 패널 접기" aria-expanded="true">
-              <svg class="dp-collapse-icon ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                   aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+        <aside class="tactile-dock dotpad-demo-panel" aria-label="손끝 지도" aria-hidden="true">
+          <div class="dp-hdr">
+            <div class="dp-hdr-left">
+              <span class="dp-hdr-title">손끝 지도</span>
+              <span class="dp-hdr-badge">60 × 40</span>
+            </div>
+            <button type="button" id="dotpadPanelToggle" class="dp-close-btn" aria-label="닫기">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
             </button>
           </div>
 
           <div class="dp-connect-row">
-            <button type="button" class="dotpad-connect" data-dotpad-action="connect">DotPad 연결</button>
-            <button type="button" class="dotpad-disconnect" data-dotpad-action="disconnect" disabled>해제</button>
-            <button type="button" class="dotpad-mock dp-mock-subtle" data-dotpad-action="mock" aria-pressed="false">모의 모드</button>
-          </div>
-          <div id="dotpadGameStatus" class="dotpad-game-status" role="status" aria-live="polite">
-            DotPad 연결 대기
+            <div id="dotpadGameStatus" class="dp-status" role="status" aria-live="polite">연결 대기</div>
+            <div class="dp-conn-btns">
+              <button type="button" class="dotpad-connect dp-btn-connect" data-dotpad-action="connect">연결</button>
+              <button type="button" class="dotpad-disconnect dp-btn-ghost" data-dotpad-action="disconnect" disabled>해제</button>
+              <button type="button" class="dotpad-mock dp-btn-ghost" data-dotpad-action="mock" aria-pressed="false">모의 모드</button>
+            </div>
           </div>
 
           <canvas id="tactileCanvas" width="600" height="400" aria-label="60×40 촉각 그래픽 프리뷰 캔버스"></canvas>
-          <div class="legend" aria-hidden="true">
+
+          <div class="legend dp-legend" aria-hidden="true">
             <span><i class="dot player"></i>루미</span>
             <span><i class="dot item"></i>도트링</span>
             <span><i class="dot hazard"></i>위험</span>

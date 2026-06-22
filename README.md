@@ -49,12 +49,14 @@ python3 -m http.server 8080
 |---|---|
 | 방향키 / WASD / D-pad | 루미 이동 |
 | DotPad `PanningLeft` / `PanningRight` | 좌 / 우 이동 |
-| DotPad `LPF1` / `RPF4` | 상 / 하 이동 |
-| DotPad `KeyFunction12`·`34` 등 조합키 | 도트링 수집 / 상호작용 |
-| DotPad `PanningAll` | 현재 촉각 프레임 재전송 |
+| DotPad `F1` / `F2` | 앞 / 뒤 이동 (규격 §6 — 단순 키) |
+| DotPad `F3` | 도트링 수집 / 상호작용 |
+| DotPad `F4` | 촉각 지도 안내 + 재전송 |
+| DotPad `PanningAll` | 주변 음성 안내 |
+| (보조) `LPF1`/`RPF4`, `F12`~`F34` 조합키 | 상·하 이동 / 수집 (backward-compat) |
 | `Enter` · `Space` · "먹기" 버튼 | 도트링 수집 / 상호작용 |
 | 음성: "앞으로 · 뒤로 · 왼쪽 · 오른쪽 · 먹기" | 이동 / 수집 |
-| `1` / `2` / `3` / `4` (DotPad `F1`~`F4`) | 위치 · 주변 · 미션 · 촉각 지도 안내 듣기 |
+| `1` / `2` / `3` / `4` 키 또는 화면 버튼 | 위치 · 주변 · 미션 · 촉각 지도 안내 듣기 |
 
 ## 접근성 기능
 

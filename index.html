@@ -77,7 +77,7 @@
               <li>
                 <button type="button" class="gm-btn dotpad-connect" data-dotpad-action="connect" aria-label="Lumi의 촉각 지도 — DotPad 연결">
                   <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="5" height="5" rx="1"/><rect x="9.5" y="3" width="5" height="5" rx="1"/><rect x="17" y="3" width="5" height="5" rx="1"/><rect x="2" y="10.5" width="5" height="5" rx="1"/><rect x="9.5" y="10.5" width="5" height="5" rx="1"/><rect x="17" y="10.5" width="5" height="5" rx="1"/><rect x="2" y="18" width="5" height="5" rx="1"/><rect x="9.5" y="18" width="5" height="5" rx="1"/><rect x="17" y="18" width="5" height="5" rx="1"/></svg>
-                  <span class="gm-btn-label">Lumi의 촉각 지도</span>
+                  <span class="gm-btn-label">루미의 촉각 지도</span>
                 </button>
               </li>
               <li>
@@ -705,7 +705,7 @@
 
   /* ----- shared language state (the narrative engine reads window.DotForest.lang) ----- */
   const KEY = "dotforest.lang";
-  let cur = "en";
+  let cur = "ko";
   try { const s = localStorage.getItem(KEY); if (s === "en" || s === "ko") cur = s; } catch (e) {}
   window.DotForest = window.DotForest || {};
   window.DotForest.lang = cur;

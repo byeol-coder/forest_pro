@@ -154,8 +154,7 @@
   color: rgba(205, 238, 190, 0.88);
   font-size: 0.92rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
   text-align: left;
 
@@ -308,8 +307,11 @@
    4. HUD — 게임 바 재설계
 ================================================================ */
 
-/* HUD 바 전체: 더 얇고 어두운 시네마틱 스트립 */
+/* HUD 바 전체: 얇고 어두운 시네마틱 스트립 — 고정 높이로 팽창 방지 */
 #screen-game .hud {
+  height: 3.4rem !important;
+  min-height: unset !important;
+  align-items: center !important;
   background: linear-gradient(180deg,
     rgba(6, 12, 8, 0.88) 0%,
     rgba(6, 12, 8, 0.72) 100%
@@ -320,8 +322,13 @@
   box-shadow:
     0 1px 0 rgba(100, 200, 100, 0.06),
     0 4px 24px rgba(0, 0, 0, 0.45) !important;
-  padding: 0 1rem !important;
-  min-height: 3.2rem !important;
+  padding: 0 0.9rem !important;
+  overflow: visible !important;
+}
+#screen-game .hud-left,
+#screen-game .hud-right {
+  height: auto !important;
+  align-self: center !important;
 }
 
 /* 홈 버튼 — 작고 은은하게 */
@@ -336,24 +343,31 @@
 }
 #screen-game .hud .icon-btn[data-nav="title"]:hover { opacity: 1; }
 
-/* 챕터 배지 — 게임 스타일 */
+/* 챕터 배지 — 한 줄 인라인 스타일 */
 #screen-game .chapter-badge {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 0.35rem !important;
   background: rgba(255,255,255,0.04) !important;
   border: 1px solid rgba(100,180,100,0.14) !important;
   border-radius: 0.4rem !important;
-  padding: 0.2rem 0.7rem !important;
+  padding: 0.22rem 0.65rem !important;
   box-shadow: none !important;
+  white-space: nowrap;
 }
 #screen-game .ch-label {
-  font-size: 0.58rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 0.55rem !important;
+  letter-spacing: 0.08em;
   color: var(--df-ink-muted) !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
 }
 #screen-game .ch-name {
-  font-size: 0.8rem !important;
+  font-size: 0.82rem !important;
   font-weight: 700;
   color: var(--df-ink) !important;
+  text-transform: none !important;
 }
 
 /* 수집 카운터 — 골드 + 작은 크기 */
@@ -395,8 +409,10 @@
   border-color: rgba(100,200,100,0.3) !important;
 }
 
-/* DotPad HUD 클러스터 — 미니멀 칩 */
+/* DotPad HUD 클러스터 — 미니멀 칩, 높이 자동 (HUD 팽창 방지) */
 #screen-game .dotpad-hud-cluster {
+  height: auto !important;
+  align-self: center !important;
   background: rgba(255,255,255,0.04) !important;
   border: 1px solid rgba(100,180,100,0.18) !important;
   border-radius: 2rem !important;
@@ -481,9 +497,11 @@
 
 
 /* ================================================================
-   5. 정보 듣기 키 (1·2·3·4) — 게임 HUD 탭 스타일
+   5. 정보 듣기 키 (1·2·3·4) — HUD 바로 아래 (gap 0.2rem)
+   HUD bottom = 1.1rem + 3.4rem = 4.5rem → 4.7rem
 ================================================================ */
 #screen-game .info-keys {
+  top: 4.7rem !important;
   background: rgba(6, 12, 8, 0.72) !important;
   border: 1px solid rgba(72, 140, 72, 0.18) !important;
   border-radius: 2rem !important;
@@ -539,9 +557,11 @@
 
 
 /* ================================================================
-   6. 미션/퀘스트 패널
+   6. 미션/퀘스트 패널 — info-keys 아래 (info-keys: 4.7rem + ~2.25rem height)
 ================================================================ */
 #screen-game .quest {
+  top: 7.4rem !important;
+  padding: 0.45rem 1rem !important;
   background: linear-gradient(135deg,
     rgba(18, 36, 22, 0.88) 0%,
     rgba(10, 20, 12, 0.92) 100%
@@ -554,7 +574,6 @@
     inset 0 1px 0 rgba(255,255,255,0.05) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
-  padding: 0.55rem 1rem !important;
 }
 #screen-game .quest-eyebrow {
   color: var(--df-gold) !important;

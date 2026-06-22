@@ -1,0 +1,294 @@
+/* ============================================================
+   Dot Forest — Partner Presentation Polish Layer v1
+   외부 파트너 발표용 마감 레이어
+
+   Load order: LAST (after dotpad-demo.css)
+   Strategy: layer-only overrides — never modifies game logic.
+   ============================================================ */
+
+/* =============================================
+   1. Viewport height — dvh (mobile URL-bar safe)
+   ============================================= */
+
+/* Override 100vh in screens.css for browsers that support dvh */
+@supports (height: 100dvh) {
+  #screen-title .stage--title {
+    height: 100dvh;
+  }
+  /* Game stage: dvh so the bottom controls aren't clipped behind URL bar */
+  #screen-game .stage--game {
+    height: min(92dvh, 1100px);
+  }
+}
+
+/* =============================================
+   2. Info keys (1-4) — tactile press feedback
+   ============================================= */
+
+#screen-game .info-keys button {
+  transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+#screen-game .info-keys button:active {
+  transform: scale(0.93);
+}
+
+/* =============================================
+   5. Quest panel — "new quest" bounce
+   ============================================= */
+
+@keyframes rfQuestNew {
+  0%   { transform: translateX(-50%) scale(0.9); opacity: 0; }
+  55%  { transform: translateX(-50%) scale(1.04); }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+#screen-game .quest.is-new {
+  animation: rfQuestNew 0.36s cubic-bezier(0.22, 0.9, 0.36, 1) both;
+}
+
+/* =============================================
+   6. D-pad — cleaner press feedback
+   ============================================= */
+
+#screen-game .dpad button:not(.dpad-eat) {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* =============================================
+   7. Collect button — more inviting glow
+   ============================================= */
+
+#screen-game .dpad-eat {
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+/* =============================================
+   8. HUD icon buttons — micro-interaction
+   ============================================= */
+
+#screen-game .icon-btn {
+  transition: transform 0.12s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+#screen-game .icon-btn:active {
+  transform: scale(0.9);
+}
+
+/* =============================================
+   9. Title screen — DotPad status badge pop
+   ============================================= */
+
+/* Pulse connected state for visual clarity */
+.intro-controls .state-pill.connected {
+  animation: rfPillPulse 2s ease-in-out infinite;
+}
+@keyframes rfPillPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 208, 128, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(63, 208, 128, 0.22); }
+}
+
+/* =============================================
+   10. HUD DotPad cluster — actions toggle
+   ============================================= */
+
+/* Wraps the state pill + toggle button in a flex row */
+.dotpad-hud-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  flex-wrap: nowrap;
+}
+
+/* The inline toggle button (▼ / ▲) */
+.dotpad-hud-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.28rem 0.44rem 0.28rem 0.52rem;
+  border-radius: 8px;
+  background: rgba(18, 28, 22, 0.80);
+  color: rgba(242, 246, 238, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.6rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+}
+.dotpad-hud-toggle:hover {
+  background: rgba(38, 60, 44, 0.96);
+  color: #f2f6ee;
+}
+.dotpad-hud-toggle:focus-visible {
+  outline: 2px solid rgba(245, 184, 75, 0.85);
+  outline-offset: 2px;
+}
+.dotpad-hud-toggle-arrow {
+  width: 0.65rem;
+  height: 0.65rem;
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.dotpad-hud-toggle[aria-expanded="true"] .dotpad-hud-toggle-arrow {
+  transform: rotate(180deg);
+}
+
+/* Hidden HUD actions when toggled closed */
+#dotpadHudActions[hidden] {
+  display: none !important;
+}
+#dotpadHudActions:not([hidden]) {
+  margin-top: 0.22rem;
+}
+
+/* =============================================
+   11. Focus ring — partner-demo visibility
+   ============================================= */
+
+/* More visible gold focus ring across game screen */
+#screen-game *:focus-visible,
+#helpOverlay *:focus-visible,
+#resultOverlay *:focus-visible {
+  outline-color: rgba(245, 184, 75, 0.92);
+  outline-width: 2.5px;
+}
+
+/* =============================================
+   12. Result overlay — stat values bolder
+   ============================================= */
+
+.result-stat-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* =============================================
+   13. Chapter badge — pop-in
+   ============================================= */
+
+@keyframes rfChapterIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+#screen-game .chapter-badge.is-new {
+  animation: rfChapterIn 0.3s cubic-bezier(0.22, 0.9, 0.36, 1) both;
+}
+
+/* =============================================
+   Wow-factor: Minimal HUD by default
+   ─────────────────────────────────────────────
+   Strategy: hide distracting controls from the
+   default game view. Everything stays accessible
+   via Help overlay or the DotPad ▾ toggle.
+   ============================================= */
+
+/* ---- Hide low-priority HUD icons by default ---- */
+/* Fullscreen and settings are rarely needed mid-game.
+   Use #fullscreenBtn (not aria-label) — JS translates aria-label to English at runtime. */
+#screen-game #fullscreenBtn,
+#screen-game .hud-right .icon-btn[data-nav="settings"] {
+  display: none;
+}
+
+/* ---- Quest panel: drop the label, amplify the text ---- */
+/* "현재 임무" label is obvious — removing it saves vertical space */
+#screen-game .quest-eyebrow {
+  display: none;
+}
+#screen-game .quest {
+  /* slightly less vertical padding since eyebrow is gone */
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+#screen-game .quest-text {
+  font-size: 0.96rem;
+}
+
+/* ---- Live status: game narrator feel, not status bar ---- */
+#screen-game .live-status {
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ---- DotPad mirror pill: compact in default HUD ---- */
+#screen-game .state-pill.dotpad-mirror {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.61rem;
+}
+
+/* ---- Info keys: slightly subtle; reveal on hover ---- */
+#screen-game .info-keys {
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+#screen-game .info-keys:hover,
+#screen-game .info-keys:focus-within {
+  opacity: 1;
+}
+
+/* ---- Start screen: simpler intro-controls ---- */
+/* Disconnect (disabled anyway) and test buttons add noise */
+.intro-controls .dotpad-disconnect,
+.intro-controls .dotpad-test {
+  display: none;
+}
+
+/* ---- DotPad panel "tactile map" feel ---- */
+/* Give the panel a warm glow border when connected */
+#screen-game .tactile-dock.dotpad-connected {
+  border-color: rgba(63, 208, 128, 0.38);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(63, 208, 128, 0.22);
+}
+
+/* Canvas gets a subtle green tint border when DotPad is live */
+#screen-game .tactile-dock.dotpad-connected #tactileCanvas {
+  border-color: rgba(63, 208, 128, 0.44);
+}
+
+/* ---- Mission toast: pop a little more ---- */
+#screen-game .mission-toast {
+  font-size: 1rem;
+}
+
+/* ---- HUD left cluster: tighter spacing ---- */
+#screen-game .hud-left {
+  gap: 0.4rem;
+}
+
+/* ---- Zone banner: warm entrance feel ---- */
+#screen-game .zone-banner {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+/* =============================================
+   14. Reduced motion overrides
+   ============================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-collapse-icon,
+  .dotpad-hud-toggle-arrow {
+    transition: none;
+  }
+  .tactile-dock.is-collapsed .dp-collapse-icon {
+    transform: none;
+  }
+  #screen-game .quest.is-new,
+  #screen-game .chapter-badge.is-new,
+  .intro-controls .state-pill.connected {
+    animation: none;
+  }
+  #screen-game .info-keys button,
+  #screen-game .icon-btn,
+  #screen-game .dpad button:not(.dpad-eat),
+  #screen-game .dpad-eat {
+    transition: none;
+  }
+}

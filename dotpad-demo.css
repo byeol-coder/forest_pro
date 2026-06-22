@@ -1,47 +1,188 @@
-/* Loaded last so the hardware demo console keeps its layout over the visual theme. */
+/* ================================================================
+   손끝 지도 드로어
+   항상 우측 고정, 기본 숨김 → HUD 버튼 클릭 시 is-open 슬라이드인
+================================================================ */
 #screen-game .tactile-dock.dotpad-demo-panel {
-  top: 8.6rem;
-  right: 1.1rem;
-  bottom: 1rem;
-  width: min(25rem, calc(100vw - 2.2rem));
-  max-height: none;
-  overflow: auto;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(22rem, 90vw);
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* 숲 다크 테마 — premium.css glass 완전 덮어쓰기 */
+  background: linear-gradient(170deg, #132016 0%, #0a1509 65%, #060e07 100%);
+  border-left: 1px solid rgba(72, 140, 72, 0.22);
+  box-shadow: -10px 0 50px rgba(0, 0, 0, 0.7),
+              inset 1px 0 0 rgba(100, 200, 100, 0.04);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
+
+  /* 기본: 화면 밖 */
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              visibility 0s 0.3s;
+  z-index: 300;
 }
 
-#screen-game .dotpad-demo-panel .dotpad-panel-actions button,
-#screen-game .dotpad-demo-panel .dotpad-pattern-grid button,
-#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button,
-#screen-game .dotpad-demo-panel .guided-demo button {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f2f6ee;
-  border: 1px solid rgba(255, 255, 255, 0.17);
+#screen-game .tactile-dock.dotpad-demo-panel.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              visibility 0s 0s;
+}
+
+/* ---- 헤더 ---- */
+.dp-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0.9rem 0.8rem;
+  border-bottom: 1px solid rgba(72, 140, 72, 0.16);
+  position: sticky;
+  top: 0;
+  background: linear-gradient(170deg, #132016, #0a1509);
+  z-index: 1;
+}
+.dp-hdr-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.dp-hdr-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #bce4b0;
+  letter-spacing: -0.01em;
+}
+.dp-hdr-badge {
+  font-size: 0.6rem;
+  color: rgba(150, 205, 130, 0.38);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* ---- 닫기(X) 버튼 ---- */
+.dp-close-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: rgba(170, 210, 155, 0.5);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: background 0.14s, color 0.14s;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+.dp-close-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: #bce4b0;
+}
+.dp-close-btn:focus-visible {
+  outline: 2px solid rgba(245, 184, 75, 0.8);
+  outline-offset: 2px;
+}
+.dp-close-btn svg {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+/* ---- 연결 행 ---- */
+.dp-connect-row {
+  padding: 0.6rem 0.9rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+.dp-status {
+  font-size: 0.68rem;
+  color: rgba(150, 195, 135, 0.45);
+  letter-spacing: 0.01em;
+}
+.dp-status.connected {
+  color: #68c076;
+}
+.dp-conn-btns {
+  display: flex;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+}
+.dp-btn-connect {
+  background: linear-gradient(180deg, #2e5835, #21412a);
+  color: #cde8c3;
+  border: 1px solid rgba(72, 150, 72, 0.28);
+  padding: 0.3rem 0.9rem;
+  border-radius: 0.38rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
   box-shadow: none;
 }
-
-#screen-game .dotpad-demo-panel .dotpad-panel-actions button:hover,
-#screen-game .dotpad-demo-panel .dotpad-pattern-grid button:hover,
-#screen-game .dotpad-demo-panel .dotpad-mock-key-grid button:hover,
-#screen-game .dotpad-demo-panel .guided-demo button:hover {
-  background: rgba(255, 255, 255, 0.18);
+.dp-btn-connect:hover {
+  background: linear-gradient(180deg, #3a6e42, #2a5235);
 }
-
+.dp-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(180, 220, 165, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.3rem 0.72rem;
+  border-radius: 0.38rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: none;
+}
+.dp-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dp-btn-ghost:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
 #screen-game .dotpad-demo-panel .dotpad-mock[aria-pressed="true"] {
-  color: #2c220d;
-  background: linear-gradient(180deg, #ffe39a, #f5b84b);
+  background: linear-gradient(180deg, #ffe39a, #f5b84b) !important;
+  color: #2c220d !important;
+  border-color: rgba(245, 184, 75, 0.4) !important;
+  opacity: 1 !important;
 }
 
-@media (max-width: 1040px) {
-  #screen-game .tactile-dock.dotpad-demo-panel {
-    width: min(22rem, calc(100vw - 2.2rem));
-  }
+/* ---- 캔버스 ---- */
+#screen-game .dotpad-demo-panel #tactileCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-top: 1px solid rgba(72, 140, 72, 0.12);
+  border-bottom: 1px solid rgba(72, 140, 72, 0.12);
+  border-radius: 0;
 }
 
+/* ---- 범례 ---- */
+#screen-game .dotpad-demo-panel .dp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.22rem 0.6rem;
+  padding: 0.55rem 0.9rem 1.4rem;
+  color: rgba(148, 192, 133, 0.5);
+  font-size: 0.68rem;
+}
+#screen-game .dotpad-demo-panel .dp-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+/* ---- 반응형 ---- */
 @media (max-width: 720px) {
   #screen-game .tactile-dock.dotpad-demo-panel {
-    display: block;
-    top: 10.5rem;
-    right: 0.65rem;
-    bottom: 8.8rem;
-    width: min(19rem, calc(100vw - 1.3rem));
+    width: 100vw;
   }
 }

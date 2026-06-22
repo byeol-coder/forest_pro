@@ -67,11 +67,11 @@ const DYN_EN = {
   "흩어진 빛이 모두 제자리로 돌아왔어요. 숲이 환하게 깨어납니다.": "All the scattered light has returned to its place. The forest awakens bright.",
   "오른쪽에서 작고 높은 떨림이 느껴집니다. 가까워지고 있어요.": "A small, high tremor comes from the right. You're getting closer.",
   "Pip을 찾았어요!": "Found Pip!",
-  "오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.": "Head to the exit on the far right to move to the Berry Grove.",
-  "베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.": "The path to the Berry Grove has opened. Reach the far right to move on.",
+  "오른쪽으로 나아가면 베리 숲이 기다려요.": "Head right — the Berry Grove is waiting.",
+  "베리 숲으로 가는 길이 열렸어요. 오른쪽 끝까지 나아가 봐요.": "The path to the Berry Grove has opened. Keep going right.",
   "베리 3개를 모았어요!": "Gathered 3 berries!",
-  "위쪽 끝 출구로 가서 강가로 이동하세요.": "Head to the exit at the far top to move to the Riverside.",
-  "강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.": "The path to the Riverside has opened. Reach the far top to move on.",
+  "위쪽으로 올라가면 강가가 나와요.": "Head upward — the Riverside awaits.",
+  "강가로 가는 길이 열렸어요. 위쪽 끝까지 올라가 봐요.": "The path to the Riverside has opened. Keep going up.",
   "선택지": "Choices",
   "계속": "Continue"
 };
@@ -145,7 +145,7 @@ function ensureLiveRegions() {
   }
 }
 
-/* ---------- say: aria-live + optional TTS ---------- */
+/* ---------- say: aria-live + TTS (engine v2 or Web Speech fallback) ---------- */
 function say(text, priority = 'polite') {
   if (!text) return;
   text = tr(text);
@@ -155,12 +155,20 @@ function say(text, priority = 'polite') {
     requestAnimationFrame(() => { region.textContent = text; });
   }
   const embedMuted = !!(window.DotForest && window.DotForest.bridge && window.DotForest.bridge.muted);
-  if (state.settings.ttsEnabled && !embedMuted && 'speechSynthesis' in window) {
+  if (!state.settings.ttsEnabled || embedMuted) return;
+  // tts-engine.js 우선 사용 (GPT-SoVITS or Web Speech with voice selection)
+  const ttsEng = window.DotForest && window.DotForest.tts;
+  if (ttsEng) {
+    ttsEng.speak(text, { priority });
+    return;
+  }
+  // 폴백: 기본 Web Speech API
+  if ('speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = curLang() === 'en' ? 'en-US' : (state.settings.ttsLang || 'ko-KR');
-      u.rate = state.settings.ttsRate;
+      u.lang  = curLang() === 'en' ? 'en-US' : (state.settings.ttsLang || 'ko-KR');
+      u.rate  = state.settings.ttsRate || 1.0;
       window.speechSynthesis.speak(u);
     } catch (e) {}
   }
@@ -181,14 +189,18 @@ function describeSurroundings() {
 }
 function describeMission() {
   if (!state.mission) return state.data.onDemand.mission.fallback;
-  let t = `현재 목표: ${state.mission.objective}`;
-  if (state.mission.target) t += ` (현재 ${collectedCount()}/${state.mission.target.count})`;
+  let t = state.mission.objective;
+  if (state.mission.target) {
+    const c = collectedCount(), n = state.mission.target.count;
+    if (c < n) t += ` 지금까지 ${c}개 모았어요.`;
+    else t += ` 모두 모았어요!`;
+  }
   return t;
 }
 function describeTactileMap() {
   const loc = state.data.locations[state.location];
-  let t = state.data.onDemand.tactileMap.fallback;
-  if (loc) t += ` 지금은 ${loc.name}입니다.`;
+  let t = '손끝 지도에 숲의 지형이 펼쳐져 있어요. 가운데 밝은 점이 루미예요.';
+  if (loc) t += ` 지금은 ${loc.name}에 있어요.`;
   return t;
 }
 function dirWord(dx, dz) {
@@ -205,29 +217,29 @@ function liveSurroundings() {
   if (items.length) {
     let near = items[0], nd = Infinity;
     items.forEach((it) => { const d = Math.hypot(it.x - p.x, it.z - p.z); if (d < nd) { nd = d; near = it; } });
-    parts.push(`${dirWord(near.x - p.x, near.z - p.z)} ${distWord(nd)}에 둥근 떨림(도트링)이 있습니다.`);
+    parts.push(`${dirWord(near.x - p.x, near.z - p.z)} ${distWord(nd)}에 씨앗이 반짝이고 있어요.`);
   } else {
-    parts.push('주변의 도트링은 모두 모았습니다.');
+    parts.push('주변의 씨앗은 모두 모았어요. 잘했어요!');
   }
   const obs = (b.state.obstacles || []);
   if (obs.length) {
     let no = obs[0], od = Infinity;
     obs.forEach((o) => { const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < od) { od = d; no = o; } });
-    if (od < 8) parts.push(`${dirWord(no.x - p.x, no.z - p.z)}에 거친 나무 장애물이 있습니다.`);
+    if (od < 8) parts.push(`${dirWord(no.x - p.x, no.z - p.z)}에 나무가 길을 막고 있어요.`);
   }
   const hz = (b.state.hazards || []);
   if (hz.length) {
     let nh = hz[0], hd = Infinity;
     hz.forEach((o) => { const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < hd) { hd = d; nh = o; } });
-    if (hd < 9) parts.push(`${dirWord(nh.x - p.x, nh.z - p.z)}에 그림자가 떠다닙니다. 조심하세요.`);
+    if (hd < 9) parts.push(`${dirWord(nh.x - p.x, nh.z - p.z)}에서 어두운 그림자가 떠다녀요. 조심하세요!`);
   }
   if (b.area === 'river' && typeof b.isDeepWater === 'function') {
     const step = (b.constants && b.constants.MOVE_STEP) || 1.2;
     const dirs = [['앞', 0, -step], ['뒤', 0, step], ['왼쪽', -step, 0], ['오른쪽', step, 0]];
     const deep = dirs.filter(([, dx, dz]) => b.isDeepWater(p.x + dx, p.z + dz)).map(([n]) => n);
     const safe = dirs.filter(([, dx, dz]) => !b.isDeepWater(p.x + dx, p.z + dz)).map(([n]) => n);
-    if (deep.length) parts.push(`${deep.join(', ')}은 물이 노래합니다(깊은 물).`);
-    if (safe.length) parts.push(`${safe.join(', ')}은 조용한 디딜 곳입니다.`);
+    if (deep.length) parts.push(`${deep.join(', ')} 쪽은 강이 노래해요. 깊은 물이에요.`);
+    if (safe.length) parts.push(`${safe.join(', ')} 쪽은 안전하게 디딜 수 있어요.`);
   }
   return parts.join(' ');
 }
@@ -289,7 +301,7 @@ function startMission(idx) {
   state.pipHinted = false;
   setQuest(state.mission.objective);
   if (state.mission.intro_narration) say(state.mission.intro_narration, 'assertive');
-  window.setTimeout(() => say(tr('미션 업데이트:') + ' ' + state.mission.objective, 'polite'), 1600);
+  window.setTimeout(() => say(state.mission.objective, 'polite'), 1600);
   if (state.mission.puzzle && state.mission.puzzle.riddle) {
     window.setTimeout(() => say(state.mission.puzzle.riddle, 'polite'), 3400);
   }
@@ -310,7 +322,7 @@ function enterArea(id) {
     startMission(idx);
   } else {
     const loc = state.data.locations[id];
-    if (loc && loc.description) say(`${loc.name}. ${loc.description}`, 'polite');
+    if (loc && loc.description) say(`${loc.name}에 도착했어요. ${loc.description}`, 'polite');
   }
 }
 
@@ -354,8 +366,8 @@ function checkChapter1() {
       questComplete('Pip을 찾았어요!');
       say(state.mission.completion_narration, 'assertive');
       window.setTimeout(() => {
-        setQuest('오른쪽 끝 출구로 가서 베리 숲으로 이동하세요.');
-        say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝으로 가면 이동합니다.', 'polite');
+        setQuest('오른쪽으로 나아가면 베리 숲이 기다려요.');
+        say('베리 숲으로 가는 길이 열렸어요. 오른쪽 끝까지 나아가 봐요.', 'polite');
       }, 1800);
     }), 1300);
   }
@@ -376,8 +388,8 @@ function checkChapter2() {
       state.companions.push('Bramble');
       renderParty();
       questComplete('베리 3개를 모았어요!');
-      window.setTimeout(() => setQuest('위쪽 끝 출구로 가서 강가로 이동하세요.'), 1800);
-      say('강가로 가는 길이 열렸어요. 위쪽 끝으로 가면 이동합니다.', 'polite');
+      window.setTimeout(() => setQuest('위쪽으로 올라가면 강가가 나와요.'), 1800);
+      say('강가로 가는 길이 열렸어요. 위쪽 끝까지 올라가 봐요.', 'polite');
     }), 1500);
   }
 }
@@ -471,8 +483,27 @@ function wireInput() {
 function wireSettings() {
   const amb = $('ambientToggle');
   const tts = $('ttsToggle');
-  if (amb) { amb.checked = !!state.settings.ambientNarration; amb.addEventListener('change', () => { state.settings.ambientNarration = amb.checked; persistSettings(); }); }
-  if (tts) { tts.checked = !!state.settings.ttsEnabled; tts.addEventListener('change', () => { state.settings.ttsEnabled = tts.checked; persistSettings(); if (!tts.checked && 'speechSynthesis' in window) window.speechSynthesis.cancel(); }); }
+  if (amb) {
+    amb.checked = !!state.settings.ambientNarration;
+    amb.addEventListener('change', () => { state.settings.ambientNarration = amb.checked; persistSettings(); });
+  }
+  if (tts) {
+    tts.checked = !!state.settings.ttsEnabled;
+    tts.addEventListener('change', () => {
+      state.settings.ttsEnabled = tts.checked;
+      persistSettings();
+      const eng = window.DotForest && window.DotForest.tts;
+      if (eng) eng.setEnabled(tts.checked);
+      else if (!tts.checked && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    });
+  }
+  // tts-engine.js가 enabled 상태를 바꿀 때 설정 화면 checkbox에 반영
+  document.addEventListener('dotforest:tts-status', (e) => {
+    if (e.detail && typeof e.detail.enabled === 'boolean') {
+      state.settings.ttsEnabled = e.detail.enabled;
+      if (tts) tts.checked = e.detail.enabled;
+    }
+  });
 }
 
 /* ---------- observers: movement + collection ---------- */

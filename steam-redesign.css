@@ -55,6 +55,17 @@
    2. 타이틀 화면 — 게임 메인 메뉴
 ================================================================ */
 
+/* --- 인트로를 스테이지 전체로 채움 (16:9 레터박스 제거) --- */
+#screen-title .stage--title {
+  display: block !important;
+}
+#screen-title .dot-forest-intro {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  aspect-ratio: unset !important;
+}
+
 /* --- 배경 비네팅: 메뉴가 위치할 하단 어둠 강화 --- */
 #screen-title .dot-forest-intro::after {
   content: '';

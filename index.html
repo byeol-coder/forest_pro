@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./embed.css?v=1" />
   <link rel="stylesheet" href="./dotpad-demo.css?v=1" />
   <link rel="stylesheet" href="./forest-redesign.css?v=1" />
+  <link rel="stylesheet" href="./steam-redesign.css?v=1" />
 
   <!-- TW iframe 임베드 레이어: screens.js·script.js보다 먼저(importmap 앞) 로드 -->
   <script src="./embed.js?v=1"></script>
@@ -50,18 +51,49 @@
           <!-- 화면 리더용 제목 + 화면 전환 시 포커스 타깃 (시각적으로는 이미지 텍스트 사용) -->
           <h1 id="titleHeading" class="sr-only" tabindex="-1">닷 포레스트 — Lumi &amp; Dotlings</h1>
 
-          <!-- 보조 컨트롤: 평소엔 은은하게, hover/focus 시 또렷하게 -->
-          <div class="intro-controls" role="group" aria-label="타이틀 보조 메뉴">
-            <span id="dotpadState" class="state-pill">DotPad Disconnected / 미연결</span>
-            <button id="connectDotPad" type="button" class="intro-mini dotpad-connect" data-dotpad-action="connect">Connect DotPad / 연결</button>
-            <button type="button" class="intro-mini dotpad-disconnect" data-dotpad-action="disconnect" disabled>Disconnect / 해제</button>
-            <button type="button" class="intro-mini dotpad-test" data-dotpad-action="test">Test Output / 출력 테스트</button>
-            <button type="button" class="intro-mini dotpad-mock" data-dotpad-action="mock" aria-pressed="false">Mock Mode / 모의</button>
-            <button type="button" class="intro-mini" data-nav="settings" aria-label="설정 열기">설정</button>
+          <!-- 숨김 컨트롤: #dotpadState ID 보존 + dev 도구 유지 -->
+          <div class="intro-controls sr-dev-only" role="group" aria-label="개발자 도구 (숨김)" aria-hidden="true">
+            <span id="dotpadState" class="state-pill">DotPad 미연결</span>
+            <button id="connectDotPad" type="button" class="intro-mini dotpad-connect" data-dotpad-action="connect" tabindex="-1">DotPad 연결</button>
+            <button type="button" class="intro-mini dotpad-disconnect" data-dotpad-action="disconnect" disabled tabindex="-1">해제</button>
+            <button type="button" class="intro-mini dotpad-test" data-dotpad-action="test" tabindex="-1">출력 테스트</button>
+            <button type="button" class="intro-mini dotpad-mock" data-dotpad-action="mock" aria-pressed="false" tabindex="-1">모의 모드</button>
           </div>
 
-          <!-- 이미지 속 "Press Start" 위에 올린 투명 클릭 영역 (실제 시작 버튼) -->
-          <button type="button" class="dot-forest-start-hotspot" data-nav="game" aria-label="Dot Forest 게임 시작">
+          <!-- 게임 메인 메뉴 (Steam-style) -->
+          <nav class="gm-menu" aria-label="게임 메인 메뉴">
+            <div class="gm-dp-status">
+              <span class="gm-dp-dot" id="gmDotPadDot" aria-hidden="true"></span>
+              <span class="gm-dp-label dotpad-mirror" aria-live="polite">DotPad 미연결</span>
+            </div>
+            <ul class="gm-nav" role="list">
+              <li>
+                <button type="button" class="gm-btn gm-btn--primary" data-nav="game" aria-label="모험 시작 — 새로운 탐험을 시작합니다">
+                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span class="gm-btn-label">모험 시작</span>
+                  <svg class="gm-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="gm-btn dotpad-connect" data-dotpad-action="connect" aria-label="Lumi의 촉각 지도 — DotPad 연결">
+                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="5" height="5" rx="1"/><rect x="9.5" y="3" width="5" height="5" rx="1"/><rect x="17" y="3" width="5" height="5" rx="1"/><rect x="2" y="10.5" width="5" height="5" rx="1"/><rect x="9.5" y="10.5" width="5" height="5" rx="1"/><rect x="17" y="10.5" width="5" height="5" rx="1"/><rect x="2" y="18" width="5" height="5" rx="1"/><rect x="9.5" y="18" width="5" height="5" rx="1"/><rect x="17" y="18" width="5" height="5" rx="1"/></svg>
+                  <span class="gm-btn-label">Lumi의 촉각 지도</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="gm-btn" data-nav="settings" aria-label="설정">
+                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                  <span class="gm-btn-label">설정</span>
+                </button>
+              </li>
+            </ul>
+            <div class="gm-disconnect-row">
+              <button type="button" class="gm-btn-ghost dotpad-disconnect" data-dotpad-action="disconnect" disabled aria-label="DotPad 연결 해제">연결 해제</button>
+            </div>
+          </nav>
+
+          <!-- "Press Start" 이미지 영역 클릭 지원 (보조) -->
+          <button type="button" class="dot-forest-start-hotspot" data-nav="game" aria-label="Dot Forest 게임 시작" tabindex="-1">
             <span class="sr-only">게임 시작</span>
           </button>
         </div>
@@ -98,22 +130,16 @@
           <div class="hud-right">
             <div class="dotpad-hud-cluster" aria-label="DotPad controls / DotPad 제어">
               <div class="dotpad-hud-toprow">
-                <span class="state-pill dotpad-mirror" aria-live="polite">DotPad Disconnected / 미연결</span>
                 <button type="button" class="dotpad-hud-toggle" id="dotpadHudToggle"
-                        aria-label="DotPad 제어 메뉴" aria-expanded="true" aria-controls="dotpadHudActions">
-                  <span>DotPad</span>
+                        aria-label="손끝 지도 열기" aria-expanded="false">
+                  <span class="dp-hud-dot" aria-hidden="true"></span>
+                  <span class="dotpad-mirror" aria-live="polite">DotPad</span>
                   <svg class="dotpad-hud-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                        aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
               </div>
-              <div class="dotpad-hud-actions" id="dotpadHudActions" hidden>
-                <button type="button" class="hud-mini dotpad-connect" data-dotpad-action="connect">Connect / 연결</button>
-                <button type="button" class="hud-mini dotpad-disconnect" data-dotpad-action="disconnect" disabled>Disconnect / 해제</button>
-                <button type="button" class="hud-mini dotpad-test" data-dotpad-action="test">Test / 테스트</button>
-                <button type="button" class="hud-mini dotpad-resend" data-dotpad-action="resend">Resend / 재전송</button>
-                <button type="button" class="hud-mini dotpad-mock" data-dotpad-action="mock" aria-pressed="false">Mock / 모의</button>
-              </div>
+              <div class="dotpad-hud-actions" id="dotpadHudActions" hidden aria-hidden="true">
             </div>
             <!-- 도움말 버튼 (신규) -->
             <button type="button" class="icon-btn" id="helpBtn" aria-label="조작 안내 열기">
@@ -124,6 +150,7 @@
             <button type="button" class="icon-btn" data-nav="settings" aria-label="설정 열기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="10" cy="7" r="2.1"/><circle cx="15" cy="12" r="2.1"/><circle cx="8" cy="17" r="2.1"/></svg></button>
           </div>
         </div>
+      </div>
 
         <div class="info-keys" role="group" aria-label="정보 듣기">
           <button type="button" data-info="position" aria-label="현재 위치 듣기 (1)"><b>1</b>위치</button>

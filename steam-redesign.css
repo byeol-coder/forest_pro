@@ -537,6 +537,8 @@
   gap: 0.15rem !important;
 }
 #screen-game .info-keys button {
+  display: inline-flex !important;
+  align-items: center !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -582,6 +584,9 @@
 /* ================================================================
    6. 미션/퀘스트 패널 — info-keys 아래 (info-keys: 4.7rem + ~2.25rem height)
 ================================================================ */
+#screen-game .quest::before {
+  display: none !important;
+}
 #screen-game .quest {
   top: 7.4rem !important;
   padding: 0.45rem 1rem !important;
@@ -599,12 +604,7 @@
   -webkit-backdrop-filter: blur(14px) !important;
 }
 #screen-game .quest-eyebrow {
-  color: var(--df-gold) !important;
-  font-size: 0.58rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-  opacity: 0.85;
+  display: none !important;
 }
 #screen-game .quest-text {
   color: var(--df-ink) !important;

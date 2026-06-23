@@ -748,9 +748,29 @@
 /* ================================================================
    11. 설정 화면 (#screen-settings) — 다크 글래스 스타일
 ================================================================ */
+/* 비활성 상태: JS의 display:none을 방해하지 않음 */
 #screen-settings {
   min-height: 100dvh !important;
   background: linear-gradient(180deg, var(--df-deep) 0%, var(--df-void) 100%) !important;
+}
+/* 활성 상태에서만 flex 레이아웃으로 stage 전체 높이 채움 */
+#screen-settings.is-active {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+  box-sizing: border-box !important;
+}
+/* stage가 viewport 전체를 채우도록 — 기본 min(76vh, 680px) 오버라이드 */
+#screen-settings.is-active .stage {
+  height: auto !important;
+  min-height: calc(100dvh - 2rem) !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  max-width: 27rem !important;
+  overflow: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* 패널 컨테이너 다크 글래스 */

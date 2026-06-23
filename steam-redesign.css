@@ -307,7 +307,7 @@
   box-shadow: none;
 }
 .gm-btn-ghost:hover { color: var(--df-ink-dim); border-color: rgba(180,210,165,0.38); }
-.gm-btn-ghost:disabled { opacity: 0.25; cursor: default; }
+.gm-btn-ghost:disabled { display: none !important; }
 .gm-btn-ghost:focus-visible {
   outline: 2px solid var(--df-gold);
   outline-offset: 2px;
@@ -755,6 +755,7 @@
    11. 설정 화면 (#screen-settings) — 다크 글래스 스타일
 ================================================================ */
 #screen-settings {
+  min-height: 100dvh !important;
   background: linear-gradient(180deg, var(--df-deep) 0%, var(--df-void) 100%) !important;
 }
 

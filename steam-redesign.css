@@ -367,14 +367,14 @@
   white-space: nowrap;
 }
 #screen-game .ch-label {
-  font-size: 0.55rem !important;
-  letter-spacing: 0.08em;
-  color: var(--df-ink-muted) !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.06em;
+  color: rgba(180, 220, 165, 0.78) !important;
   text-transform: none !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
 }
 #screen-game .ch-name {
-  font-size: 0.82rem !important;
+  font-size: 0.9rem !important;
   font-weight: 700;
   color: var(--df-ink) !important;
   text-transform: none !important;
@@ -389,10 +389,10 @@
   padding: 0 0.5rem !important;
 }
 #screen-game .score span {
-  font-size: 0.6rem !important;
+  font-size: 0.68rem !important;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--df-ink-muted) !important;
+  letter-spacing: 0.06em;
+  color: rgba(180, 220, 165, 0.78) !important;
 }
 #screen-game .score strong {
   font-size: 1.1rem !important;
@@ -403,8 +403,11 @@
 
 /* TTS 토글 — 아이콘 버튼 */
 #screen-game #ttsToggleBtn {
+  display: grid !important;
+  place-items: center !important;
   width: 2.2rem !important;
   height: 2.2rem !important;
+  padding: 0 !important;
   background: rgba(255,255,255,0.05) !important;
   border: 1px solid rgba(255,255,255,0.09) !important;
   border-radius: 50% !important;
@@ -537,8 +540,8 @@
   border: none !important;
   box-shadow: none !important;
   border-radius: var(--df-btn-radius) !important;
-  color: rgba(185, 225, 170, 0.65) !important;
-  font-size: 0.72rem !important;
+  color: rgba(185, 225, 170, 0.9) !important;
+  font-size: 0.76rem !important;
   font-weight: 600;
   letter-spacing: 0.02em;
   padding: 0.28rem 0.75rem !important;
@@ -602,8 +605,8 @@
 }
 #screen-game .quest-text {
   color: var(--df-ink) !important;
-  font-size: 0.82rem !important;
-  font-weight: 500;
+  font-size: 0.94rem !important;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -750,27 +753,57 @@
 ================================================================ */
 /* 비활성 상태: JS의 display:none을 방해하지 않음 */
 #screen-settings {
-  min-height: 100dvh !important;
   background: linear-gradient(180deg, var(--df-deep) 0%, var(--df-void) 100%) !important;
 }
-/* 활성 상태에서만 flex 레이아웃으로 stage 전체 높이 채움 */
+/* 활성 상태: viewport 전체를 덮는 풀프레임 오버레이 */
 #screen-settings.is-active {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  overflow-y: auto !important;
+  z-index: 100 !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: center !important;
-  padding: 1rem !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
 }
-/* stage가 viewport 전체를 채우도록 — 기본 min(76vh, 680px) 오버라이드 */
+/* stage — 풀프레임으로 viewport 전체 채움 */
 #screen-settings.is-active .stage {
+  position: relative !important;
   height: auto !important;
-  min-height: calc(100dvh - 2rem) !important;
+  min-height: 100dvh !important;
   flex: 1 1 auto !important;
   width: 100% !important;
-  max-width: 27rem !important;
-  overflow: auto !important;
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: center !important;
+  padding: 2rem 1.5rem !important;
+  box-sizing: border-box !important;
+}
+/* stage-bg — 풀프레임 배경으로 확장 */
+#screen-settings .stage-bg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  opacity: 0.45 !important;
+  z-index: 0 !important;
+}
+/* 콘텐츠(sheet-card)를 stage-bg 위에 표시 */
+#screen-settings .stage > * {
+  position: relative !important;
+  z-index: 1 !important;
+  width: 100% !important;
+  max-width: 52rem !important;
 }
 
 /* 패널 컨테이너 다크 글래스 */

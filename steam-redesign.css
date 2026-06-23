@@ -97,30 +97,36 @@
   width: min(26rem, 92vw);
 }
 
-/* --- DotPad 상태 칩 --- */
+/* --- DotPad 상태 칩 (타이틀 메뉴) --- */
 .gm-dp-status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.2rem;
+  gap: 0.45rem;
+  background: rgba(6, 14, 8, 0.78);
+  border: 1px solid rgba(72, 148, 72, 0.32);
+  border-radius: 2rem;
+  padding: 0.3rem 0.85rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  margin-bottom: 0.4rem;
 }
 .gm-dp-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(180, 200, 165, 0.35);
+  background: rgba(180, 200, 165, 0.45);
+  flex-shrink: 0;
   transition: background 0.3s ease, box-shadow 0.3s ease;
 }
-/* JS가 .dotpad-mirror에 .connected를 토글함 → 부모 칩도 반영 */
 .gm-dp-status:has(.dotpad-mirror.connected) .gm-dp-dot {
   background: #60d070;
   box-shadow: 0 0 8px rgba(80, 200, 80, 0.7);
 }
 .gm-dp-label {
-  font-size: 0.7rem;
-  color: var(--df-ink-muted);
-  letter-spacing: 0.04em;
-  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--df-ink-dim);
+  letter-spacing: 0.03em;
+  font-weight: 600;
 }
 .gm-dp-status:has(.dotpad-mirror.connected) .gm-dp-label {
   color: var(--df-mint);
@@ -439,21 +445,24 @@
   padding: 0 !important;
 }
 #screen-game .dotpad-hud-toggle {
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0.2rem 0.55rem !important;
+  background: rgba(6, 14, 8, 0.72) !important;
+  border: 1px solid rgba(72, 148, 72, 0.28) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4) !important;
+  padding: 0.22rem 0.65rem !important;
   gap: 0.35rem !important;
   font-size: 0.72rem !important;
   font-weight: 600;
   color: var(--df-ink-dim) !important;
   border-radius: 2rem !important;
   height: auto !important;
-  letter-spacing: 0.04em;
-  transition: color 0.15s ease, background 0.15s ease !important;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease !important;
 }
 #screen-game .dotpad-hud-toggle:hover {
-  background: rgba(255,255,255,0.06) !important;
+  background: rgba(12, 28, 14, 0.88) !important;
+  border-color: rgba(100, 180, 100, 0.42) !important;
   color: var(--df-ink) !important;
 }
 #screen-game .dotpad-hud-toggle:focus-visible {
@@ -743,50 +752,143 @@
 
 
 /* ================================================================
-   11. 설정 화면 (#screen-settings) — 게임 메뉴 스타일
+   11. 설정 화면 (#screen-settings) — 다크 글래스 스타일
 ================================================================ */
 #screen-settings {
   background: linear-gradient(180deg, var(--df-deep) 0%, var(--df-void) 100%) !important;
 }
-#screen-settings .settings-panel,
-#screen-settings .settings-wrap {
-  background: rgba(18, 34, 20, 0.88) !important;
-  border: 1px solid rgba(72, 148, 72, 0.2) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.55) !important;
-}
-#screen-settings h2, #screen-settings h3 {
-  color: var(--df-ink) !important;
-}
-#screen-settings .set-label {
-  color: var(--df-sage) !important;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+
+/* 패널 컨테이너 다크 글래스 */
+#screen-settings .sheet-card {
+  background: rgba(10, 20, 12, 0.94) !important;
+  border: 1px solid rgba(72, 148, 72, 0.22) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 16px 56px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
-/* 설정 화면 버튼들 */
-#screen-settings button:not(.close-btn):not([data-nav]) {
-  background: linear-gradient(180deg,
-    rgba(28, 55, 34, 0.9) 0%,
-    rgba(14, 30, 18, 0.94) 100%
-  ) !important;
-  border: 1px solid rgba(80,155,80,0.28) !important;
-  border-bottom: 2px solid rgba(35,80,42,0.5) !important;
-  border-radius: 0.42rem !important;
-  color: rgba(195,232,180,0.88) !important;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07) !important;
-  transition: var(--df-transition) !important;
+/* 타이틀 */
+#screen-settings .sheet-card h2 {
+  color: var(--df-ink) !important;
+  font-size: 1.5rem !important;
 }
-#screen-settings button:not(.close-btn):not([data-nav]):hover {
-  transform: translateY(-1px) !important;
-  border-color: rgba(120,210,120,0.42) !important;
+#screen-settings .sheet-lead {
+  color: var(--df-ink-dim) !important;
+}
+
+/* 구분선 */
+#screen-settings .set-block {
+  border-color: rgba(72, 148, 72, 0.14) !important;
+}
+
+/* 섹션 라벨 */
+#screen-settings .set-label {
+  color: var(--df-sage) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
+/* 목록 텍스트 */
+#screen-settings .set-block ul,
+#screen-settings .set-block li {
+  color: var(--df-ink-dim) !important;
+  font-size: 0.8rem !important;
+  line-height: 1.7 !important;
+}
+
+/* 보조 설명 */
+#screen-settings .set-note {
+  color: var(--df-ink-muted) !important;
+  font-size: 0.72rem !important;
+}
+
+/* 토글 라벨 */
+#screen-settings .toggle span {
+  color: var(--df-ink-dim) !important;
+}
+
+/* 언어·접근성 세그먼트 컨트롤 */
+#screen-settings .seg {
+  background: rgba(8, 18, 10, 0.8) !important;
+  border-color: rgba(72, 148, 72, 0.28) !important;
+  border-radius: var(--df-btn-radius) !important;
+  overflow: hidden;
+}
+#screen-settings .seg button {
+  color: var(--df-ink-muted) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+#screen-settings .seg button.on {
+  background: rgba(42, 85, 48, 0.95) !important;
   color: var(--df-ink) !important;
 }
-#screen-settings button:not(.close-btn):not([data-nav]):focus-visible {
-  outline: 2px solid var(--df-gold) !important;
-  outline-offset: 2px;
+#screen-settings .seg button:hover:not(.on) {
+  background: rgba(24, 48, 28, 0.6) !important;
+  color: var(--df-ink-dim) !important;
+}
+
+/* mini-btn (DotPad 조작 버튼) */
+#screen-settings .mini-btn {
+  background: rgba(20, 40, 24, 0.85) !important;
+  border: 1px solid rgba(72, 148, 72, 0.25) !important;
+  border-bottom: 2px solid rgba(30, 65, 36, 0.6) !important;
+  color: var(--df-ink-dim) !important;
+  border-radius: var(--df-btn-radius) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+#screen-settings .mini-btn:hover {
+  background: rgba(32, 62, 38, 0.92) !important;
+  border-color: rgba(100, 180, 100, 0.38) !important;
+  color: var(--df-ink) !important;
+  transform: translateY(-1px) !important;
+}
+#screen-settings .mini-btn.danger,
+#screen-settings #resetButton.mini-btn {
+  background: rgba(60, 20, 18, 0.85) !important;
+  border-color: rgba(180, 60, 50, 0.35) !important;
+  color: rgba(240, 160, 150, 0.9) !important;
+}
+
+/* 하단 버튼 (게임으로 / 타이틀로) */
+#screen-settings .sheet-foot .btn-primary,
+#screen-settings button[data-nav] {
+  background: linear-gradient(180deg, rgba(40, 80, 46, 0.94) 0%, rgba(18, 44, 22, 0.98) 100%) !important;
+  border: 1px solid rgba(80, 155, 80, 0.35) !important;
+  border-bottom: 2px solid rgba(30, 68, 36, 0.65) !important;
+  border-radius: var(--df-btn-radius) !important;
+  color: var(--df-ink) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+#screen-settings .sheet-foot .btn-primary:hover,
+#screen-settings button[data-nav]:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(120, 210, 120, 0.48) !important;
+  color: var(--df-ink) !important;
+}
+#screen-settings .btn-quiet {
+  background: rgba(12, 24, 14, 0.7) !important;
+  border-color: rgba(72, 148, 72, 0.2) !important;
+  color: var(--df-ink-dim) !important;
+}
+#screen-settings .btn-quiet:hover {
+  background: rgba(22, 42, 26, 0.85) !important;
+  color: var(--df-ink) !important;
+}
+
+/* code 태그 */
+#screen-settings code {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--df-mint) !important;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.75em;
 }
 
 

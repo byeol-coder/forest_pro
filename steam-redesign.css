@@ -971,6 +971,77 @@
   .gm-btn,
   .gm-btn--primary,
   .gm-btn-ghost { height: 2.8rem; }
+
+  /* ── 모바일 HUD: 2줄 레이아웃으로 340px에 맞춤 ── */
+  #screen-game .hud {
+    height: auto !important;
+    flex-wrap: wrap !important;
+    padding: 0.3rem 0.6rem !important;
+    gap: 0.25rem 0.4rem !important;
+  }
+  #screen-game .hud-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 0.3rem !important;
+  }
+  #screen-game .hud-right {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+  }
+
+  /* 홈 버튼 소형화 */
+  #screen-game .hud .icon-btn[data-nav="title"] {
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+  }
+
+  /* 챕터 배지 — "Chapter" 라벨 숨기고 이름만 */
+  #screen-game .ch-label { display: none !important; }
+  #screen-game .chapter-badge {
+    padding: 0.15rem 0.5rem !important;
+    gap: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  #screen-game .ch-name {
+    font-size: 0.72rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* 수집 카운터 — "수집" 라벨 숨기고 숫자만 */
+  #screen-game .score span { display: none !important; }
+  #screen-game .score { padding: 0 0.15rem !important; }
+  #screen-game .score strong { font-size: 0.95rem !important; }
+
+  /* 라이트 미터 숨기기 */
+  #screen-game .light-meter { display: none !important; }
+
+  /* TTS 버튼 소형화 */
+  #screen-game #ttsToggleBtn {
+    width: 1.9rem !important;
+    height: 1.9rem !important;
+  }
+
+  /* DotPad 클러스터 — 2행에서 텍스트 숨기고 상태 dot만 표시 */
+  #screen-game .dotpad-mirror { display: none !important; }
+  #screen-game .dotpad-hud-toggle-arrow { display: none !important; }
+  #screen-game .dotpad-hud-toggle {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.65rem !important;
+    border-radius: 0.5rem !important;
+    min-width: unset !important;
+  }
+  #screen-game .dotpad-hud-cluster {
+    border-radius: 0.5rem !important;
+    flex-shrink: 0 !important;
+  }
+  #screen-game .hud-right .icon-btn {
+    width: 1.9rem !important;
+    height: 1.9rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* info-keys 버튼 — 텍스트 줄바꿈 방지 */
+  #screen-game .info-keys button { white-space: nowrap !important; }
 }
 
 /* ================================================================

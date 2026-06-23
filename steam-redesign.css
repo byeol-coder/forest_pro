@@ -999,3 +999,75 @@
   #screen-game .dpad button:not(.dpad-eat):hover { transform: none !important; }
   #screen-game .dpad .dpad-eat:hover { transform: scale(1.03) !important; }
 }
+
+
+/* ================================================================
+   17. 가독성 일괄 패치 — 흰 배경+연한 텍스트 제거
+================================================================ */
+
+/* 타이틀 DotPad 상태칩 안의 .dotpad-mirror 흰 배경 제거 */
+.gm-dp-status .dotpad-mirror {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  border-radius: 0 !important;
+}
+
+/* 게임 HUD .dotpad-mirror 흰 배경 제거 (미연결 상태) */
+#screen-game .dotpad-mirror:not(.connected) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--df-ink-dim) !important;
+}
+
+/* dp-compact-pill 미연결 대비 강화 */
+#screen-game .dp-compact-pill.disconnected {
+  background: rgba(150, 38, 28, 0.65) !important;
+  color: #ffd5cf !important;
+  border-color: rgba(200, 70, 55, 0.55) !important;
+}
+
+/* TTS mode 배지 — 동색 배경/텍스트 수정 */
+.tts-mode-badge {
+  background: rgba(10, 40, 56, 0.96) !important;
+  color: #7ed8f5 !important;
+  border-color: rgba(96, 200, 232, 0.55) !important;
+}
+.tts-mode-badge.gptsovits {
+  background: rgba(6, 38, 20, 0.96) !important;
+  color: #5ee8a5 !important;
+  border-color: rgba(63, 208, 128, 0.55) !important;
+}
+
+/* TTS voice info 배지 */
+.tts-vi-badge.ok {
+  background: rgba(5, 34, 16, 0.96) !important;
+  color: #5ee8a0 !important;
+  border-color: rgba(63, 208, 128, 0.45) !important;
+}
+.tts-vi-badge.warn {
+  background: rgba(46, 34, 4, 0.96) !important;
+  color: #f5cc72 !important;
+  border-color: rgba(245, 184, 75, 0.45) !important;
+}
+.tts-vi-badge.fallback {
+  background: rgba(46, 12, 12, 0.96) !important;
+  color: #f5a0a0 !important;
+  border-color: rgba(230, 80, 80, 0.45) !important;
+}
+
+/* 도움말 키 배지 — 동색 배경/텍스트 수정 */
+.help-key.arrow {
+  background: rgba(10, 40, 56, 0.92) !important;
+  border-color: rgba(96, 200, 232, 0.5) !important;
+  color: #7ed8f5 !important;
+}
+.help-key.fn {
+  background: rgba(46, 34, 4, 0.92) !important;
+  border-color: rgba(245, 184, 75, 0.5) !important;
+  color: #f5cc72 !important;
+}

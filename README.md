@@ -120,7 +120,9 @@ Dot Forest는 단독 실행과 **iframe 임베드(accessible game module)** 를 
 | `?theme=dark` \| `?theme=light` | 부모 톤에 맞춘 최소 레터박스 톤 변경(숲 고유 톤은 캔버스가 유지) |
 | `?lang=ko` \| `?lang=en` | 초기 언어 |
 
-권장 임베드 URL: `…/index.html?embed=1&preview=0&controls=compact`
+공개 배포 URL: `https://byeol-coder.github.io/forest_pro/`
+
+권장 임베드 URL: `https://byeol-coder.github.io/forest_pro/?embed=1&preview=0&controls=compact`
 
 ```html
 <iframe src="https://byeol-coder.github.io/forest_pro/?embed=1&preview=0&controls=compact"

@@ -11,6 +11,7 @@
   const SCREENS = { title: 'screen-title', game: 'screen-game', settings: 'screen-settings' };
   const HEADINGS = { title: 'titleHeading', game: 'gameHeading', settings: 'settingsHeading' };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const independentStart = { active: false, trigger: null };
   let current = 'title';
 
   function show(name) {
@@ -50,6 +51,139 @@
       commit();
     }
   }
+
+  function sayIndependentStart(message) {
+    const live = document.getElementById('liveStatus');
+    if (live) live.textContent = message;
+    const narrative = window.DotForest && window.DotForest.narrative;
+    if (narrative && typeof narrative.say === 'function') {
+      narrative.say(message, 'assertive');
+      return;
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = document.documentElement.lang === 'en' ? 'en-US' : 'ko-KR';
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {}
+    }
+  }
+
+  function restoreOnboardingButtons() {
+    const back = document.getElementById('onboardingBack');
+    const next = document.getElementById('onboardingNext');
+    const start = document.getElementById('onboardingStart');
+    if (back) back.textContent = '이전';
+    if (next) next.textContent = '다음';
+    if (start) start.textContent = '게임 시작';
+  }
+
+  function closeIndependentStart() {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.hidden = true;
+    independentStart.active = false;
+    restoreOnboardingButtons();
+  }
+
+  function openIndependentStart(trigger) {
+    const overlay = document.getElementById('onboardingOverlay');
+    const dialog = document.getElementById('onboardingDialog');
+    const progress = document.getElementById('onboardingProgress');
+    const title = document.getElementById('onboardingTitle');
+    const text = document.getElementById('onboardingText');
+    const details = document.getElementById('onboardingDetails');
+    const back = document.getElementById('onboardingBack');
+    const next = document.getElementById('onboardingNext');
+    const start = document.getElementById('onboardingStart');
+    if (!overlay || !dialog || !progress || !title || !text || !details || !next || !start) return false;
+
+    independentStart.active = true;
+    independentStart.trigger = trigger || document.activeElement;
+    overlay.hidden = false;
+    progress.textContent = '독립 플레이 모드';
+    title.textContent = '혼자 시작할 준비';
+    text.textContent = '첫 스테이지에 들어가기 전에 핵심 조작과 길을 잃었을 때의 복구 방법을 확인합니다.';
+    details.innerHTML = '<ol>'
+      + '<li>이동: 방향키 또는 W A S D, DotPad는 PanningLeft·PanningRight와 위·아래 패닝 조합을 사용합니다.</li>'
+      + '<li>수집/확인: F2 또는 Enter/Space를 누릅니다.</li>'
+      + '<li>길을 잃었을 때: F4를 누르면 현재 위치, 가까운 목표, 위험, 추천 방향을 다시 듣고 촉각 프레임을 재전송합니다.</li>'
+      + '<li>촉각 지도: 루미는 가장 강한 2×2 블록, 목표는 다이아몬드, 위험은 X 패턴입니다.</li>'
+      + '</ol>';
+    if (back) {
+      back.hidden = true;
+      back.disabled = false;
+      back.textContent = '이전';
+    }
+    next.hidden = false;
+    next.disabled = false;
+    next.textContent = '조작 연습 듣기';
+    start.hidden = false;
+    start.disabled = false;
+    start.textContent = '첫 스테이지 시작';
+    window.setTimeout(() => dialog.focus(), 0);
+    sayIndependentStart(`${title.textContent}. ${text.textContent} 바로 시작하려면 첫 스테이지 시작을 누르세요. 조작을 먼저 익히려면 조작 연습 듣기를 누르세요.`);
+    return true;
+  }
+
+  function beginIndependentFirstStage() {
+    closeIndependentStart();
+    show('game');
+    window.setTimeout(() => {
+      const situation = window.DotForest
+        && window.DotForest.bridge
+        && typeof window.DotForest.bridge.describeCurrentSituation === 'function'
+        ? window.DotForest.bridge.describeCurrentSituation()
+        : 'F4를 누르면 현재 위치와 추천 방향을 다시 들을 수 있습니다.';
+      sayIndependentStart(`독립 플레이 준비가 끝났습니다. 첫 스테이지를 시작합니다. ${situation}`);
+      const heading = document.getElementById('gameHeading');
+      if (heading) heading.focus({ preventScroll: true });
+    }, 300);
+  }
+
+  function openPracticeFromIndependentStart() {
+    closeIndependentStart();
+    const practice = document.getElementById('practiceControls');
+    if (practice) window.setTimeout(() => practice.click(), 0);
+    else if (independentStart.trigger && independentStart.trigger.focus) independentStart.trigger.focus();
+  }
+
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-title-action="independent-start"]');
+    if (!trigger || !openIndependentStart(trigger)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    if (!independentStart.active) return;
+    if (e.target.closest('#onboardingStart')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      beginIndependentFirstStage();
+    } else if (e.target.closest('#onboardingNext')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      openPracticeFromIndependentStart();
+    } else if (e.target.closest('#onboardingClose')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      closeIndependentStart();
+      if (independentStart.trigger && independentStart.trigger.focus) independentStart.trigger.focus();
+    }
+  }, true);
+
+  document.addEventListener('keydown', (e) => {
+    if (!independentStart.active || e.key !== 'Escape') return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeIndependentStart();
+    if (independentStart.trigger && independentStart.trigger.focus) independentStart.trigger.focus();
+  }, true);
 
   // --- navigation buttons ([data-nav="title|game|settings"]) ---
   document.addEventListener('click', (e) => {

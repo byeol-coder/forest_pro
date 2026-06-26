@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
+const screens = fs.readFileSync(path.join(root, 'screens.js'), 'utf8');
 const inputMap = fs.readFileSync(path.join(root, 'src/game-tactile/input-map.js'), 'utf8');
 const renderer = fs.readFileSync(path.join(root, 'src/game-tactile/renderer.js'), 'utf8');
 const scoring = fs.readFileSync(path.join(root, 'src/game-tactile/scoring.js'), 'utf8');
@@ -31,6 +32,11 @@ for (const action of titleActions) {
   assert.ok(match, `title action "${action}" should be a native button`);
   assert.doesNotMatch(match[0], /tabindex=["']-1["']|disabled/i, `title action "${action}" should be keyboard-focusable`);
 }
+const independentStart = html.match(/<button[^>]+data-title-action=["']independent-start["'][^>]*>/i);
+assert.ok(independentStart, 'independent start button should exist');
+assert.match(screens, /openIndependentStart/, 'independent start should open a preparation screen before gameplay');
+assert.match(screens, /첫 스테이지 시작/, 'independent onboarding should include a clear first-stage start action');
+assert.match(screens, /stopImmediatePropagation/, 'independent onboarding should prevent immediate data-nav gameplay jump');
 
 assert.match(html, /data-dotpad-action=["']connect["']/i, 'DotPad connect control should exist');
 assert.match(html, /data-dotpad-action=["']mock["']/i, 'DotPad mock mode control should exist');

@@ -49,14 +49,17 @@ python3 -m http.server 8080
 |---|---|
 | 방향키 / WASD / D-pad | 루미 이동 |
 | DotPad `PanningLeft` / `PanningRight` | 좌 / 우 이동 |
-| DotPad `F1` / `F2` | 앞 / 뒤 이동 (규격 §6 — 단순 키) |
-| DotPad `F3` | 도트링 수집 / 상호작용 |
-| DotPad `F4` | 촉각 지도 안내 + 재전송 |
-| DotPad `PanningAll` | 주변 음성 안내 |
-| (보조) `LPF1`/`RPF4`, `F12`~`F34` 조합키 | 상·하 이동 / 수집 (backward-compat) |
+| DotPad `F1` | 현재 위치와 바라보는 방향 읽기 |
+| DotPad `F2` | 도트링 수집 / 상호작용 / 확인 |
+| DotPad `F3` | 현재 미션 읽기 |
+| DotPad `F4` | 주변·위험·목표 스캔 + 현재 촉각 프레임 재전송 |
+| DotPad `PanningAll` | 현재 주변 / 전체 맵 / 목표 방향 보기 전환 |
+| (보조) `LPF1`/`RPF4` | 앞 / 뒤 이동 |
 | `Enter` · `Space` · "먹기" 버튼 | 도트링 수집 / 상호작용 |
 | 음성: "앞으로 · 뒤로 · 왼쪽 · 오른쪽 · 먹기" | 이동 / 수집 |
 | `1` / `2` / `3` / `4` 키 또는 화면 버튼 | 위치 · 주변 · 미션 · 촉각 지도 안내 듣기 |
+
+게임 촉각 표준 구조는 [`docs/GAME_TACTILE_STANDARD.md`](./docs/GAME_TACTILE_STANDARD.md), 독립 조작 테스트는 [`docs/GAME_TACTILE_TEST_CHECKLIST.md`](./docs/GAME_TACTILE_TEST_CHECKLIST.md)를 참고하세요.
 
 ## 접근성 기능
 
@@ -176,7 +179,7 @@ window.DotForestEmbed = {
 ## 접근성 유지 체크리스트 (임베드에서도 불변)
 
 - [x] `aria-label`·`role`·live region 유지
-- [x] 키보드 조작(방향키/WASD), 정보키 `1~4`(DotPad `F1~F4`) 유지
+- [x] 키보드 조작(방향키/WASD), 정보키 `1~4`, 이동 우선 DotPad 키맵을 분리해 일관되게 제공
 - [x] 스크린리더 안내·TTS 음성 안내 유지(뮤트 시 일시 정지, 해제 시 복귀)
 - [x] **DotPad 60×40 tactile matrix 생성·출력 유지**(`?preview=0`은 시각 패널만 숨김)
 - [x] 임베드 진입 시 게임 컨테이너/시작에 포커스, `<iframe title>` 제공

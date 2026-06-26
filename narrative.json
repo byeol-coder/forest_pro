@@ -30,7 +30,7 @@
       "order": 2,
       "label": "주변 탐색",
       "webKey": "2",
-      "dotpadKey": "F2",
+      "dotpadKey": "F4",
       "ariaLive": "polite",
       "fallback": "왼쪽과 오른쪽은 고요합니다. 앞쪽에서 희미한 떨림이 느껴집니다."
     },
@@ -46,9 +46,9 @@
       "order": 4,
       "label": "촉각 지도 설명",
       "webKey": "4",
-      "dotpadKey": "F4",
+      "dotpadKey": "PanningAll",
       "ariaLive": "polite",
-      "fallback": "Dot Pad에는 현재 위치를 중심으로 한 격자가 표시됩니다. 가운데 점이 당신, 루미입니다."
+      "fallback": "Dot Pad에는 현재 위치를 중심으로 한 격자가 표시됩니다. 가장 강한 채움 블록이 당신, 루미입니다."
     }
   },
 

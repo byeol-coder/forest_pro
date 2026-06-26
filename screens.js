@@ -63,6 +63,12 @@
     }
     show(nav.dataset.nav);
   });
+  document.addEventListener('dotforest:navigate', (e) => {
+    const name = e.detail && e.detail.screen;
+    if (name) show(name);
+  });
+  window.DotForest = window.DotForest || {};
+  window.DotForest.showScreen = show;
 
   // --- ESC from settings returns to the game ---
   document.addEventListener('keydown', (e) => {

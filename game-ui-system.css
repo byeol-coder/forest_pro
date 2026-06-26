@@ -389,6 +389,79 @@ html.no-preview #dotpadCompact { display: block; }
   letter-spacing: 0;
 }
 
+/* Game Tactile 개발자 패널 — ?dev=1 또는 ?tactileDebug=1에서만 토글 노출 */
+.game-tactile-debug {
+  position: absolute;
+  top: 4.2rem;
+  left: 1rem;
+  z-index: 90;
+  width: min(23rem, calc(100vw - 2rem));
+  padding: 0.85rem;
+  border: 1px solid rgba(245, 184, 75, 0.5);
+  border-radius: 0.65rem;
+  background: rgba(5, 13, 7, 0.96);
+  color: #eef8e8;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.62);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+.game-tactile-debug[hidden],
+.game-tactile-debug:not(.is-open) { display: none !important; }
+.gtd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.65rem;
+  color: #ffd782;
+}
+.gtd-head button {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.game-tactile-debug dl {
+  display: grid;
+  gap: 0.32rem;
+  margin: 0;
+}
+.game-tactile-debug dl > div {
+  display: grid;
+  grid-template-columns: 7.2rem 1fr;
+  gap: 0.5rem;
+}
+.game-tactile-debug dt { color: rgba(225, 240, 218, 0.65); }
+.game-tactile-debug dd { margin: 0; color: #fff; }
+.game-tactile-debug p {
+  margin: 0.7rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255,255,255,.12);
+  color: #b8dfac;
+  line-height: 1.5;
+}
+.game-tactile-debug-toggle {
+  position: absolute;
+  top: 4.2rem;
+  left: 1rem;
+  z-index: 89;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(245, 184, 75, 0.5);
+  border-radius: 0.4rem;
+  background: rgba(5, 13, 7, 0.92);
+  color: #ffd782;
+  font: 700 0.68rem ui-monospace, SFMono-Regular, Menlo, monospace;
+  cursor: pointer;
+}
+.game-tactile-debug-toggle:focus-visible {
+  outline: 3px solid #f5b84b;
+  outline-offset: 2px;
+}
+
 /* =============================================
    7. Help Overlay
    ============================================= */

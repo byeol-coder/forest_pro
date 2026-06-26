@@ -18,6 +18,7 @@ const DYN_EN = {
   "왼쪽과 오른쪽은 고요합니다. 앞쪽에서 희미한 떨림이 느껴집니다.": "Left and right are quiet. A faint tremor comes from ahead.",
   "지금은 자유롭게 숲을 탐험하세요.": "For now, explore the forest freely.",
   "Dot Pad에는 현재 위치를 중심으로 한 격자가 표시됩니다. 가운데 점이 당신, 루미입니다.": "The Dot Pad shows a grid centered on your position. The dot in the middle is you, Lumi.",
+  "Dot Pad에는 현재 위치를 중심으로 한 격자가 표시됩니다. 가장 강한 채움 블록이 당신, 루미입니다.": "The Dot Pad shows a grid centered on your position. The strongest filled block is you, Lumi.",
   // location names / descriptions / onDemand
   "숲의 입구": "Forest Entrance",
   "베리 숲": "Berry Grove",
@@ -174,7 +175,7 @@ function say(text, priority = 'polite') {
   }
 }
 
-/* ---------- on-demand layers (1..4 / F1..F4) ---------- */
+/* ---------- keyboard on-demand layers (1..4); DotPad uses its movement-first map ---------- */
 function locOnDemand(key) {
   const loc = state.data.locations[state.location];
   return loc && loc.onDemand && loc.onDemand[key];
@@ -198,8 +199,12 @@ function describeMission() {
   return t;
 }
 function describeTactileMap() {
+  const b = bridge();
+  if (b && typeof b.describeCurrentSituation === 'function') {
+    return `${b.describeCurrentSituation()} 촉각 범례는 루미가 강한 2×2 블록, 목표가 중심점 있는 다이아몬드, 위험이 X 모양, 벽이 굵은 선, 상호작용 대상이 3점 클러스터입니다.`;
+  }
   const loc = state.data.locations[state.location];
-  let t = '손끝 지도에 숲의 지형이 펼쳐져 있어요. 가운데 밝은 점이 루미예요.';
+  let t = '손끝 지도에 숲의 지형이 펼쳐져 있어요. 가장 강한 채움 블록이 루미예요.';
   if (loc) t += ` 지금은 ${loc.name}에 있어요.`;
   return t;
 }

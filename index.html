@@ -15,11 +15,11 @@
   <link rel="stylesheet" href="./screens.css?v=2" />
   <link rel="stylesheet" href="./a11y.css?v=1" />
   <link rel="stylesheet" href="./premium.css?v=1" />
-  <link rel="stylesheet" href="./game-ui-system.css?v=1" />
+  <link rel="stylesheet" href="./game-ui-system.css?v=2" />
   <link rel="stylesheet" href="./embed.css?v=1" />
-  <link rel="stylesheet" href="./dotpad-demo.css?v=1" />
+  <link rel="stylesheet" href="./dotpad-demo.css?v=2" />
   <link rel="stylesheet" href="./forest-redesign.css?v=1" />
-  <link rel="stylesheet" href="./steam-redesign.css?v=1" />
+  <link rel="stylesheet" href="./steam-redesign.css?v=2" />
 
   <!-- TW iframe 임베드 레이어: screens.js·script.js보다 먼저(importmap 앞) 로드 -->
   <script src="./embed.js?v=1"></script>
@@ -68,28 +68,54 @@
             </div>
             <ul class="gm-nav" role="list">
               <li>
-                <button type="button" class="gm-btn gm-btn--primary" data-nav="game" aria-label="모험 시작 — 새로운 탐험을 시작합니다">
+                <button type="button" class="gm-btn gm-btn--primary" data-nav="game" data-title-action="independent-start" aria-label="독립적으로 시작 — 키보드 또는 DotPad 키만으로 게임을 시작합니다">
                   <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82z"/></svg>
-                  <span class="gm-btn-label">모험 시작</span>
+                  <span class="gm-btn-label">독립적으로 시작</span>
                 </button>
               </li>
               <li>
-                <button type="button" class="gm-btn dotpad-connect" data-dotpad-action="connect" aria-label="닷패드 연결">
+                <button type="button" id="connectAndStart" class="gm-btn dotpad-connect" data-title-action="connect-start" aria-label="DotPad 연결 후 독립 플레이 시작">
                   <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
-                  <span class="gm-btn-label">닷패드 연결</span>
+                  <span class="gm-btn-label">DotPad 연결하고 시작</span>
                 </button>
               </li>
               <li>
-                <button type="button" class="gm-btn" data-nav="settings" aria-label="설정">
-                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.07-.47 0-.59.22L2.74 8.87c-.12.2-.07.47.12.61l2.03 1.58c-.04.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.07.47 0 .59-.22l1.92-3.32c.12-.2.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-                  <span class="gm-btn-label">설정</span>
+                <button type="button" id="practiceControls" class="gm-btn" data-title-action="practice" aria-label="조작 연습 열기 — 키보드와 DotPad 키를 음성으로 배웁니다">
+                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 6h10v2H7V6zm-2 5h14v2H5v-2zm2 5h10v2H7v-2z"/></svg>
+                  <span class="gm-btn-label">조작 연습</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" id="teacherGuide" class="gm-btn" data-title-action="teacher-guide" aria-label="교사 또는 보호자 안내 열기">
+                  <svg class="gm-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3 1 9l4 2.18v5L12 21l7-4.82v-5L21 10v6h2V9L12 3zm5 12.12-5 3.45-5-3.45v-2.85l5 2.73 5-2.73v2.85z"/></svg>
+                  <span class="gm-btn-label">교사·보호자 안내</span>
                 </button>
               </li>
             </ul>
+            <p id="titleStatus" class="gm-title-status" role="status" aria-live="polite">Tab 키로 시작 방법을 선택할 수 있습니다.</p>
             <div class="gm-disconnect-row">
               <button type="button" class="gm-btn-ghost dotpad-disconnect" data-dotpad-action="disconnect" disabled aria-label="DotPad 연결 해제">연결 해제</button>
             </div>
           </nav>
+
+          <div id="onboardingOverlay" class="onboarding-overlay" hidden>
+            <div id="onboardingDialog" class="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-describedby="onboardingText" tabindex="-1">
+              <div class="onboarding-head">
+                <div>
+                  <p id="onboardingProgress" class="onboarding-progress"></p>
+                  <h2 id="onboardingTitle">조작 연습</h2>
+                </div>
+                <button type="button" id="onboardingClose" class="onboarding-close" aria-label="안내 닫기">×</button>
+              </div>
+              <div id="onboardingText" class="onboarding-text" aria-live="polite"></div>
+              <div id="onboardingDetails" class="onboarding-details"></div>
+              <div class="onboarding-actions">
+                <button type="button" id="onboardingBack">이전</button>
+                <button type="button" id="onboardingNext">다음</button>
+                <button type="button" id="onboardingStart" class="primary">게임 시작</button>
+              </div>
+            </div>
+          </div>
 
           <!-- "Press Start" 이미지 영역 클릭 지원 (보조) -->
           <button type="button" class="dot-forest-start-hotspot" data-nav="game" aria-label="Dot Forest 게임 시작" tabindex="-1">
@@ -234,14 +260,20 @@
             </div>
           </div>
 
+          <div class="tactile-view-controls" role="group" aria-label="촉각 화면 모드">
+            <button type="button" data-tactile-view="local" aria-pressed="true">현재 주변</button>
+            <button type="button" data-tactile-view="map" aria-pressed="false">전체 맵</button>
+            <button type="button" data-tactile-view="goal" aria-pressed="false">목표 방향</button>
+          </div>
+
           <canvas id="tactileCanvas" width="600" height="400" aria-label="60×40 촉각 그래픽 프리뷰 캔버스"></canvas>
 
-          <div class="legend dp-legend" aria-hidden="true">
-            <span><i class="dot player"></i>루미</span>
-            <span><i class="dot item"></i>도트링</span>
-            <span><i class="dot hazard"></i>위험</span>
-            <span><i class="dot path"></i>경계·길</span>
-            <span><i class="dot obstacle"></i>장애물</span>
+          <div class="legend dp-legend" role="list" aria-label="촉각 지도 기호">
+            <span role="listitem"><i class="dot player" aria-hidden="true"></i>루미: 강한 2×2 블록</span>
+            <span role="listitem"><i class="dot item" aria-hidden="true"></i>목표: 중심점 있는 다이아몬드</span>
+            <span role="listitem"><i class="dot hazard" aria-hidden="true"></i>위험: X 모양</span>
+            <span role="listitem"><i class="dot path" aria-hidden="true"></i>상호작용: 3점 클러스터</span>
+            <span role="listitem"><i class="dot obstacle" aria-hidden="true"></i>벽: 굵은 연속선</span>
           </div>
         </aside>
 
@@ -256,13 +288,32 @@
           </div>
           <div class="dp-mini-matrix" id="dpMiniMatrix" aria-hidden="true" aria-label="촉각 그래픽 미니 프리뷰"></div>
           <p class="dp-compact-msg" id="dpCompactMsg">연결 대기 중…</p>
-          <div class="dp-fn-guide" aria-label="DotPad 기능 키 안내">
-            <div class="dp-fn-item"><span class="dp-fn-key">F1</span><span>위치</span></div>
-            <div class="dp-fn-item"><span class="dp-fn-key">F2</span><span>상호작용</span></div>
-            <div class="dp-fn-item"><span class="dp-fn-key">F3</span><span>미션</span></div>
-            <div class="dp-fn-item"><span class="dp-fn-key">F4</span><span>지도</span></div>
+          <div class="dp-fn-guide" aria-label="DotPad 기능 키 안내. F1 현재 위치, F2 상호작용, F3 현재 미션, F4 주변 스캔">
+            <div class="dp-fn-item" data-dotpad-key="F1" data-action-label="현재 위치 읽기"><span class="dp-fn-key">F1</span><span>현재 위치</span></div>
+            <div class="dp-fn-item" data-dotpad-key="F2" data-action-label="상호작용 또는 확인"><span class="dp-fn-key">F2</span><span>상호작용</span></div>
+            <div class="dp-fn-item" data-dotpad-key="F3" data-action-label="현재 미션 읽기"><span class="dp-fn-key">F3</span><span>현재 미션</span></div>
+            <div class="dp-fn-item" data-dotpad-key="F4" data-action-label="주변 스캔"><span class="dp-fn-key">F4</span><span>주변 스캔</span></div>
           </div>
         </div>
+
+        <aside id="gameTactileDebug" class="game-tactile-debug" hidden aria-label="Game Tactile Debug">
+          <div class="gtd-head">
+            <strong>Game Tactile Debug</strong>
+            <button type="button" id="gameTactileDebugClose" aria-label="게임 촉각 디버그 닫기">×</button>
+          </div>
+          <dl>
+            <div><dt>현재 모드</dt><dd id="gtdMode">현재 주변 보기</dd></div>
+            <div><dt>플레이어</dt><dd id="gtdPlayer">—</dd></div>
+            <div><dt>목표 방향</dt><dd id="gtdGoal">—</dd></div>
+            <div><dt>위험</dt><dd id="gtdDanger">—</dd></div>
+            <div><dt>표시 객체</dt><dd id="gtdObjects">—</dd></div>
+            <div><dt>패턴 종류</dt><dd id="gtdPatterns">—</dd></div>
+            <div><dt>접근성 점수</dt><dd id="gtdScore">—</dd></div>
+            <div><dt>마지막 전송</dt><dd id="gtdStream">—</dd></div>
+          </dl>
+          <p id="gtdSummary">촉각 프레임을 분석하는 중입니다.</p>
+        </aside>
+        <button type="button" id="gameTactileDebugHudToggle" class="game-tactile-debug-toggle" hidden aria-label="Game Tactile Debug 열기">Tactile Debug</button>
 
         <!-- TTS 설정 패널 -->
         <div id="ttsPanelOverlay" hidden aria-label="음성 안내 설정">
@@ -363,12 +414,14 @@
             </div>
             <p class="help-sect-title">DotPad 조작</p>
             <div class="help-grid">
-              <div class="help-key-item"><kbd class="help-key arrow">◀ ▶</kbd><span class="help-desc">패닝키 이동</span></div>
-              <div class="help-key-item"><kbd class="help-key fn">F1</kbd><span class="help-desc">현재 위치</span></div>
-              <div class="help-key-item"><kbd class="help-key fn">F2</kbd><span class="help-desc">상호작용</span></div>
-              <div class="help-key-item"><kbd class="help-key fn">F3</kbd><span class="help-desc">미션 읽기</span></div>
-              <div class="help-key-item"><kbd class="help-key fn">F4</kbd><span class="help-desc">주변+지도</span></div>
-              <div class="help-key-item"><kbd class="help-key fn">F1+F2</kbd><span class="help-desc">도트링 수집</span></div>
+              <div class="help-key-item"><kbd class="help-key arrow">Pan ◀</kbd><span class="help-desc">왼쪽 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key arrow">Pan ▶</kbd><span class="help-desc">오른쪽 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">위·아래 패닝</kbd><span class="help-desc">앞·뒤 이동</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F1</kbd><span class="help-desc">현재 위치 읽기</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F2</kbd><span class="help-desc">수집 / 상호작용 / 확인</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F3</kbd><span class="help-desc">현재 미션 읽기</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">F4</kbd><span class="help-desc">주변·위험·목표 스캔과 촉각 프레임 재전송</span></div>
+              <div class="help-key-item"><kbd class="help-key fn">Pan All</kbd><span class="help-desc">현재 주변·전체 맵·목표 방향 보기 전환</span></div>
             </div>
             <p class="help-sect-title">촉각 그래픽 기호</p>
             <div class="help-grid">
@@ -438,8 +491,8 @@
                 <li>키보드: 방향키 또는 WASD</li>
                 <li>모바일: 화면 D-pad 터치</li>
                 <li>음성: “앞으로”, “뒤로”, “왼쪽”, “오른쪽”, “먹기”</li>
-                <li>닷패드: 패닝 좌·우 = 좌우 이동, F1·F2 = 앞·뒤 이동, F3 = 먹기, F4 = 촉각 지도, Pan All = 주변 안내</li>
-                <li>닷패드 콤보 (KeyFunction12/34 등): 먹기·상호작용</li>
+                <li>닷패드: 패닝 좌우·상하 = 이동, F1 = 위치, F2 = 상호작용, F3 = 미션, F4 = 주변 스캔</li>
+                <li>Pan All = 현재 주변·전체 맵·목표 방향 촉각 보기 전환</li>
                 <li>정보 듣기: 1·2·3·4 키 또는 화면 버튼 — 위치 · 주변 · 미션 · 촉각 지도</li>
               </ul>
             </div>
@@ -513,6 +566,7 @@
               <p class="set-label">개발자 · 접근성</p>
               <div class="set-actions">
                 <button type="button" id="exportMatrix" class="mini-btn" aria-label="현재 60×40 매트릭스 콘솔 출력">Matrix Log 출력</button>
+                <button type="button" id="gameTactileDebugToggle" class="mini-btn" hidden aria-label="게임 촉각 디버그 패널 열기">Game Tactile Debug</button>
                 <button type="button" id="resetButton" class="mini-btn danger" aria-label="게임 다시 시작">게임 다시 시작</button>
               </div>
               <p class="set-note"><code>DotPadConnectionManager</code>: 연결·검증·진단·모의 모드를 관리합니다.</p>
@@ -529,10 +583,10 @@
 
   </main>
 
-  <script type="module" src="./script.js?v=3"></script>
-  <script type="module" src="./narrative-engine.js?v=2"></script>
+  <script type="module" src="./script.js?v=5"></script>
+  <script type="module" src="./narrative-engine.js?v=3"></script>
   <script src="./tts-engine.js?v=1"></script>
-  <script src="./ui-controls.js?v=1"></script>
+  <script src="./ui-controls.js?v=2"></script>
   <script src="./a11y.js?v=1"></script>
 <style id="mobileBannerStyle">
 #mobileBanner{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(7,7,15,.97);backdrop-filter:blur(8px);padding:32px;text-align:center;font-family:sans-serif;color:#f0eeff}
@@ -573,6 +627,11 @@
   const DICT = {
     // Title screen
     "\ub2ff \ud3ec\ub808\uc2a4\ud2b8": "Dot Forest",
+    "\ub3c5\ub9bd\uc801\uc73c\ub85c \uc2dc\uc791": "Start independently",
+    "DotPad \uc5f0\uacb0\ud558\uace0 \uc2dc\uc791": "Connect DotPad and start",
+    "\uc870\uc791 \uc5f0\uc2b5": "Practice controls",
+    "\uad50\uc0ac\u00b7\ubcf4\ud638\uc790 \uc548\ub0b4": "Teacher / guardian guide",
+    "Tab \ud0a4\ub85c \uc2dc\uc791 \ubc29\ubc95\uc744 \uc120\ud0dd\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.": "Use Tab to choose how to start.",
     "\ub8e8\ubbf8\uc640 \ud568\uaed8 \uc232\uc744 \ub204\ube44\uba70 \ub3c4\ud2b8\ub9c1\uc744 \ubaa8\uc544\uc694. \ud654\uba74\uc758 \uc6c0\uc9c1\uc784\uc774 60\u00d740 \ucd09\uac01 \uadf8\ub798\ud53d\uc73c\ub85c \uc190\ub05d\uc5d0 \uadf8\ub300\ub85c \uc804\ud574\uc9d1\ub2c8\ub2e4.":
       "Roam the forest with Lumi and collect Dotlings. Every on-screen movement is delivered straight to your fingertips as a 60\u00d740 tactile graphic.",
     "\uac8c\uc784 \uc2dc\uc791": "Start Game",
@@ -650,8 +709,10 @@
     "\uae00\uc790 \ud06c\uae30": "Text size",
     "\uc785\ub825 \ubc29\uc2dd \uc548\ub0b4": "Input methods",
     "\uc785\ub825 \ubc29\uc2dd\uacfc \ud658\uacbd\uc744 \uc5ec\uae30\uc11c \ud55c \ubc88\uc5d0 \uad00\ub9ac\ud574\uc694.": "Manage input methods and environment all in one place.",
-    "DotPad: \ud328\ub2dd \uc88c\u00b7\uc6b0 = \uc88c\uc6b0 \uc774\ub3d9, F1\u00b7F2 = \uc55e\u00b7\ub4a4 \uc774\ub3d9, F3 = \uba39\uae30, F4 = \ucd09\uac01 \uc9c0\ub3c4, Pan All = \uc8fc\ubcc0 \uc548\ub0b4":
-      "DotPad: Pan L/R = move left/right, F1/F2 = move forward/back, F3 = collect, F4 = tactile map, Pan All = surroundings",
+    "\ub2f7\ud328\ub4dc: \ud328\ub2dd \uc88c\uc6b0\u00b7\uc0c1\ud558 = \uc774\ub3d9, F1 = \uc704\uce58, F2 = \uc0c1\ud638\uc791\uc6a9, F3 = \ubbf8\uc158, F4 = \uc8fc\ubcc0 \uc2a4\uce94":
+      "DotPad: panning left/right/up/down = movement, F1 = position, F2 = interact, F3 = mission, F4 = surroundings scan",
+    "Pan All = \ud604\uc7ac \uc8fc\ubcc0\u00b7\uc804\uccb4 \ub9f5\u00b7\ubaa9\ud45c \ubc29\ud5a5 \ucd09\uac01 \ubcf4\uae30 \uc804\ud658":
+      "Pan All = switch tactile views: local, full map, and goal direction",
     "\uc815\ubcf4 \ub4e3\uae30: 1\u00b72\u00b73\u00b74 \ud0a4 \ub610\ub294 \ud654\uba74 \ubc84\ud2bc \u2014 \uc704\uce58 \u00b7 \uc8fc\ubcc0 \u00b7 \ubbf8\uc158 \u00b7 \ucd09\uac01 \uc9c0\ub3c4":
       "Hear info: keys 1\u00b72\u00b73\u00b74 or on-screen buttons \u2014 Position \u00b7 Surroundings \u00b7 Mission \u00b7 Tactile map",
     "\uc74c\uc131: \u201c\uc55e\uc73c\ub85c\u201d, \u201c\ub4a4\ub85c\u201d, \u201c\uc67c\ucabd\u201d, \u201c\uc624\ub978\ucabd\u201d, \u201c\uba39\uae30\u201d":
@@ -789,6 +850,6 @@
   else boot();
 })();
 </script>
-<script src="./screens.js?v=2"></script>
+<script src="./screens.js?v=3"></script>
 </body>
 </html>

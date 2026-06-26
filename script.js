@@ -4,6 +4,18 @@ import { wanderStep, threat, applyHit, lightFromProgress, lightToScene, atExit, 
 import { AREAS, AREA_ORDER } from './areas.js';
 import { KeyCodes } from './DotPadSDK-3_0_0.js';
 import { DotPadConnectionManager } from './dotpad-connection-manager.js';
+import {
+  DotPadGameStream,
+  GAME_TACTILE_TYPES,
+  TACTILE_VIEW_LABELS,
+  TACTILE_VIEW_MODES,
+  calculateGameTactilePlayabilityScore,
+  generateFeedback,
+  nextTactileViewMode,
+  renderStateToGrid,
+  resolveDotPadAction,
+  tactileLegendText,
+} from './src/game-tactile/index.js';
 
 const DOT_WIDTH = 60;
 const DOT_HEIGHT = 40;
@@ -15,12 +27,25 @@ const ITEM_COLLECT_DISTANCE = 2.25;
 // 촉각 매트릭스 개체 타입 코드. 0=빈칸이고, 0이 아니면 DotPad 핀이 올라간다
 // (matrixToDotPadHex는 truthy 검사만 하므로 이진 출력은 그대로 유지됨).
 // 프리뷰 캔버스가 이 코드로 색·크기를 구분해 "촉각 지도"를 읽기 쉽게 만든다.
-const DOT_T = { EMPTY: 0, BORDER: 1, PATH: 2, WATER: 3, STONE: 4, OBSTACLE: 5, ITEM: 6, HAZARD: 7, PLAYER: 8 };
+const DOT_T = {
+  EMPTY: GAME_TACTILE_TYPES.EMPTY,
+  BORDER: 1,
+  PATH: GAME_TACTILE_TYPES.PATH,
+  WATER: 3,
+  STONE: 4,
+  OBSTACLE: GAME_TACTILE_TYPES.WALL,
+  ITEM: GAME_TACTILE_TYPES.INTERACTABLE,
+  HAZARD: GAME_TACTILE_TYPES.DANGER,
+  PLAYER: GAME_TACTILE_TYPES.PLAYER,
+  TARGET: GAME_TACTILE_TYPES.GOAL,
+  EXIT: GAME_TACTILE_TYPES.EXIT,
+};
 
 const dom = {
   gameCanvas: document.getElementById('gameCanvas'),
   tactileCanvas: document.getElementById('tactileCanvas'),
   liveStatus: document.getElementById('liveStatus'),
+  titleStatus: document.getElementById('titleStatus'),
   scoreText: document.getElementById('scoreText'),
   dotpadState: document.getElementById('dotpadState'),
   dotpadGameStatus: document.getElementById('dotpadGameStatus'),
@@ -32,6 +57,16 @@ const dom = {
   collectButton: document.getElementById('collectButton'),
   voiceButton: document.getElementById('voiceButton'),
   resetButton: document.getElementById('resetButton'),
+  onboardingOverlay: document.getElementById('onboardingOverlay'),
+  onboardingDialog: document.getElementById('onboardingDialog'),
+  onboardingTitle: document.getElementById('onboardingTitle'),
+  onboardingProgress: document.getElementById('onboardingProgress'),
+  onboardingText: document.getElementById('onboardingText'),
+  onboardingDetails: document.getElementById('onboardingDetails'),
+  onboardingBack: document.getElementById('onboardingBack'),
+  onboardingNext: document.getElementById('onboardingNext'),
+  onboardingStart: document.getElementById('onboardingStart'),
+  onboardingClose: document.getElementById('onboardingClose'),
 };
 
 const tactileCtx = dom.tactileCanvas.getContext('2d');
@@ -78,13 +113,63 @@ let lastMatrix = [];
 let lastGameMatrix = [];
 let tactilePreviewOverrideUntil = 0;
 let dotPadManager = null;
+let dotPadGameStream = null;
 let guidedDemoStep = 0;
+let onboardingMode = 'practice';
+let onboardingReturnFocus = null;
+let tactileViewMode = TACTILE_VIEW_MODES.LOCAL;
+let lastTactileReport = null;
+let lastTactileStreamStatus = null;
+let gameTactileDebugEnabled = false;
 const inputLogEntries = [];
 // 그래픽 셀 핀 순서: 'braille'(표준 8점) ↔ 'raster'(행우선). 실기기에서 한 셀 안의
 // 핀이 뒤섞여 보이면 설정에서 토글하면 됨. localStorage에 저장.
 let dotBitOrderKey = 'braille';
 try { const o = localStorage.getItem('dotforest.dotOrder'); if (o === 'braille' || o === 'raster') dotBitOrderKey = o; } catch (e) {}
 let speechRecognition = null;
+
+const CONTROL_TUTORIAL_STEPS = [
+  {
+    title: '키보드로 이동하기',
+    text: '방향키 또는 W A S D로 이동합니다. 위쪽은 앞으로, 아래쪽은 뒤로입니다.',
+    details: 'Tab 키로 화면의 버튼을 이동할 수 있고, Enter 또는 Space로 선택합니다.',
+  },
+  {
+    title: 'DotPad에서 좌우 이동하기',
+    text: 'PanningLeft는 왼쪽 이동, PanningRight는 오른쪽 이동입니다.',
+    details: '좌우 패닝키는 화면 방향키와 같은 이동 로직을 사용합니다.',
+  },
+  {
+    title: 'DotPad에서 앞뒤 이동하기',
+    text: '위·아래 패닝키는 앞·뒤 이동입니다. 기기에서는 위 패닝 조합과 아래 패닝 조합을 사용합니다.',
+    details: '키를 한 번 누를 때마다 한 걸음 이동하고, 목표까지 가까워졌는지 음성으로 알려줍니다.',
+  },
+  {
+    title: '수집하고 선택하기',
+    text: 'F2는 도트링 수집 또는 대화 선택입니다. 키보드에서는 Enter나 Space를 사용합니다.',
+    details: '수집에 실패해도 현재 위치와 다음 추천 방향을 다시 들을 수 있습니다.',
+  },
+  {
+    title: '위치와 미션 확인하기',
+    text: 'F1은 현재 위치를 읽고, F3은 현재 미션을 읽습니다.',
+    details: '길을 잃었을 때 위치와 해야 할 일을 각각 짧게 확인할 수 있습니다.',
+  },
+  {
+    title: '주변 전체 듣기',
+    text: 'F4를 누르면 주변 위험, 목표 방향, 상호작용 대상을 스캔하고 현재 촉각 프레임을 다시 보냅니다.',
+    details: '움직이기 전 장애물이나 위험을 확인하거나 실패 후 회복할 때 사용하세요.',
+  },
+  {
+    title: '촉각 화면 모드 바꾸기',
+    text: 'PanningAll은 현재 주변 보기, 전체 맵 보기, 목표 방향 보기를 차례로 전환합니다.',
+    details: '루미는 강한 2×2 블록, 위험은 X, 목표는 다이아몬드, 상호작용 대상은 3점 클러스터입니다.',
+  },
+  {
+    title: '혼자서 시작할 준비가 됐어요',
+    text: '막히거나 수집에 실패하면 F4를 눌러 다시 방향을 잡으세요.',
+    details: '게임 시작을 누르면 첫 구역의 현재 상황을 음성으로 들려줍니다.',
+  },
+];
 
 const initialItems = [
   { id: 'dotling-1', x: -14, z: -7, collected: false },
@@ -125,7 +210,9 @@ async function init() {
   setupEventListeners();
   setupSpeechRecognition();
   gameState.lightTotal = GRAND_TOTAL;
-  announce('루미가 숲 입구에서 기다리고 있어요. 방향키나 패닝키 구조로 이동할 수 있습니다.');
+  if (dom.titleStatus) {
+    dom.titleStatus.textContent = 'Tab 키로 시작 방법을 선택하세요. 독립 시작, DotPad 연결 시작, 조작 연습, 교사·보호자 안내가 있습니다.';
+  }
 
   await Promise.allSettled([
     loadLumiCharacter(),
@@ -523,6 +610,9 @@ function loadArea(id, opts = {}) {
   if (!opts.initial && window.DotForest && window.DotForest.narrative && window.DotForest.narrative.enterArea) {
     window.DotForest.narrative.enterArea(id);
   }
+  if (!opts.initial) {
+    window.setTimeout(() => announce(describeCurrentSituation(), true), 650);
+  }
 }
 
 // 단계 전환 연출: "N단계 완료 → 다음 구역" 화면 후 실제 이동
@@ -915,7 +1005,11 @@ function onHazardHit() {
   gameState.forestLight = applyHit(gameState.forestLight);
   applyScene();
   updateLightHUD();
-  announce('그림자가 스쳐 지나갔어요. 숲의 빛이 잠시 흐려집니다.', true);
+  const feedback = generateFeedback('dangerNear', {
+    speech: `그림자가 스쳐 지나갔어요. 숲의 빛이 잠시 흐려집니다. ${nearbyThreatDescription()}`,
+  });
+  announce(feedback.speech, true);
+  syncTactileFrame('hazard-hit', { priority: 100, force: true });
 }
 
 function setupDotPadManager() {
@@ -936,14 +1030,27 @@ function setupDotPadManager() {
     onPhysicalKey: onDotKey,
     announce,
   });
+  dotPadGameStream = new DotPadGameStream({
+    toHex: matrixToDotPadHex,
+    send: (matrix, reason) => dotPadManager.sendMatrix(matrix, reason),
+    onStatus: (status) => {
+      lastTactileStreamStatus = status;
+      updateGameTactileDebugPanel();
+    },
+  });
   window.DotForest = window.DotForest || {};
   window.DotForest.dotPad = {
     manager: dotPadManager,
     connect: () => dotPadManager.connect(),
     disconnect: () => dotPadManager.disconnect(),
-    sendMatrix: (matrix, reason = 'external') => dotPadManager.sendMatrix(matrix, reason),
+    sendMatrix: (matrix, reason = 'external') => sendDotPadFrame(matrix, reason, { force: true }),
     sendTestPattern: (type) => dotPadManager.sendTestPattern(type),
     getDebugStatus: () => dotPadManager.getDebugStatus(),
+    getGameTactileStatus: () => ({
+      viewMode: tactileViewMode,
+      report: lastTactileReport,
+      stream: dotPadGameStream.getStatus(),
+    }),
     simulateKey: (keyName) => onDotKey(null, KeyCodes[keyName] || keyName, 'external-mock'),
   };
 }
@@ -968,6 +1075,8 @@ function summarizeSendResult(result) {
 
 function setupEventListeners() {
   document.addEventListener('keydown', (event) => {
+    if (document.body.dataset.screen !== 'game') return;
+    const interactive = event.target.closest && event.target.closest('button, a, input, select, textarea, [role="button"]');
     const key = event.key.toLowerCase();
     const map = {
       arrowup: 'up', w: 'up',
@@ -975,13 +1084,13 @@ function setupEventListeners() {
       arrowleft: 'left', a: 'left',
       arrowright: 'right', d: 'right',
     };
-    if (map[key]) {
+    if (map[key] && !interactive) {
       event.preventDefault();
       handlePanningKeyInput(map[key], `Keyboard ${event.key}`);
     }
-    if (key === 'enter' || key === ' ') {
+    if ((key === 'enter' || key === ' ') && !interactive) {
       event.preventDefault();
-      collectNearbyDotling(`Keyboard ${event.key === ' ' ? 'Space' : 'Enter'}`);
+      collectOrInteract(`Keyboard ${event.key === ' ' ? 'Space' : 'Enter'}`);
     }
   });
 
@@ -989,7 +1098,7 @@ function setupEventListeners() {
     button.addEventListener('click', () => handlePanningKeyInput(button.dataset.move, `On-screen D-pad ${button.dataset.move}`));
   });
 
-  dom.collectButton.addEventListener('click', () => collectNearbyDotling('On-screen Collect'));
+  dom.collectButton.addEventListener('click', () => collectOrInteract('On-screen Collect'));
   dom.resetButton.addEventListener('click', resetGame);
   dom.exportMatrix.addEventListener('click', () => {
     console.table(lastMatrix);
@@ -1046,7 +1155,7 @@ function setupEventListeners() {
       if (action === 'disconnect') await dotPadManager.disconnect();
       if (action === 'test') await dotPadManager.sendTestPattern('border-origin');
       if (action === 'resend') {
-        const result = await sendDotPadFrame(lastMatrix, 'manual-resend');
+        const result = await sendDotPadFrame(lastMatrix, 'manual-resend', { priority: 100, force: true });
         recordInputLog(`Resend Current Frame → ${summarizeSendResult(result)}`);
         announce(result.message, !result.ok);
       }
@@ -1072,19 +1181,330 @@ function setupEventListeners() {
   });
   const guidedNext = document.getElementById('guidedDemoNext');
   if (guidedNext) {
-    guidedNext.addEventListener('click', () => runGuidedDemoStep((guidedDemoStep % 8) + 1));
+    guidedNext.addEventListener('click', () => runGuidedDemoStep((guidedDemoStep % CONTROL_TUTORIAL_STEPS.length) + 1));
   }
 
   document.querySelectorAll('[data-info]').forEach((button) => {
     button.addEventListener('click', () => recordInputLog(`On-screen info ${button.dataset.info} → narration requested`));
   });
+  document.querySelectorAll('[data-tactile-view]').forEach((button) => {
+    button.addEventListener('click', () => setTactileViewMode(button.dataset.tactileView, '화면 버튼'));
+  });
+
+  const debugToggle = document.getElementById('gameTactileDebugToggle');
+  const debugHudToggle = document.getElementById('gameTactileDebugHudToggle');
+  const debugClose = document.getElementById('gameTactileDebugClose');
+  const params = new URLSearchParams(location.search);
+  gameTactileDebugEnabled = params.get('dev') === '1' || params.get('tactileDebug') === '1';
+  const debugPanel = document.getElementById('gameTactileDebug');
+  if (debugPanel && gameTactileDebugEnabled) debugPanel.hidden = false;
+  [debugToggle, debugHudToggle].filter(Boolean).forEach((button) => {
+    button.hidden = !gameTactileDebugEnabled;
+    button.addEventListener('click', () => {
+      const panel = document.getElementById('gameTactileDebug');
+      if (!panel) return;
+      panel.hidden = false;
+      panel.classList.add('is-open');
+      updateGameTactileDebugPanel();
+    });
+  });
+  if (debugClose) {
+    debugClose.addEventListener('click', () => {
+      const panel = document.getElementById('gameTactileDebug');
+      if (panel) panel.classList.remove('is-open');
+      if (debugHudToggle && document.body.dataset.screen === 'game') debugHudToggle.focus();
+      else if (debugToggle) debugToggle.focus();
+    });
+  }
+
+  const independentStart = document.querySelector('[data-title-action="independent-start"]');
+  if (independentStart) {
+    independentStart.addEventListener('click', () => {
+      window.setTimeout(() => startIndependentPlay('키보드 또는 DotPad 키로 독립 플레이를 시작합니다.'), 260);
+    });
+  }
+
+  const connectAndStart = document.getElementById('connectAndStart');
+  if (connectAndStart) {
+    connectAndStart.addEventListener('click', async () => {
+      if (dom.titleStatus) dom.titleStatus.textContent = 'DotPad를 찾고 있습니다. 기기를 선택해 주세요.';
+      const status = await dotPadManager.connect();
+      if (status && status.connected) {
+        navigateToGame();
+        window.setTimeout(() => startIndependentPlay('DotPad가 준비되었습니다. 독립 플레이를 시작합니다.'), 260);
+      } else if (dom.titleStatus) {
+        dom.titleStatus.textContent = 'DotPad 연결이 완료되지 않았습니다. 다시 연결하거나 독립적으로 시작을 선택하세요.';
+      }
+    });
+  }
+
+  const practiceControls = document.getElementById('practiceControls');
+  if (practiceControls) practiceControls.addEventListener('click', () => openOnboarding('practice', practiceControls));
+  const teacherGuide = document.getElementById('teacherGuide');
+  if (teacherGuide) teacherGuide.addEventListener('click', () => openOnboarding('teacher', teacherGuide));
+  if (dom.onboardingClose) dom.onboardingClose.addEventListener('click', closeOnboarding);
+  if (dom.onboardingBack) dom.onboardingBack.addEventListener('click', () => runGuidedDemoStep(guidedDemoStep - 1));
+  if (dom.onboardingNext) dom.onboardingNext.addEventListener('click', () => runGuidedDemoStep(guidedDemoStep + 1));
+  if (dom.onboardingStart) {
+    dom.onboardingStart.addEventListener('click', () => {
+      if (onboardingMode === 'teacher') {
+        closeOnboarding();
+        return;
+      }
+      closeOnboarding(false);
+      navigateToGame();
+      window.setTimeout(() => startIndependentPlay('조작 연습을 마쳤습니다. 독립 플레이를 시작합니다.'), 260);
+    });
+  }
+  document.addEventListener('keydown', handleOnboardingKeyboard);
+}
+
+function navigateToGame() {
+  document.dispatchEvent(new CustomEvent('dotforest:navigate', { detail: { screen: 'game' } }));
+}
+
+function startIndependentPlay(prefix) {
+  const message = `${prefix} ${describeCurrentSituation()}`;
+  announce(message, true);
+  const heading = document.getElementById('gameHeading');
+  if (heading) heading.focus({ preventScroll: true });
+}
+
+function openOnboarding(mode, trigger) {
+  if (!dom.onboardingOverlay) return;
+  onboardingMode = mode;
+  onboardingReturnFocus = trigger || document.activeElement;
+  dom.onboardingOverlay.hidden = false;
+  if (mode === 'teacher') {
+    dom.onboardingProgress.textContent = '교사·보호자용';
+    dom.onboardingTitle.textContent = '독립 플레이를 돕는 방법';
+    dom.onboardingText.textContent = '가능하면 방향을 대신 조작하지 말고, 사용자가 F4로 현재 상황을 다시 확인하도록 기다려 주세요.';
+    dom.onboardingDetails.innerHTML = '<ul>'
+      + '<li>시작 전 조작 연습을 한 번 듣고, F1·F2·F3·F4와 패닝키를 직접 눌러보게 합니다.</li>'
+      + '<li>막히면 F4를 눌러 위치·목표·위험·추천 방향을 다시 듣도록 안내합니다.</li>'
+      + '<li>촉각 기호는 루미 2×2 블록, 목표 다이아몬드, 위험 X, 벽 굵은 선, 상호작용 대상 3점입니다.</li>'
+      + '<li>대화 선택에서는 F2 또는 키보드 Enter를 사용할 수 있습니다.</li>'
+      + '</ul>';
+    dom.onboardingBack.hidden = true;
+    dom.onboardingNext.hidden = true;
+    dom.onboardingStart.hidden = false;
+    dom.onboardingStart.textContent = '확인';
+    announce(`${dom.onboardingText.textContent} 조작을 대신하지 않고, F4로 스스로 회복할 시간을 주세요.`, true);
+  } else {
+    dom.onboardingBack.hidden = false;
+    dom.onboardingNext.hidden = false;
+    dom.onboardingStart.textContent = '게임 시작';
+    runGuidedDemoStep(1);
+  }
+  window.setTimeout(() => dom.onboardingDialog && dom.onboardingDialog.focus(), 0);
+}
+
+function closeOnboarding(restoreFocus = true) {
+  if (!dom.onboardingOverlay) return;
+  dom.onboardingOverlay.hidden = true;
+  if (restoreFocus && onboardingReturnFocus && onboardingReturnFocus.focus) onboardingReturnFocus.focus();
+}
+
+function handleOnboardingKeyboard(event) {
+  if (!dom.onboardingOverlay || dom.onboardingOverlay.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeOnboarding();
+    return;
+  }
+  if (event.key !== 'Tab' || !dom.onboardingDialog) return;
+  const focusable = [...dom.onboardingDialog.querySelectorAll('button:not([disabled]):not([hidden]), [href], [tabindex]:not([tabindex="-1"])')];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function setTactileViewMode(mode, source = '입력') {
+  if (!Object.values(TACTILE_VIEW_MODES).includes(mode)) return Promise.resolve(null);
+  tactileViewMode = mode;
+  document.querySelectorAll('[data-tactile-view]').forEach((button) => {
+    button.setAttribute('aria-pressed', button.dataset.tactileView === mode ? 'true' : 'false');
+  });
+  const label = TACTILE_VIEW_LABELS[mode];
+  announce(`${label}로 전환했습니다. ${describeCurrentSituation()}`, true);
+  const promise = syncTactileFrame(`view-mode-${mode}`, { priority: 90, force: true });
+  promise.then((result) => recordInputLog(`${source} → ${label} → ${summarizeSendResult(result)}`));
+  return promise;
+}
+
+function cycleTactileViewMode(source = 'PanningAll') {
+  return setTactileViewMode(nextTactileViewMode(tactileViewMode), source);
+}
+
+function setDebugText(id, text) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = text;
+}
+
+function updateGameTactileDebugPanel() {
+  if (!lastTactileReport) return;
+  const { metadata, score } = lastTactileReport;
+  setDebugText('gtdMode', TACTILE_VIEW_LABELS[metadata.mode] || metadata.mode);
+  setDebugText('gtdPlayer', `x ${metadata.playerGridPosition.x}, y ${metadata.playerGridPosition.y}`);
+  setDebugText('gtdGoal', metadata.goalDirection || '없음');
+  setDebugText('gtdDanger', metadata.visibleDangers
+    ? `${metadata.visibleDangers}개 · 최근접 ${Math.max(1, Math.ceil(metadata.nearestDangerDistance / MOVE_STEP))}칸`
+    : '표시 범위 내 없음');
+  setDebugText('gtdObjects', `${metadata.coreObjectCount}개`);
+  setDebugText('gtdPatterns', `${metadata.patternTypeCount}개`);
+  setDebugText('gtdScore', `${score.score} · ${score.rating}`);
+  const lastAt = lastTactileStreamStatus && lastTactileStreamStatus.lastSentAt;
+  setDebugText('gtdStream', lastAt ? `${Math.max(0, Date.now() - lastAt)}ms 전` : '대기 중');
+  setDebugText('gtdSummary', score.summary);
 }
 
 function handlePanningKeyInput(direction, source = 'Input') {
   return movePlayer(direction, source);
 }
 
+function nearestUncollectedDotling(from = gameState.player) {
+  const targets = gameState.items
+    .filter((item) => !item.collected)
+    .map((item) => ({ item, kind: 'collectible' }));
+  const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+    ? (window.DotForest.narrative.get('flags') || {}) : {};
+  if (gameState.area === 'forest_entrance' && !flags.pipFound) {
+    targets.push({ item: { id: 'mission-pip', x: PIP_POS.x, z: PIP_POS.z, name: 'Pip' }, kind: 'mission' });
+  }
+  return targets
+    .map((target) => ({ ...target, distance: distance2D(target.item, from) }))
+    .sort((a, b) => a.distance - b.distance)[0] || null;
+}
+
+function approximateSteps(distance) {
+  return Math.max(1, Math.ceil(distance / MOVE_STEP));
+}
+
+function relativeDirection(dx, dz) {
+  if (Math.hypot(dx, dz) < 0.6) return '현재 위치';
+  const horizontal = Math.abs(dx) > 0.8 ? (dx < 0 ? '왼쪽' : '오른쪽') : '';
+  const vertical = Math.abs(dz) > 0.8 ? (dz < 0 ? '앞쪽' : '뒤쪽') : '';
+  if (horizontal && vertical && Math.min(Math.abs(dx), Math.abs(dz)) >= Math.max(Math.abs(dx), Math.abs(dz)) * 0.45) {
+    return `${vertical} ${horizontal}`;
+  }
+  return Math.abs(dx) > Math.abs(dz) ? horizontal : vertical;
+}
+
+function directionDestination(direction) {
+  return direction === '현재 위치' ? '현재 위치에' : `${direction}으로`;
+}
+
+function approximatePosition() {
+  const x = gameState.player.x < -WORLD_LIMIT_X / 3 ? '서쪽' : gameState.player.x > WORLD_LIMIT_X / 3 ? '동쪽' : '중앙';
+  const z = gameState.player.z < -WORLD_LIMIT_Z / 3 ? '앞편' : gameState.player.z > WORLD_LIMIT_Z / 3 ? '뒤편' : '가운데';
+  return x === '중앙' && z === '가운데' ? '중앙' : `${x} ${z}`;
+}
+
+function obstacleEdgeDistance(obstacle, point = gameState.player) {
+  const dx = Math.max(Math.abs(point.x - obstacle.x) - obstacle.w / 2, 0);
+  const dz = Math.max(Math.abs(point.z - obstacle.z) - obstacle.d / 2, 0);
+  return Math.hypot(dx, dz);
+}
+
+function nearbyThreatDescription() {
+  const obstacle = gameState.obstacles
+    .map((value) => ({ type: 'obstacle', value, distance: obstacleEdgeDistance(value) }))
+    .sort((a, b) => a.distance - b.distance)[0];
+  const hazard = gameState.hazards
+    .map((value) => ({ type: 'hazard', value, distance: distance2D(value, gameState.player) }))
+    .sort((a, b) => a.distance - b.distance)[0];
+  const nearest = [obstacle, hazard].filter(Boolean).sort((a, b) => a.distance - b.distance)[0];
+  if (!nearest || nearest.distance > 7) return '가까운 장애물이나 위험은 없습니다.';
+  const direction = relativeDirection(nearest.value.x - gameState.player.x, nearest.value.z - gameState.player.z);
+  const label = nearest.type === 'hazard' ? '움직이는 그림자 위험' : '나무 장애물';
+  return `${direction} 약 ${approximateSteps(nearest.distance)}칸에 ${label}이 있습니다.`;
+}
+
+function candidatePosition(direction) {
+  const next = { x: gameState.player.x, z: gameState.player.z };
+  if (direction === 'up') next.z -= MOVE_STEP;
+  if (direction === 'down') next.z += MOVE_STEP;
+  if (direction === 'left') next.x -= MOVE_STEP;
+  if (direction === 'right') next.x += MOVE_STEP;
+  next.x = THREE.MathUtils.clamp(next.x, -WORLD_LIMIT_X, WORLD_LIMIT_X);
+  next.z = THREE.MathUtils.clamp(next.z, -WORLD_LIMIT_Z, WORLD_LIMIT_Z);
+  return next;
+}
+
+function isUnsafeStep(point) {
+  if (isBlocked(point.x, point.z)) return true;
+  if (gameState.area === 'river') {
+    const crossing = AREAS.river.crossing;
+    if (crossing && riverStep(point, crossing).deep) return true;
+  }
+  return false;
+}
+
+function recommendedAction(nearest) {
+  if (nearest && nearest.kind === 'mission' && nearest.distance < 4) return 'Pip의 대화가 열리면 F2 또는 Enter로 선택하세요.';
+  if (nearest && nearest.kind === 'collectible' && nearest.distance <= ITEM_COLLECT_DISTANCE) return 'F2 또는 Enter를 눌러 수집하세요.';
+  let target = nearest && nearest.item;
+  if (!target) {
+    const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+      ? (window.DotForest.narrative.get('flags') || {}) : {};
+    target = beaconTarget(flags);
+  }
+  if (!target) return 'PanningAll로 주변을 확인한 뒤 탐색을 계속하세요.';
+
+  const directions = ['up', 'down', 'left', 'right'];
+  const safe = directions
+    .map((direction) => {
+      const point = candidatePosition(direction);
+      if (isUnsafeStep(point)) return null;
+      let score = distance2D(point, target);
+      gameState.hazards.forEach((hazard) => {
+        const distance = distance2D(point, hazard);
+        if (distance < 4) score += (4 - distance) * 3;
+      });
+      return { direction, score };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score);
+  if (!safe.length) return 'F4를 다시 누른 뒤 반대 방향으로 한 걸음 물러나세요.';
+  return `${directionToKorean(safe[0].direction)} 이동하세요.`;
+}
+
+function describeCurrentSituation() {
+  const areaName = (AREAS[gameState.area] && AREAS[gameState.area].name) || '숲';
+  const nearest = nearestUncollectedDotling();
+  const targetDescription = nearest
+    ? `가장 가까운 도트링${nearest.item.name ? ` ${nearest.item.name}` : ''}은 ${directionDestination(relativeDirection(nearest.item.x - gameState.player.x, nearest.item.z - gameState.player.z))} 약 ${approximateSteps(nearest.distance)}칸 거리에 있습니다.`
+    : '이 구역의 도트링은 모두 모았습니다.';
+  return `현재 ${areaName} ${approximatePosition()}입니다. ${targetDescription} ${nearbyThreatDescription()} ${recommendedAction(nearest)}`;
+}
+
+function movementFeedback(direction, nearestBefore) {
+  if (!nearestBefore) return `${directionToKorean(direction)} 이동했어요. 이 구역의 도트링은 모두 모았습니다.`;
+  const afterDistance = distance2D(nearestBefore.item, gameState.player);
+  const beforeDistance = nearestBefore.distance;
+  const delta = beforeDistance - afterDistance;
+  const change = delta > 0.15
+    ? '도트링 소리가 더 가까워졌어요.'
+    : delta < -0.15
+      ? '도트링 소리가 더 멀어졌어요.'
+      : '도트링 소리와의 거리는 비슷해요.';
+  const collectHint = nearestBefore.kind === 'mission' && afterDistance < 4
+    ? ' Pip의 대화가 열리면 F2 또는 Enter로 선택하세요.'
+    : nearestBefore.kind === 'collectible' && afterDistance <= ITEM_COLLECT_DISTANCE
+      ? ' 지금 F2 또는 Enter로 수집할 수 있습니다.'
+      : '';
+  return `${directionToKorean(direction)} 이동했어요. ${change} 약 ${approximateSteps(afterDistance)}칸 남았습니다.${collectHint}`;
+}
+
 function movePlayer(direction, source = 'Input') {
+  const nearestBefore = nearestUncollectedDotling();
   const next = { x: gameState.player.x, z: gameState.player.z };
   if (direction === 'up') next.z -= MOVE_STEP;
   if (direction === 'down') next.z += MOVE_STEP;
@@ -1096,7 +1516,11 @@ function movePlayer(direction, source = 'Input') {
 
   if (isBlocked(next.x, next.z)) {
     playAction('idle');
-    announce('앞에 나무 장애물이 있어요. 다른 방향으로 이동해 주세요.', true);
+    const feedback = generateFeedback('blocked', {
+      directionLabel: directionToKorean(direction),
+      speech: `나무 장애물 때문에 이동할 수 없어요. ${describeCurrentSituation()}`,
+    });
+    announce(feedback.speech, true);
     return syncTactileFrame(`move-blocked-${direction}`).then((result) => {
       recordInputLog(`${source} → movement blocked → ${summarizeSendResult(result)}`);
       return result;
@@ -1109,7 +1533,11 @@ function movePlayer(direction, source = 'Input') {
       playAction('idle');
       const pan = direction === 'left' ? -0.7 : direction === 'right' ? 0.7 : 0;
       playWater(pan);
-      announce('그쪽은 물이 노래해요. 깊은 물입니다. 침묵하는 안전한 돌을 디뎌요.');
+      const feedback = generateFeedback('blocked', {
+        directionLabel: directionToKorean(direction),
+        speech: `깊은 물이라 이동할 수 없어요. ${describeCurrentSituation()}`,
+      });
+      announce(feedback.speech, true);
       return syncTactileFrame(`move-blocked-water-${direction}`).then((result) => {
         recordInputLog(`${source} → deep water blocked movement → ${summarizeSendResult(result)}`);
         return result;
@@ -1124,7 +1552,11 @@ function movePlayer(direction, source = 'Input') {
 
   updateLumiTransform(direction);
   playAction('walk');
-  announce(`루미가 ${directionToKorean(direction)} 이동했습니다.`);
+  const feedback = generateFeedback('moveSuccess', {
+    directionLabel: directionToKorean(direction),
+    speech: movementFeedback(direction, nearestBefore),
+  });
+  announce(feedback.speech, true);
 
   if (gameState.area === 'river' && !riverCrossed) {
     const cr = AREAS.river.crossing;
@@ -1135,7 +1567,7 @@ function movePlayer(direction, source = 'Input') {
       }
     }
   }
-  const sendPromise = checkNearbyHint(`move-${direction}`);
+  const sendPromise = checkNearbyHint(`move-${direction}`, { announceHints: false });
   sendPromise.then((result) => {
     recordInputLog(`${source} → Lumi moved ${direction} → ${summarizeSendResult(result)}`);
   });
@@ -1184,10 +1616,49 @@ function playAction(name) {
   currentAction = nextAction;
 }
 
+function activateDialogueChoice() {
+  const overlay = document.getElementById('dialogOverlay');
+  if (!overlay || overlay.hidden) return false;
+  const focused = document.activeElement;
+  const choice = focused && overlay.contains(focused) && focused.matches('button')
+    ? focused
+    : overlay.querySelector('.dialog-choice');
+  if (!choice) return false;
+  choice.click();
+  return true;
+}
+
+function moveDialogueChoice(delta) {
+  const overlay = document.getElementById('dialogOverlay');
+  if (!overlay || overlay.hidden) return false;
+  const choices = [...overlay.querySelectorAll('.dialog-choice:not([disabled])')];
+  if (!choices.length) return false;
+  const currentIndex = choices.indexOf(document.activeElement);
+  const nextIndex = currentIndex < 0
+    ? 0
+    : (currentIndex + delta + choices.length) % choices.length;
+  choices[nextIndex].focus();
+  announce(`선택지 ${nextIndex + 1}. ${choices[nextIndex].textContent}`, true);
+  return true;
+}
+
+function collectOrInteract(source = 'Input') {
+  if (activateDialogueChoice()) {
+    recordInputLog(`${source} → dialogue choice confirmed / 대화 선택`);
+    return Promise.resolve({ ok: true, interaction: true, message: 'Dialogue choice confirmed' });
+  }
+  const nearest = nearestUncollectedDotling();
+  if (nearest && nearest.kind === 'mission' && nearest.distance < 4) {
+    announce('Pip가 바로 가까이에 있어요. 대화가 열리면 F2 또는 Enter로 선택하세요.', true);
+    return syncTactileFrame('mission-interaction-wait');
+  }
+  return collectNearbyDotling(source);
+}
+
 function collectNearbyDotling(source = 'Input') {
   const target = gameState.items.find((item) => !item.collected && distance2D(item, gameState.player) <= ITEM_COLLECT_DISTANCE);
   if (!target) {
-    announce('가까운 곳에 먹을 수 있는 도트링이 없어요. 조금 더 다가가 보세요.', true);
+    announce(`F2로 수집할 도트링이 가까이 없어요. ${describeCurrentSituation()}`, true);
     return syncTactileFrame('collect-missed').then((result) => {
       recordInputLog(`${source} → no nearby Dotling → ${summarizeSendResult(result)}`);
       return result;
@@ -1216,21 +1687,26 @@ function collectNearbyDotling(source = 'Input') {
   });
 
   if (gameState.items.every((item) => item.collected)) {
-    announce('흩어진 빛을 모두 모았어요. 숲이 다시 환하게 깨어납니다!', true);
+    const feedback = generateFeedback('goalReached', {
+      speech: '흩어진 빛을 모두 모았어요. 숲이 다시 환하게 깨어납니다!',
+    });
+    announce(feedback.speech, true);
+    if (dotPadManager) dotPadManager.sendTestPattern('success-animation');
     shakeCamera(0.5, 0.022);  // Phaser 패턴: 전체 수집 완료 카메라 쉐이크
   }
   return sendPromise;
 }
 
-function checkNearbyHint(reason = 'nearby-hint') {
+function checkNearbyHint(reason = 'nearby-hint', options = {}) {
+  const announceHints = options.announceHints !== false;
   // 도트링 근접 안내
   const nearItem = gameState.items.find((item) => !item.collected && distance2D(item, gameState.player) <= 4);
-  if (nearItem) {
+  if (nearItem && announceHints) {
     announce('도트링이 가까이에 있어요. 먹기 버튼을 눌러보세요.');
   }
   // 나무 장애물 근접 안내 (반경 6 이내)
   const nearObstacle = gameState.obstacles.find((obs) => distance2D(obs, gameState.player) <= 6);
-  if (nearObstacle) {
+  if (nearObstacle && announceHints) {
     announce('나무가 가까이 있어요. Dot Pad에서 느껴보세요.');
   }
   return syncTactileFrame(reason);
@@ -1245,26 +1721,54 @@ function updateScore() {
   dom.scoreText.textContent = `${collected} / ${gameState.items.length}`;
 }
 
+function currentTactileGoal() {
+  const nearest = nearestUncollectedDotling();
+  if (nearest) {
+    return {
+      id: nearest.item.id,
+      x: nearest.item.x,
+      z: nearest.item.z,
+      kind: nearest.kind === 'mission' ? 'mission' : 'collectible',
+    };
+  }
+  if (gameState.area === 'river' && AREAS.river.crossing && !riverCrossed) {
+    return { ...AREAS.river.crossing.goal, id: 'river-goal', kind: 'goal' };
+  }
+  const flags = (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.get)
+    ? (window.DotForest.narrative.get('flags') || {}) : {};
+  const exit = beaconTarget(flags);
+  return exit ? { ...exit, id: `exit-${gameState.area}`, kind: 'exit' } : null;
+}
+
+function buildGameTactileState() {
+  const safeDirections = ['up', 'down', 'left', 'right'].filter((direction) => !isUnsafeStep(candidatePosition(direction)));
+  return {
+    player: { ...gameState.player },
+    walls: gameState.obstacles.map((obstacle) => ({ ...obstacle })),
+    hazards: gameState.hazards.map((hazard) => ({ id: hazard.id, x: hazard.x, z: hazard.z })),
+    interactables: gameState.items
+      .filter((item) => !item.collected)
+      .map((item) => ({ id: item.id, x: item.x, z: item.z, kind: 'collectible' })),
+    goal: currentTactileGoal(),
+    safeDirections,
+    world: { minX: -WORLD_LIMIT_X, maxX: WORLD_LIMIT_X, minZ: -WORLD_LIMIT_Z, maxZ: WORLD_LIMIT_Z },
+    independentInput: true,
+    ttsAvailable: true,
+  };
+}
+
 function createDotPadMatrix() {
-  const matrix = Array.from({ length: DOT_HEIGHT }, () => Array(DOT_WIDTH).fill(0));
-
-  // 0. 맵 경계 프레임 — 방향 감각용(가장 낮은 우선순위, 점선)
-  drawBorderFrame(matrix);
-
-  // 1. 근접 장애물(나무) — 플레이어 반경 6 이내, 꽉 찬 면
-  drawNearbyObstacles(matrix, 6);
-
-  // 2. 강가: 물결(물, 체크무늬) + 꽉 찬 블록(안전한 돌)
-  if (gameState.area === 'river') drawRiverCrossing(matrix);
-
-  // 3. 도트링(수집물, 속 빈 다이아몬드) + 떠다니는 그림자(위험물, 대각 X)
-  drawItems(matrix);
-  drawNearbyHazards(matrix, 7);
-
-  // 4. 캐릭터(루미) 워킹 실루엣 — 항상 위에 덮어씀(가장 큰 솔리드)
-  drawPlayerFull(matrix);
-
-  return matrix;
+  const tactileState = buildGameTactileState();
+  const rendered = renderStateToGrid(tactileState, {
+    width: DOT_WIDTH,
+    height: DOT_HEIGHT,
+    mode: tactileViewMode,
+    previousGrid: lastGameMatrix,
+  });
+  const score = calculateGameTactilePlayabilityScore(tactileState, rendered.grid, rendered.metadata);
+  lastTactileReport = { state: tactileState, metadata: rendered.metadata, score };
+  updateGameTactileDebugPanel();
+  return rendered.grid;
 }
 
 /* 맵 경계 점선 프레임 — 시야 없이도 플레이 영역 가장자리를 손끝으로 느끼게 한다. */
@@ -1354,11 +1858,9 @@ function setDot(matrix, x, y, value = 1) {
 
 function drawPath(matrix) {
   const centerY = Math.floor(DOT_HEIGHT / 2);
-  for (let x = 2; x < DOT_WIDTH - 2; x++) {
+  for (let x = 2; x < DOT_WIDTH - 2; x += 3) {
     const offset = Math.round(Math.sin(x * 0.21) * 2);
-    for (let y = centerY - 3 + offset; y <= centerY + 3 + offset; y++) {
-      if ((x + y) % 2 === 0) setDot(matrix, x, y, 1);
-    }
+    setDot(matrix, x, centerY + offset, DOT_T.PATH);
   }
 }
 
@@ -1375,16 +1877,31 @@ function drawObstacles(matrix) {
 }
 
 function drawItems(matrix) {
-  gameState.items.filter((item) => !item.collected).forEach((item) => {
+  const remaining = gameState.items.filter((item) => !item.collected);
+  const nearest = nearestUncollectedDotling();
+  const targetShape = [
+    [0, 0, 1, 0, 0],
+    [0, 1, 0, 1, 0],
+    [1, 0, 1, 0, 1],
+    [0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+  ];
+  remaining.forEach((item) => {
     const p = worldToDot(item.x, item.z);
-    // 속 빈 다이아몬드(고리) — 가운데가 비어 "동그란/열린" 촉감, 플레이어 솔리드와 대비
-    const shape = [
-      [0, 1, 0],
-      [1, 0, 1],
-      [0, 1, 0],
-    ];
-    drawShape(matrix, shape, p.x - 1, p.y - 1, DOT_T.ITEM);
+    const isNearest = nearest && nearest.kind === 'collectible' && nearest.item.id === item.id;
+    const shape = isNearest
+      ? targetShape
+      : [
+          [0, 1, 0],
+          [1, 0, 1],
+          [0, 1, 0],
+        ];
+    drawShape(matrix, shape, p.x - (isNearest ? 2 : 1), p.y - (isNearest ? 2 : 1), isNearest ? DOT_T.TARGET : DOT_T.ITEM);
   });
+  if (nearest && nearest.kind === 'mission') {
+    const p = worldToDot(nearest.item.x, nearest.item.z);
+    drawShape(matrix, targetShape, p.x - 2, p.y - 2, DOT_T.TARGET);
+  }
 }
 
 function drawPlayer(matrix) {
@@ -1395,55 +1912,18 @@ function drawPlayerFull(matrix) {
   const p = worldToDot(gameState.player.x, gameState.player.z);
   const dir = gameState.player.direction || 'down';
 
-  // 방향별 캐릭터 실루엣 (머리·몸통·팔·다리)
-  const shapes = {
-    down: [
-      [0,1,1,1,0],  // 머리
-      [1,1,1,1,1],  // 어깨
-      [0,1,1,1,0],  // 몸통
-      [1,0,1,0,1],  // 허리
-      [0,1,0,1,0],  // 다리
-      [1,0,0,0,1],  // 발
-    ],
-    up: [
-      [1,0,0,0,1],  // 발
-      [0,1,0,1,0],  // 다리
-      [1,0,1,0,1],  // 허리
-      [0,1,1,1,0],  // 몸통
-      [1,1,1,1,1],  // 어깨
-      [0,1,1,1,0],  // 머리
-    ],
-    left: [
-      [0,0,1,1,0],
-      [0,1,1,1,1],
-      [1,1,1,1,0],
-      [0,1,1,1,1],
-      [0,0,1,1,0],
-      [0,0,0,1,0],
-    ],
-    right: [
-      [0,1,1,0,0],
-      [1,1,1,1,0],
-      [0,1,1,1,1],
-      [1,1,1,1,0],
-      [0,1,1,0,0],
-      [0,1,0,0,0],
-    ],
+  // 5×5 완전 채움 블록은 다른 모든 기호보다 조밀하고 쉽게 찾을 수 있다.
+  const shape = Array.from({ length: 5 }, () => Array(5).fill(1));
+  drawShape(matrix, shape, p.x - 2, p.y - 2, DOT_T.PLAYER);
+
+  // 방향을 알려주는 짧은 돌출선. 정지·이동 상태와 관계없이 항상 유지한다.
+  const arrows = {
+    down:  [{dx:0,dy:3},{dx:0,dy:4}],
+    up:    [{dx:0,dy:-3},{dx:0,dy:-4}],
+    left:  [{dx:-3,dy:0},{dx:-4,dy:0}],
+    right: [{dx:3,dy:0},{dx:4,dy:0}],
   };
-
-  const shape = shapes[dir] || shapes.down;
-  drawShape(matrix, shape, p.x - 2, p.y - 3, DOT_T.PLAYER);
-
-  // 이동 중일 때 방향 화살표 (앞쪽에 1~2개 점)
-  if (gameState.player.animation === 'walk') {
-    const arrows = {
-      down:  [{dx:0,dy:4},{dx:0,dy:5}],
-      up:    [{dx:0,dy:-4},{dx:0,dy:-5}],
-      left:  [{dx:-4,dy:0},{dx:-5,dy:0}],
-      right: [{dx:4,dy:0},{dx:5,dy:0}],
-    };
-    (arrows[dir]||[]).forEach(({dx,dy}) => setDot(matrix, p.x+dx, p.y+dy, DOT_T.PLAYER));
-  }
+  (arrows[dir] || []).forEach(({ dx, dy }) => setDot(matrix, p.x + dx, p.y + dy, DOT_T.PLAYER));
 }
 
 function drawShape(matrix, shape, originX, originY, type = DOT_T.PLAYER) {
@@ -1462,6 +1942,8 @@ const DOT_STYLE = {
   [DOT_T.STONE]:    { c: '#e3d29a', r: 0.34 },
   [DOT_T.OBSTACLE]: { c: '#5d7a52', r: 0.34 },
   [DOT_T.ITEM]:     { c: '#f5b84b', r: 0.34 },
+  [DOT_T.TARGET]:   { c: '#ffd76b', r: 0.39 },
+  [DOT_T.EXIT]:     { c: '#91e6c6', r: 0.38 },
   [DOT_T.HAZARD]:   { c: '#ff5a4d', r: 0.36 },
   [DOT_T.PLAYER]:   { c: '#fbf7e6', r: 0.42 },
 };
@@ -1507,9 +1989,9 @@ function drawTactileFrame(matrix = null, options = {}) {
   drawTactileGrid(cellW, cellH);
 }
 
-function syncTactileFrame(reason) {
+function syncTactileFrame(reason, options = {}) {
   drawTactileFrame();
-  return sendDotPadFrame(lastMatrix, reason);
+  return sendDotPadFrame(lastMatrix, reason, options);
 }
 
 function drawTactileGrid(cellW, cellH) {
@@ -1663,10 +2145,32 @@ function matrixToDotPadHex(matrix) {
 }
 
 function runInfoAction(type, source) {
+  if (type === 'position') {
+    const areaName = (AREAS[gameState.area] && AREAS[gameState.area].name) || '숲';
+    announce(`현재 위치는 ${areaName} ${approximatePosition()}입니다. 바라보는 방향은 ${directionToKorean(gameState.player.direction)}입니다.`, true);
+    recordInputLog(`${source} → current position / 현재 위치`);
+    return Promise.resolve({ ok: true, message: 'Position narrated' });
+  }
+  if (type === 'tactileMap') return scanTactileSurroundings(source);
+  if (type === 'surroundings') {
+    announce(describeCurrentSituation(), true);
+    recordInputLog(`${source} → surroundings narration / 주변 안내`);
+    return Promise.resolve({ ok: true, message: 'Situation narrated' });
+  }
   if (window.DotForest && window.DotForest.narrative && window.DotForest.narrative.infoAction) {
     window.DotForest.narrative.infoAction(type);
   }
   recordInputLog(`${source} → ${type} information / 정보 듣기`);
+  return Promise.resolve({ ok: true, message: 'Information narrated' });
+}
+
+function scanTactileSurroundings(source = 'F4') {
+  const sendPromise = syncTactileFrame('tactile-surroundings-scan', { priority: 100, force: true });
+  announce(`${TACTILE_VIEW_LABELS[tactileViewMode]}입니다. ${describeCurrentSituation()} ${tactileLegendText(tactileViewMode)}`, true);
+  sendPromise.then((result) => {
+    recordInputLog(`${source} → tactile frame resent → ${summarizeSendResult(result)}`);
+  });
+  return sendPromise;
 }
 
 // DotPad physical key → movement, interaction, information, or tactile resend.
@@ -1674,56 +2178,51 @@ function onDotKey(device, key, rawCode = '') {
   if (dom.dotpadKeyStatus) {
     dom.dotpadKeyStatus.textContent = `DotPad key received: ${key}${rawCode ? ` · raw ${rawCode}` : ''}`;
   }
-  switch (key) {
-    case KeyCodes.PanningLeft:
+  if (document.body.dataset.screen !== 'game') {
+    recordInputLog(`DotPad key ignored outside gameplay: ${key}`);
+    return;
+  }
+  const action = resolveDotPadAction(key);
+  switch (action) {
+    case 'move_left':
+      if (moveDialogueChoice(-1)) break;
       recordInputLog('Action mapped: move left / 왼쪽 이동');
       handlePanningKeyInput('left', 'DotPad PanningLeft');
       break;
-    case KeyCodes.PanningRight:
+    case 'move_right':
+      if (moveDialogueChoice(1)) break;
       recordInputLog('Action mapped: move right / 오른쪽 이동');
       handlePanningKeyInput('right', 'DotPad PanningRight');
       break;
-    // Dot Games 규격 §6 키맵 — 단순 키로 완전 4방향 이동 + 수집
-    case KeyCodes.KeyFunction1:
-      recordInputLog('Action mapped: move up / 앞으로(위) 이동');
-      handlePanningKeyInput('up', 'DotPad F1');
+    case 'move_up':
+      if (moveDialogueChoice(-1)) break;
+      recordInputLog('Action mapped: move up / 앞으로 이동');
+      handlePanningKeyInput('up', `DotPad ${key}`);
       break;
-    case KeyCodes.KeyFunction2:
-      recordInputLog('Action mapped: move down / 뒤로(아래) 이동');
-      handlePanningKeyInput('down', 'DotPad F2');
+    case 'move_down':
+      if (moveDialogueChoice(1)) break;
+      recordInputLog('Action mapped: move down / 뒤로 이동');
+      handlePanningKeyInput('down', `DotPad ${key}`);
       break;
-    case KeyCodes.KeyFunction3:
-      recordInputLog('Action mapped: collect / 수집(먹기)');
-      collectNearbyDotling('DotPad F3');
+    case 'read_current_position':
+      recordInputLog('Action mapped: read current position / 현재 위치');
+      runInfoAction('position', 'DotPad F1');
       break;
-    case KeyCodes.KeyFunction4:
-      recordInputLog('Action mapped: tactile map + resend / 촉각 지도 + 재전송');
-      runInfoAction('tactileMap', 'DotPad F4');
-      sendDotPadFrame(lastMatrix, 'physical-key-map-resend').then((result) => {
-        recordInputLog(`DotPad F4 → ${summarizeSendResult(result)}`);
-      });
+    case 'confirm_or_interact':
+      recordInputLog('Action mapped: collect or interact / 수집·상호작용');
+      collectOrInteract(`DotPad ${key}`);
       break;
-    case KeyCodes.PanningAll:
-      recordInputLog('Action mapped: voice surroundings / 주변 음성 안내');
-      runInfoAction('surroundings', 'DotPad PanAll');
+    case 'read_current_mission':
+      recordInputLog('Action mapped: read current mission / 현재 미션');
+      runInfoAction('mission', 'DotPad F3');
       break;
-    // 보조(조합키): 상/하 이동·수집 backward-compat (기기 키 구성 차이 대비)
-    case KeyCodes.LPF1:
-      recordInputLog('Action mapped: move up (LPF1) / 위 이동');
-      handlePanningKeyInput('up', 'DotPad LPF1');
+    case 'scan_surroundings':
+      recordInputLog('Action mapped: scan surroundings / 주변 스캔');
+      scanTactileSurroundings('DotPad F4');
       break;
-    case KeyCodes.RPF4:
-      recordInputLog('Action mapped: move down (RPF4) / 아래 이동');
-      handlePanningKeyInput('down', 'DotPad RPF4');
-      break;
-    case KeyCodes.KeyFunction12:
-    case KeyCodes.KeyFunction13:
-    case KeyCodes.KeyFunction14:
-    case KeyCodes.KeyFunction23:
-    case KeyCodes.KeyFunction24:
-    case KeyCodes.KeyFunction34:
-      recordInputLog(`Action mapped: collect / interact (${key})`);
-      collectNearbyDotling(`DotPad ${key}`);
+    case 'cycle_tactile_view':
+      recordInputLog('Action mapped: cycle tactile view / 촉각 보기 전환');
+      cycleTactileViewMode('DotPad PanningAll');
       break;
     default:
       recordInputLog(`Action mapped: none for ${key} / 미매핑 키`);
@@ -1731,7 +2230,13 @@ function onDotKey(device, key, rawCode = '') {
   }
 }
 
-function sendDotPadFrame(matrix, reason = 'unspecified') {
+function sendPriorityForReason(reason) {
+  if (/danger|hazard|blocked|goal|collect|area-load|view-mode|scan/.test(reason)) return 95;
+  if (/move/.test(reason)) return 85;
+  return 60;
+}
+
+function sendDotPadFrame(matrix, reason = 'unspecified', options = {}) {
   if (!dotPadManager) {
     return Promise.resolve({
       ok: false,
@@ -1739,7 +2244,12 @@ function sendDotPadFrame(matrix, reason = 'unspecified') {
       message: 'Skipped: DotPad manager not ready',
     });
   }
-  return dotPadManager.sendMatrix(matrix, reason);
+  if (!dotPadGameStream) return dotPadManager.sendMatrix(matrix, reason);
+  return dotPadGameStream.request(matrix, {
+    reason,
+    priority: options.priority || sendPriorityForReason(reason),
+    force: !!options.force,
+  });
 }
 
 function emptyDotPadMatrix(fill = 0) {
@@ -1764,8 +2274,8 @@ function createDotPadTestPattern(patternType) {
   if (patternType === 'current-game') return { label: labels[patternType], frames: [createDotPadMatrix()] };
 
   if (patternType === 'player-only') {
-    const matrix = emptyDotPadMatrix();
-    drawPlayerFull(matrix);
+    const current = createDotPadMatrix();
+    const matrix = current.map((row) => row.map((value) => value === DOT_T.PLAYER ? DOT_T.PLAYER : DOT_T.EMPTY));
     return { label: labels[patternType], frames: [matrix] };
   }
 
@@ -1821,6 +2331,16 @@ function updateGuidedDemoUi(step) {
     item.classList.toggle('active', index + 1 === step);
     item.classList.toggle('complete', index + 1 < step);
   });
+  if (!dom.onboardingOverlay || dom.onboardingOverlay.hidden || onboardingMode !== 'practice') return;
+  const current = CONTROL_TUTORIAL_STEPS[step - 1];
+  if (!current) return;
+  dom.onboardingProgress.textContent = `${step} / ${CONTROL_TUTORIAL_STEPS.length}`;
+  dom.onboardingTitle.textContent = current.title;
+  dom.onboardingText.textContent = current.text;
+  dom.onboardingDetails.textContent = current.details;
+  dom.onboardingBack.disabled = step === 1;
+  dom.onboardingNext.hidden = step === CONTROL_TUTORIAL_STEPS.length;
+  dom.onboardingStart.hidden = step !== CONTROL_TUTORIAL_STEPS.length;
 }
 
 function moveLumiNearNearestDotling() {
@@ -1840,47 +2360,17 @@ function moveLumiNearNearestDotling() {
 }
 
 async function runGuidedDemoStep(step) {
-  guidedDemoStep = Math.max(1, Math.min(8, step));
+  guidedDemoStep = Math.max(1, Math.min(CONTROL_TUTORIAL_STEPS.length, step));
   updateGuidedDemoUi(guidedDemoStep);
   recordInputLog(`Guided Demo Step ${guidedDemoStep} started`);
-
-  if (guidedDemoStep === 1) {
-    await dotPadManager.connect();
-  } else if (guidedDemoStep === 2) {
-    await dotPadManager.sendTestPattern('border-origin');
-  } else if (guidedDemoStep === 3) {
-    await dotPadManager.sendTestPattern('current-game');
-  } else if (guidedDemoStep === 4) {
-    if (dotPadManager.mockMode) {
-      onDotKey(null, KeyCodes.PanningRight, 'mock-demo');
-    } else {
-      announce('Press a DotPad panning key now. / DotPad 패닝키를 눌러주세요.', true);
-      recordInputLog('Waiting for physical PanningLeft or PanningRight');
-    }
-  } else if (guidedDemoStep === 5) {
-    if (dotPadManager.mockMode) {
-      const demoKeys = [KeyCodes.KeyFunction1, KeyCodes.KeyFunction2, KeyCodes.KeyFunction3, KeyCodes.KeyFunction4];
-      for (const key of demoKeys) {
-        onDotKey(null, key, 'mock-demo');
-        await new Promise((resolve) => window.setTimeout(resolve, 280));
-      }
-    } else {
-      announce('Press F1, F2, F3, and F4 on DotPad. / DotPad F1~F4를 눌러주세요.', true);
-      recordInputLog('Waiting for DotPad F1 / F2 / F3 / F4');
-    }
-  } else if (guidedDemoStep === 6) {
-    const result = await moveLumiNearNearestDotling();
-    recordInputLog(`Find Dotling → ${summarizeSendResult(result)}`);
-  } else if (guidedDemoStep === 7) {
-    await collectNearbyDotling('Guided Demo Step 7');
-  } else if (guidedDemoStep === 8) {
-    await dotPadManager.sendTestPattern('success-animation');
-  }
+  const current = CONTROL_TUTORIAL_STEPS[guidedDemoStep - 1];
+  if (current) announce(`${current.title}. ${current.text} ${current.details}`, true);
 }
 function setDotBitOrder(key) {
   dotBitOrderKey = (key === 'raster') ? 'raster' : 'braille';
   try { localStorage.setItem('dotforest.dotOrder', dotBitOrderKey); } catch (e) {}
-  sendDotPadFrame(lastMatrix, 'bit-order-change').then((result) => {
+  if (dotPadGameStream) dotPadGameStream.resetDuplicateGuard();
+  sendDotPadFrame(lastMatrix, 'bit-order-change', { priority: 100, force: true }).then((result) => {
     recordInputLog(`Cell pin order: ${dotBitOrderKey} → ${summarizeSendResult(result)}`);
   });
 }
@@ -1975,6 +2465,11 @@ function animate() {
   // 일시정지(부모 DOT_FOREST_PAUSE): 시뮬레이션·애니메이션은 멈추되 마지막 프레임은 계속 렌더.
   // getDelta()는 위에서 소비했으므로 재개 시 시간 점프 없음.
   if (paused) { if (renderer) renderer.render(scene, camera); return; }
+  // 타이틀/설정에서는 숨겨진 게임 세계를 정지해 예기치 않은 위험·TTS 알림을 막는다.
+  if (document.body.dataset.screen !== 'game') {
+    if (renderer) renderer.render(scene, camera);
+    return;
+  }
   // ── fps 워치독: auto 품질에서 3초 평균 fps가 낮으면 1회 다운그레이드 ──
   if (qualityLevel === 'auto' && !autoDowngraded) {
     fpsFrames++;
@@ -2178,9 +2673,11 @@ window.DotForest.bridge = {
     return cr ? riverStep({ x, z }, cr).deep : false;
   },
   move: (dir) => movePlayer(dir),
-  collect: () => collectNearbyDotling(),
+  collect: () => collectOrInteract(),
   reset: () => resetGame(),
   announce: (msg, speak = false) => announce(msg, speak),
+  describeCurrentSituation: () => describeCurrentSituation(),
+  repeatTactileGuidance: () => scanTactileSurroundings('External request'),
   constants: { WORLD_LIMIT_X, WORLD_LIMIT_Z, MOVE_STEP, ITEM_COLLECT_DISTANCE },
 
   /* ---- 임베드 라이프사이클 hook (append-only, 게임 로직 불변) ---- */

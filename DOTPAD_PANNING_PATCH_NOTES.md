@@ -1,30 +1,27 @@
-# DotPad 키 매핑 노트 (Dot Games 규격 §6)
+# DotPad Game Tactile Standard 키 매핑
 
-DotPad 물리 키로 Lumi를 **단순 키만으로 완전 4방향 이동 + 수집**할 수 있어야 하며,
-Debug Key Log에 매핑된 동작이 보여야 합니다.
+DotPad 물리 키는 이동, 정보 확인, 상호작용, 촉각 보기 전환을 분리합니다.
 
-## 현재 매핑 (규격 §6 — 이동 우선)
+## 현재 매핑
 
-- `PanningLeft` / LP+0 → 왼쪽 이동
-- `PanningRight` / RP+0 → 오른쪽 이동
-- `F1` (KeyFunction1) → 앞으로(위) 이동
-- `F2` (KeyFunction2) → 뒤로(아래) 이동
-- `F3` (KeyFunction3) → 수집 / 선택(먹기)
-- `F4` (KeyFunction4) → 촉각 지도 안내 + 현재 프레임 재전송
-- `PanningAll` / AP+0 → 주변 음성 안내
+- `PanningLeft` → 왼쪽 이동
+- `PanningRight` → 오른쪽 이동
+- `LPF1` → 앞으로 이동
+- `RPF4` → 뒤로 이동
+- `F1` (`KeyFunction1`) → 현재 위치와 바라보는 방향 읽기
+- `F2` (`KeyFunction2`) → 수집 / 상호작용 / 확인
+- `F3` (`KeyFunction3`) → 현재 미션 읽기
+- `F4` (`KeyFunction4`) → 주변·위험·목표 스캔 + 현재 촉각 프레임 재전송
+- `PanningAll` → 현재 주변 / 전체 맵 / 목표 방향 보기 전환
+- `F12`~`F34` 조합키 → 수집 / 상호작용 보조 입력
 
-## 보조 (backward-compat)
+## 검증
 
-- `LPF1` / LP+8 → 위 이동, `RPF4` / RP+1 → 아래 이동 (조합키)
-- `F12`~`F34` 조합키 → 수집
+콘솔에서 다음처럼 모의 입력을 보낼 수 있습니다.
 
-> 이전 매핑(F1~F4 = 위치/주변/미션/지도)에서 변경됨. 위치·주변·미션 정보는
-> 키보드 `1~4`와 화면 정보 버튼으로 계속 제공됩니다(접근성 유지).
-
-## 검증 (기기 없이)
-
-콘솔: `window.DotForest.dotPad.simulateKey('KeyFunction1')`(앞으로),
-`simulateKey('KeyFunction3')`(수집), `simulateKey('PanningLeft')`(왼쪽) 등으로 시뮬레이션.
-SDK가 canonical KeyCodes 대신 raw 라벨을 반환하면 게임 핸들러 전달 전에 정규화할 것.
-
-Status: §6 이동 우선 매핑 적용 완료 (시뮬레이션 검증: F1→앞, F2→뒤, F3→수집, PanL/R→좌우).
+```js
+window.DotForest.dotPad.simulateKey('KeyFunction1'); // 현재 위치
+window.DotForest.dotPad.simulateKey('KeyFunction2'); // 상호작용
+window.DotForest.dotPad.simulateKey('PanningLeft');  // 왼쪽 이동
+window.DotForest.dotPad.simulateKey('PanningAll');   // 촉각 보기 전환
+```

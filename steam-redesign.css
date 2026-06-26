@@ -303,6 +303,119 @@
   outline-offset: 2px;
 }
 
+.gm-title-status {
+  min-height: 1.2rem;
+  margin: -0.2rem 0 0;
+  color: var(--df-ink-dim);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* --- 독립 플레이 온보딩 / 교사 안내 --- */
+.onboarding-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 8, 4, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.onboarding-overlay[hidden] { display: none !important; }
+.onboarding-dialog {
+  width: min(42rem, 96vw);
+  max-height: min(88vh, 46rem);
+  overflow: auto;
+  padding: clamp(1.1rem, 3vw, 2rem);
+  color: var(--df-ink);
+  background: linear-gradient(180deg, rgba(20, 45, 25, 0.98), rgba(6, 17, 9, 0.99));
+  border: 2px solid rgba(245, 184, 75, 0.48);
+  border-radius: 1rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.72);
+}
+.onboarding-dialog:focus-visible {
+  outline: 3px solid var(--df-gold);
+  outline-offset: 4px;
+}
+.onboarding-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.onboarding-progress {
+  min-height: 1rem;
+  margin: 0 0 0.2rem;
+  color: var(--df-gold-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.onboarding-dialog h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+}
+.onboarding-close {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  background: rgba(0,0,0,.28);
+  color: #fff;
+  font-size: 1.7rem;
+  cursor: pointer;
+}
+.onboarding-text {
+  margin-top: 1.2rem;
+  color: #fff;
+  font-size: clamp(1rem, 2.3vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.7;
+}
+.onboarding-details {
+  margin-top: 1rem;
+  color: var(--df-ink-dim);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.onboarding-details ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.35rem;
+}
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+.onboarding-actions button {
+  min-height: 2.8rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(160, 205, 150, 0.4);
+  border-radius: 0.55rem;
+  background: rgba(24, 55, 29, 0.95);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.onboarding-actions button.primary {
+  background: #f5b84b;
+  border-color: #ffd782;
+  color: #201707;
+}
+.onboarding-actions button:disabled { opacity: 0.4; cursor: default; }
+.onboarding-dialog :is(button, a):focus-visible {
+  outline: 3px solid var(--df-gold);
+  outline-offset: 3px;
+}
+
 /* --- Press-Start 핫스팟 위 gm-menu 노출 시 겹치지 않게 --- */
 .dot-forest-start-hotspot { z-index: 5; } /* gm-menu(10) 아래로 */
 
@@ -1014,20 +1127,24 @@
 ================================================================ */
 @media (max-width: 720px) {
   .gm-menu {
-    bottom: 5%;
+    bottom: 3%;
     width: 96vw;
+    gap: 0.55rem;
   }
   .gm-btn,
-  .gm-btn--primary,
-  .gm-btn-ghost { height: 3rem; font-size: 0.82rem; }
+  .gm-btn--primary { height: 2.85rem; font-size: 0.82rem; }
+  .gm-btn-ghost { height: 2.7rem; font-size: 0.78rem; }
+  .gm-nav { gap: 0.38rem; }
+  .gm-dp-status { margin-bottom: 0; }
   #screen-game .info-keys button { padding: 0.24rem 0.55rem !important; }
 }
 
 @media (max-width: 480px) {
-  .gm-menu { bottom: 3%; gap: 0.7rem; }
+  .gm-menu { bottom: 1.5%; gap: 0.38rem; }
   .gm-btn,
   .gm-btn--primary,
-  .gm-btn-ghost { height: 2.8rem; }
+  .gm-btn-ghost { height: 2.55rem; }
+  .gm-title-status { display: none; }
 
   /* ── 모바일 HUD: 2줄 레이아웃으로 340px에 맞춤 ── */
   #screen-game .hud {

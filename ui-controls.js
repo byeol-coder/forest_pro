@@ -475,7 +475,7 @@
           if (!dot) continue;
           dot.className = 'dp-mini-dot';
           if (val === 8) dot.classList.add('player');
-          else if (val === 6) dot.classList.add('item');
+          else if (val === 6 || val === 9 || val === 10) dot.classList.add('item');
           else if (val === 7) dot.classList.add('hazard');
           else if (val >= 1 && val <= 5) dot.classList.add('on');
         }

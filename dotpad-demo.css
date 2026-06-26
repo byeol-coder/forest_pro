@@ -165,6 +165,33 @@
   border-radius: 0;
 }
 
+.tactile-view-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+}
+.tactile-view-controls button {
+  min-height: 2rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid rgba(190, 220, 185, 0.24);
+  border-radius: 0.4rem;
+  background: rgba(8, 20, 11, 0.72);
+  color: rgba(235, 248, 226, 0.74);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tactile-view-controls button[aria-pressed="true"] {
+  border-color: #f5b84b;
+  background: rgba(245, 184, 75, 0.18);
+  color: #fff2c7;
+}
+.tactile-view-controls button:focus-visible {
+  outline: 3px solid #f5b84b;
+  outline-offset: 2px;
+}
+
 /* ---- 범례 ---- */
 #screen-game .dotpad-demo-panel .dp-legend {
   display: flex;
